@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progression des Paies</title>
+    <style>
+        #progress-container {
+            width: 100%;
+            background: #f3f3f3;
+            border: 1px solid #ccc;
+            height: 30px;
+            position: relative;
+        }
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #4caf50;
+            transition: width 0.5s;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="progressTitre" >Progression des Paies</h1>
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+    <p id="progress-text">0%</p>
+
+    <script>
+        function updateProgress() {
+            fetch('progression.php')
+                .then(response => response.json())
+                .then(data => {
+                    const progressTitre = document.getElementById('progressTitre');
+                    const progressBar = document.getElementById('progress-bar');
+                    const progressText = document.getElementById('progress-text');
+                    if(data.effectue == data.total)
+                        progressTitre.textContent = 'Salaires générés avec succès';
+
+                    const percentage = Math.round((data.effectue / data.total) * 100);
+                    progressBar.style.width = percentage + '%';
+                    progressText.textContent = percentage + '% (' + data.effectue + '/' + data.total + ')';
+                });
+        }
+
+        // Mettre à jour la progression toutes les 2 secondes
+        setInterval(updateProgress, 500);
+    </script>
+
+</body>
+</html>

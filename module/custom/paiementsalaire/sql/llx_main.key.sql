@@ -1,0 +1,66 @@
+-- ========================================================================
+-- Copyright (C) 2012-2017      Noé Cendrier  <noe.cendrier@altairis.fr>
+--
+-- This program is free software; you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation; either version 2 of the License, or
+-- (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program. If not, see <http://www.gnu.org/licenses/>.
+--
+-- ========================================================================
+
+--drop table llx_bareme_prestation;
+--drop table llx_bareme_prestation_convention;
+------drop table llx_bulletin;
+------drop table llx_bulletin_anciennete;
+------drop table llx_bulletin_cotisation;
+------drop table llx_bulletin_indemnite;
+------drop table llx_bulletin_prime;
+------drop table llx_bulletin_prime_exceptionnelle;
+------drop table llx_bulletin_taxe;
+------drop table llx_condition_anciennete;
+--drop table llx_condition_categorie_indemnite;
+--drop table llx_condition_categorie_prime;
+--drop table llx_condition_indemnite;
+--drop table llx_condition_prime;
+--drop table llx_condition_type_salarie_indemnite;
+--drop table llx_condition_type_salarie_prime;
+--drop table llx_conge;
+--drop table llx_convention;
+--drop table llx_dcategories;
+--drop table llx_diplome;
+--drop table llx_echelon;
+--drop table llx_grille;
+--drop table llx_grille_categorie_echelon_salaire_base;
+--drop table llx_heure_sup;
+--drop table llx_indemnite;
+--drop table llx_organisme;
+--drop table llx_primes;
+--drop table llx_salaire_categorie;
+------drop table llx_salarie;
+--drop table llx_salarie_avance;
+--drop table llx_detail_avance;
+--drop table llx_salarie_contrat;
+--drop table llx_salarie_contrat_salaire_net;
+--drop table llx_salarie_heure_sup;
+--drop table llx_salarie_indemnite;
+--drop table llx_salarie_indemnite_flottante;
+--drop table llx_salarie_prestation_social;
+--drop table llx_salarie_prime;
+--drop table llx_salarie_prime_flottante;
+--drop table llx_salarie_taxe;
+--drop table llx_sauvegarde_cotisation;
+--drop table llx_taxe;
+--drop table llx_type_contrat;
+--drop table llx_type_prestation;
+--drop table llx_type_salarie;
+--drop table llx_type_taxe;
+--drop table llx_variable_prime;
+
