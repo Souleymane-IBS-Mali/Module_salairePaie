@@ -7,6 +7,8 @@ Il peur être utiliser, étudier, modifier ou le distribuer librement selon sa l
 Dolibarr peut être decrit une application autonome ou une application Web qu'on accède depuis Internet ou depuis un réseau local.
 C'est sur cette optique nous avons développé ce module SalirePaie.
 Le SalairePaie est un logiciel de gestion de la paie qui est conçu pour automatiser et simplifier le traitement des salaires au sein d'une entreprise.
+
+
 Le module Salaire|Paie pour Dolibarr est une solution complète et intégrée destinée aux entreprises souhaitant automatiser et sécuriser la gestion de la paie et des ressources humaines.
 En répondant aux exigences légales et aux spécificités des entreprises maliennes, ce module offre une gestion optimale des conventions, des accords, des cotisations sociales et fiscales, 
 ainsi que des bulletins de paie,
