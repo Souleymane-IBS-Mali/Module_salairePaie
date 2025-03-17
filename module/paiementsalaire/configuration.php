@@ -340,11 +340,12 @@ $whmcsurl = 'https://my.ibs-mali.com/';
 
                 //calcul du nombre total de salarié
                 $num_sal_exist = 0;
+                $tout = 0;
                 $sql = "SELECT sc.rowid FROM ".MAIN_DB_PREFIX."societe as sc";
                     $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_extrafields as sce ON sc.rowid=sce.fk_object WHERE sce.grp=1";
                     $result = $db->query($sql);
                         
-                    $num_societe = 0;
+                    /*$num_societe = 0;
                     if($result){
                         $num_societe = $db->num_rows($result);
                         $i = 0;
@@ -358,15 +359,20 @@ $whmcsurl = 'https://my.ibs-mali.com/';
                             $num_user = $db->num_rows($result1);
                             $j = 0;
                             while ($j < $num_user) {
-                                $users = $db->fetch_object($result1);
-                                $sql_salarie = "SELECT * FROM ".MAIN_DB_PREFIX."salarie WHERE fk_user=".$users->rowid." AND archiver!='oui'";
+                                $users = $db->fetch_object($result1);*/
+                                $sql_salarie = "SELECT count(rowid) as nb FROM ".MAIN_DB_PREFIX."salarie WHERE archiver='non'";
                                 $res = $db->query($sql_salarie);
                                 if($res){
-                                    $salarie = $db->fetch_object($res);
-                                    if($salarie->matricule)
-                                        $num_sal_exist += 1;
+                                    $num_sal_exist = $db->fetch_object($res)->nb;
                                 }
-                                $j++;
+
+                                $sql_salarie = "SELECT count(rowid) as nb FROM ".MAIN_DB_PREFIX."salarie";
+                                $res = $db->query($sql_salarie);
+                                if($res){
+                                    $tout = $db->fetch_object($res)->nb;
+                                }
+
+                                /*$j++;
                             }
                             
                         }
@@ -374,10 +380,10 @@ $whmcsurl = 'https://my.ibs-mali.com/';
                         $i++;
                     
                         }
-                    }
+                    }*/
                 print "<tr class='underbanner'>";
                 print '<td><br>Nombre salariés<br><br></td>';
-                print '<td>'.$licence_obj->nb_salarie.'('.$num_sal_exist.' utilisés)</td>';
+                print '<td>'.$licence_obj->nb_salarie.'('.$num_sal_exist.' utilisés)('.($tout - $num_sal_exist).' archivés)</td>';
                 print "</tr>";
 
 

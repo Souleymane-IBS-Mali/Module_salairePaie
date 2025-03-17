@@ -1,19 +1,44 @@
 <?php
 
+require_once './../../main.inc.php';
 
 // Appel de la librairie FPDF
-require '../../main.inc.php';
-
 require("fpdf/fpdf.php");
 
 $annee = GETPOST("annee", "int");
 $mois = GETPOST("mois", "int");
 $id_societe = GETPOST('id_societe','int');
-$id_convention = GETPOST('id_convention','int');
+$message = '';
+$numero = GETPOST("numero_affiliation", "alpha");
+if(empty($numero))
+        $message .= 'Le champ "NUMERO AFFILIATION" est obligatoire<br>';
+
+    if(empty($annee) || $annee <= 0)
+        $message .= 'Le champ "ANNEE" est obligatoire<br>';
+
+    if(empty($mois) || $mois <= 0)
+        $message .= 'Le champ "MOIS" est obligatoire<br>';
+
+    if(empty($id_societe) || $id_societe <= 0)
+        $message .= 'Le champ "SOCIETE" est obligatoire';
+
+if(empty($message)){
+        $sql = "SELECT sc.rowid as r1, sc.nom, sce.rowid as r2, sce.fk_object, sce.numero_inps FROM ".MAIN_DB_PREFIX."societe as sc";
+        $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_extrafields as sce ON sc.rowid=sce.fk_object";
+        $sql .= " WHERE sce.numero_inps=".$numero;
+        $res_verif = $db->query($sql);
+        $num = $db->num_rows($res_verif);
+        $a = 1;
+        $array_id_soc = "(0";
+        while ($a <= $num) {
+            $obj_verif = $db->fetch_object($res_verif);
+            $array_id_soc .=", ".$obj_verif->r1;
+            $a ++;
+        }
+        $array_id_soc .= ")";
 
 $mois_tab = array(" janvier "," février "," mars "," avril "," mai "," juin "," juillet "," août "," septembre "," octobre "," novembre "," décembre ");
 
-$action =  GETPOST("action", "aplha");
 if($action == "telecharger")
  $mode = "D";
 else $mode = "I";
@@ -119,13 +144,17 @@ function SetCharSpacing($cs) {
     // Compteur de pages {nb}
     $pdf->AliasNbPages();
 
+    $sql = "SELECT sc.rowid as r1, sc.nom, sce.rowid as r2, sce.fk_object, sce.conv FROM ".MAIN_DB_PREFIX."societe as sc";
+                $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_extrafields as sce ON sc.rowid=sce.fk_object";
+                $sql .= " WHERE sc.rowid=".$id_societe;
 
-    $sql = "SELECT sc.*, sce.fk_object, sce.numero_inps FROM ".MAIN_DB_PREFIX."societe as sc";
-    $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_extrafields as sce ON sc.rowid=sce.fk_object";
-    $sql .= " WHERE sc.rowid=".$id_societe;
-    $res_verif = $db->query($sql);
+                    $result = $db->query($sql);
+                    $sc = $db->fetch_object($result);
+                    $id_convention = $sc->conv;
 
-    $sc = $db->fetch_object($res_verif);
+    $sql = "SELECT * FROM ".MAIN_DB_PREFIX."societe Where rowid=".$id_societe;
+    $result1 = $db->query($sql);
+    $sc = $db->fetch_object($result1);
 
     $y = $pdf->GetY()+2;
     $pdf->SetY($y);
@@ -185,11 +214,10 @@ function SetCharSpacing($cs) {
    $pdf->MultiCell(64,3, utf8_decode("Date d'échéance de Paiement "),0,'L');
    
    //Numéro employeur-----------------------------------------
-
    $pdf->SetY($y);
    $pdf->SetX($x + 69);
    $pdf->SetFont('Arial','',10);
-   $pdf->MultiCell(40,3, utf8_decode("N° Employeur : ".$sc->numero_inps),0,'C');
+   $pdf->MultiCell(40,3, utf8_decode("N° Employeur : ".$numero),0,'C');
 
    $pdf->SetY($pdf->GetY()+3);
    $pdf->SetX($x + 80);
@@ -203,7 +231,7 @@ $pdf->SetFont('Arial','B',6);
    $y = $pdf->GetY()+23;
     $pdf->SetY($y);
     $pdf->Cell(60,17, "",1,0,'');
-    $sql_verif = "SELECT rowid, nom, prenom, matricule, salaire_brut_cotisable FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+    $sql_verif = "SELECT rowid, nom, prenom, matricule, salaire_brut_cotisable FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe IN ".$array_id_soc." ORDER BY nom";
     $res_verif = $db->query($sql_verif);
 
     $nb = 0;
@@ -650,7 +678,7 @@ if($nb>0){
      $pdf->AddPage();
       $y = $pdf->GetY()+6;
    }*/
-    $pdf->SetY($y+1);
+    $pdf->SetY($y);
     $pdf->SetFont('Arial','',8);
     $pdf->SetX(5);
     $pdf->Cell(96,4, utf8_decode("Total"),0,0,'C');
@@ -687,24 +715,24 @@ if($nb>0){
               $pdf->Cell(24,5, utf8_decode(apres_virgule($total_total_horizotal, 0)),0,0,'R',true);
 
                 $y = $pdf->GetY()+6;
-                $pdf->line(24,$y_rect,24,$y_rect+($y - $y_rect-8));
-                $pdf->line(82,$y_rect,82,$y_rect+($y - $y_rect-8));
-                $pdf->line(102,$y_rect,102,$y_rect+($y - $y_rect-8));
-                $pdf->line(106,$y_rect,106,$y_rect+($y - $y_rect-8));
-                $pdf->line(110,$y_rect,110,$y_rect+($y - $y_rect-8));
-                $pdf->line(121,$y_rect,121,$y_rect+($y - $y_rect-8));
-                $pdf->line(132,$y_rect,132,$y_rect+($y - $y_rect));
-                $pdf->line(149,$y_rect,149,$y_rect+($y - $y_rect));
-                $pdf->line(166,$y_rect,166,$y_rect+($y - $y_rect));
-                $pdf->line(183,$y_rect,183,$y_rect+($y - $y_rect));
-                $pdf->line(200,$y_rect,200,$y_rect+($y - $y_rect));
-                $pdf->line(217,$y_rect,217,$y_rect+($y - $y_rect));
-                $pdf->line(234,$y_rect,234,$y_rect+($y - $y_rect));
-                $pdf->line(251,$y_rect,251,$y_rect+($y - $y_rect));
-                $pdf->line(268,$y_rect,268,$y_rect+($y - $y_rect));
+                $pdf->line(24,$y_rect,24,$y_rect+($y - $y_rect-7));
+                $pdf->line(82,$y_rect,82,$y_rect+($y - $y_rect-7));
+                $pdf->line(102,$y_rect,102,$y_rect+($y - $y_rect-7));
+                $pdf->line(106,$y_rect,106,$y_rect+($y - $y_rect-7));
+                $pdf->line(110,$y_rect,110,$y_rect+($y - $y_rect-7));
+                $pdf->line(121,$y_rect,121,$y_rect+($y - $y_rect-7));
+                $pdf->line(132,$y_rect,132,$y_rect+($y - $y_rect-1));
+                $pdf->line(149,$y_rect,149,$y_rect+($y - $y_rect-1));
+                $pdf->line(166,$y_rect,166,$y_rect+($y - $y_rect-1));
+                $pdf->line(183,$y_rect,183,$y_rect+($y - $y_rect-1));
+                $pdf->line(200,$y_rect,200,$y_rect+($y - $y_rect-1));
+                $pdf->line(217,$y_rect,217,$y_rect+($y - $y_rect-1));
+                $pdf->line(234,$y_rect,234,$y_rect+($y - $y_rect-1));
+                $pdf->line(251,$y_rect,251,$y_rect+($y - $y_rect-1));
+                $pdf->line(268,$y_rect,268,$y_rect+($y - $y_rect-1));
 
 
-    $y = $pdf->GetY()+6;
+    $y = $pdf->GetY()+5;
     $pdf->SetY($y_rect);
     $pdf->SetX(5);
    $pdf->Cell($pdf->GetPageWidth()-9.5,$y - $y_rect, "",1,0,'');
@@ -893,7 +921,7 @@ $pdf->SetFont('Arial','',9);
 
     //NB
     $pdf->SetFont('Arial','B',9);
-    $y = $pdf->GetY() + 12;
+    $y = $pdf->GetY() + 9;
     $y_rect = $y;
     $pdf->SetY($y);
     $pdf->SetLeftMargin(5);
@@ -970,7 +998,7 @@ $pdf->SetFont('Arial','',9);
 
    $pdf->SetX($x+5);
    $pdf->SetFont('Arial','',10);
-   $pdf->MultiCell(52,3, utf8_decode("N° Employeur : ".$sc->numero_inps),0,'L');
+   $pdf->MultiCell(52,3, utf8_decode("N° Employeur : ".$numero),0,'L');
 
    $pdf->SetY($pdf->GetY()+3);
    $pdf->SetX($x+5);
@@ -1637,7 +1665,15 @@ $pdf->SetFont('Arial','',9);
      $pdf->Output($titre,$mode);
      $db->free();
 
-
+}else{
+  //print $message;
+  header('Location: ./../export.php?action=export_fiche_inps');
+  //header("Location: https://www.example.com");
+  if(!empty($message))
+  print "<script>
+  $.jnotify('".$message."', {delay : 5000, fadeSpeed: 500});
+  </script>";
+}
 
 
 

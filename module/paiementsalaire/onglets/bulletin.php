@@ -51,7 +51,7 @@ $whmcsurl = 'https://my.ibs-mali.com/';
     // of the licensing product that will be used with this check.
     $licensing_secret_key = 'Ibs@dolipaie';
     // The number of days to wait between performing remote license checks
-    $localkeydays = 15;
+    $localkeydays = 1;
     // The number of days to allow failover for after local key expiry
     $allowcheckfaildays = 5;
 
@@ -200,16 +200,40 @@ $whmcsurl = 'https://my.ibs-mali.com/';
 
 if ($results['status'] == "Active") {
     $licence = "Active";
-	if(!empty($results['localkey']))
-    	file_put_contents(DOL_DOCUMENT_ROOT.'/paiementsalaire/onglets/local.txt', $results['localkey']);
 
-		//Prendre le nombre de salariés
-	$nb_sal = explode('=', $results["configoptions"]);//$results["configoptions"] = Salaries=25
-	if($nb_sal[0]=="Salaries" && is_int((int)$nb_sal[1]))
-		$nombre_salarie_licence = $nb_sal[1];
+	//Prendre le nombre de salariés
+	$tab = explode("|", $results["configoptions"]);
+	for ($i=0; $i < count($tab); $i++) { 		
+		$config_info_tab = explode('=', $tab[$i]);//$results["configoptions"] = (Salaries=25)
+		if($config_info_tab[0]=="Salaries" && is_int((int)$config_info_tab[1]))
+			$nombre_salarie_licence = $config_info_tab[1];
+	}
+	//Enregistrement des informations de licence dans la base de donnée
+	$sql_licence = "SELECT rowid FROM ".MAIN_DB_PREFIX."dolipaie_type";
+	$result_licence = $db->query($sql_licence);
+	if($result_licence){
+		$nb_row_licence = $db->num_rows($result_licence);
+		if($nb_row_licence > 0){//On supprime et on met à jour les information
+			$sql_sup = "DELETE FROM ".MAIN_DB_PREFIX."dolipaie_type";
+			$result_sql_sup = $db->query($sql_sql_sup);
+
+			$sql_insert = "INSERT INTO ".MAIN_DB_PREFIX."dolipaie_type"; 
+			$sql_insert .= " (licensekey, local_key, nb_salarie, licence_status, proprietaire, societe, email, nom_produit, date_activation, date_expiration, type_abonnement)";
+			$sql_insert .= " VALUES('".$licensekey."', '".$results['localkey']."', ".$nombre_salarie_licence.", '".$results["status"]."', '".$results["registeredname"]."', '".$results["companyname"]."', '".$results["email"]."', '".$results["productname"]."', '".$results["regdate"]."', '".$results["nextduedate"]."', '".$results["billingcycle"]."')";
+			$result_insert = $db->query($sql_insert);
+		}else{//on insert les informations pour la prémière fois
+			$sql_insert = "INSERT INTO ".MAIN_DB_PREFIX."dolipaie_type"; 
+			$sql_insert .= " (licensekey, local_key, nb_salarie, licence_status, proprietaire, societe, email, nom_produit, date_activation, date_expiration, type_abonnement)";
+			$sql_insert .= " VALUES('".$licensekey."', '".$results['localkey']."', ".$nombre_salarie_licence.", '".$results["status"]."', '".$results["registeredname"]."', '".$results["companyname"]."', '".$results["email"]."', '".$results["productname"]."', '".$results["regdate"]."', '".$results["nextduedate"]."', '".$results["billingcycle"]."')";
+			$result_insert = $db->query($sql_insert);
+		}
+	}
+
+	if(!empty($results['localkey']))//stockage de la clé local dans un fichier
+    	file_put_contents(DOL_DOCUMENT_ROOT.'/paiementsalaire/onglets/local.txt', $results['localkey']);
 		
 } else {
-    $info =  "Votre licence est : ".$results['status'];
+    $info =  "Votre licence est : ".$results['status'].$licensekey;
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------

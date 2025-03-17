@@ -280,7 +280,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 			$compte = GETPOST("compte","alpha");
 			$amo = GETPOST("amo","alpha");
 			if(!empty($compte))
-				if( strlen($compte) != 24 && strlen($compte) != 27 && strlen($compte) != 8 && strlen($compte) != 11){
+				if( strlen($compte) != 24 && strlen($compte) != 25 && strlen($compte) != 26 && strlen($compte) != 27 && strlen($compte) != 8 && strlen($compte) != 11){
 					$message .= 'Le "NUMERO DE COMPTE" est icorrect<br>';
 				}else{
 
@@ -694,6 +694,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 	}
 
 	if($action == 'edit'){
+		
 		/*$salSql = "SELECT * FROM ".MAIN_DB_PREFIX."user where rowid=".$fk_user;
 		$result = $db->query($salSql);
 		$obj = $db->fetch_object($result);*/
@@ -740,7 +741,6 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		print '</td><td class="fieldrequired" style="padding: 10px; width: 200px;">Catégorie</td>';
 		print '<td style="padding: 10px; width: 200px;"><select name="categories">';
 		print '<option value="0"></option>';
-
 		if(!empty(GETPOST("categories"))){
 			$tab_cat_ech = explode("/",GETPOST("categories"));
 
@@ -762,7 +762,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					if(empty($echel))
 						$echelon_SQL = "SELECT * FROM ".MAIN_DB_PREFIX."echelon WHERE fk_categorie=".$obj1->rowid;
 					else
-						$echelon_SQL = "SELECT * FROM ".MAIN_DB_PREFIX."echelon WHERE fk_categorie=".$obj1->rowid." AND rowid=".$salarie->fk_echelon;
+						$echelon_SQL = "SELECT * FROM ".MAIN_DB_PREFIX."echelon WHERE rowid=".$salarie->fk_echelon;
 
 					$echelon_result = $db->query($echelon_SQL);
 					$num_echelon = $db->num_rows($echelon_result);
@@ -785,8 +785,11 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 							print '<option value="'.$obj1->rowid.'">'.$obj1->code_categorie.'</option>';
 					$i ++;
 				}
+				print '</select></td>';
+
 			}
 		}else{
+
 			$catSql = "SELECT * FROM ".MAIN_DB_PREFIX."dcategories WHERE fk_convention=".$comp_conv->conv;
 			$result = $db->query($catSql);
 
@@ -798,7 +801,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					$obj1 = $db->fetch_object($result);
 
 						$echelon_SQL = "SELECT * FROM ".MAIN_DB_PREFIX."echelon WHERE fk_categorie=".$obj1->rowid;
-
+					
 					$echelon_result = $db->query($echelon_SQL);
 					$num_echelon = $db->num_rows($echelon_result);
 					if($num_echelon > 0){
@@ -806,7 +809,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 						while ($a < $num_echelon) {
 							$obj_echelon = $db->fetch_object($echelon_result);
 
-							if($salarie->fk_categorie == $obj1->rowid)
+							if($salarie->fk_categorie == $obj1->rowid && $salarie->fk_echelon == $obj_echelon->rowid)
 								print '<option value="'.$obj1->rowid.'/'.$obj_echelon->rowid.'" selected>'.$obj1->code_categorie.' ==> '.$obj_echelon->libelle.'</option>';
 							else
 								print '<option value="'.$obj1->rowid.'/'.$obj_echelon->rowid.'">'.$obj1->code_categorie.' ==> '.$obj_echelon->libelle.'</option>';
@@ -820,10 +823,10 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 							print '<option value="'.$obj1->rowid.'">'.$obj1->code_categorie.'</option>';
 					$i ++;
 				}
+				print '</select></td>';
 			}
 		}
 
-		print '</select></td>';
 		print '</tr>';
 		print '<tr class="impair">';
 		print '<td class="fieldrequired" style="padding: 10px; width: 200px;">Situation Familiale</td>';

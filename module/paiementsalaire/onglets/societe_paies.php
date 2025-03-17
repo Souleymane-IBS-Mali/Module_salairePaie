@@ -201,7 +201,7 @@ if ($results['status'] == "Active") {
     	file_put_contents(DOL_DOCUMENT_ROOT.'/paiementsalaire/onglets/local.txt', $results['localkey']);
 		
 } else {
-    $info =  "Votre licence est : ".$results['status'];
+    //$info =  "Votre licence est : ".$results['status'];
 }
 
 
@@ -332,7 +332,7 @@ if($user->rights->paiementsalaire->societe->read){
 	if($action == "cloturerMois"){
 		$mois = GETPOST("mois", "int");
 		$annee = GETPOST("annee", "int");
-		$sql = "UPDATE ".MAIN_DB_PREFIX."bulletin SET cloture='oui' WHERE annee=".$annee." AND mois=".$mois;
+		$sql = "UPDATE ".MAIN_DB_PREFIX."bulletin SET cloture='oui' WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
 		$res = $db->query($sql);
 		if($res){
 			$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;

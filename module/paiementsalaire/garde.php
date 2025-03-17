@@ -41,6 +41,8 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/html.formother.class.php';
 //$PaiementSalaire = new modPaiementSalaire($db);
 
 llxHeader("", "Paiement | Salaire");
+//include(DOL_DOCUMENT_ROOT.'/paiementsalaire/installateur.php');
+//include(DOL_DOCUMENT_ROOT.'/paiementsalaire/onglets/whmcs.php');
 
 $showtutorial = img_picto('', 'object_accounting',);
 
@@ -90,32 +92,11 @@ print "<div style='flex:1; border-bottom: 1px solid #f0ecec;'>";
 	if($result){
         $num_societe = $db->num_rows($result);
 		$i = 0;
-		while ($i < $num_societe){
-		$societe = $db->fetch_object($result);
-
-        $sql = "SELECT u.rowid, u.lastname, u.firstname, u.dateemployment, ue.fk_object, ue.egp FROM ".MAIN_DB_PREFIX."user as u";
-        $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object Where ue.egp=".$societe->r1;
-        $result1 = $db->query($sql);
-        if($result1){
-            $num_user = $db->num_rows($result1);
-            $j = 0;
-            while ($j < $num_user) {
-                $user_ut = $db->fetch_object($result1);
-                $sql_salarie = "SELECT * FROM ".MAIN_DB_PREFIX."salarie WHERE fk_user=".$user_ut->rowid." AND matricule!=''";
-                $res = $db->query($sql_salarie);
-                if($res){
-                    $salarie = $db->fetch_object($res);
-                    if($salarie->matricule)
-                        $ligne += 1;
-                }
-                $j++;
-            }
-            
+		$sql_salarie = "SELECT count(rowid) as nb FROM ".MAIN_DB_PREFIX."salarie";
+        $res = $db->query($sql_salarie);
+        if($res){
+            $ligne = $db->fetch_object($res)->nb;
         }
-
-        $i++;
-       
-		}
     }
 
     $sql_verif = "SELECT annee, mois FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='oui' ORDER BY annee DESC, mois DESC";

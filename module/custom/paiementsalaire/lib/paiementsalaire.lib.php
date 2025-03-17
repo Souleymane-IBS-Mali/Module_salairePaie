@@ -52,9 +52,9 @@ function paiementsalaireAdminPrepareHead()
 	$head[$h][2] = 'about';
 	$h++;
 
-	$head[$h][0] = dol_buildpath("/paiementsalaire/admin/convention.php", 1);
-	$head[$h][1] = $langs->trans("Coventions");
-	$head[$h][2] = 'convention';
+	$head[$h][0] = dol_buildpath("/paiementsalaire/admin/modele_bulletin.php", 1);
+	$head[$h][1] = $langs->trans("Modèles Bulletins");
+	$head[$h][2] = 'modele_bulletin';
 	$h++;
 
 	// Show more tabs from modules

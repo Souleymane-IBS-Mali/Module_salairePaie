@@ -47,7 +47,8 @@ if($id_societe){
                 if($result_soc)
                   $info_soc = $db->fetch_object($result_soc);
 
-
+                $sql_select = "SELECT avant_cloture, apres_cloture FROM ".MAIN_DB_PREFIX."statut_cachet WHERE fk_societe=".$id_societe;
+                $cachet_statut = $db->fetch_object($db->query($sql_select));
 
     global $fk_salarie, $id_salarie, $y, $mois, $annee, $id_accord_etab, $info_soc;
               }
@@ -738,8 +739,10 @@ if($id_societe){
       $pdf->SetLeftMargin(133);
       $pdf->SetY($y+7);
       $pdf->MultiCell(59,14, "",1,'');
-      if(is_readable($filePath) && $obj_bulletin->cloture == "oui"){
-        $pdf->Image($filePath,150,$y+7, 20,14);
+      if(is_readable($filePath) && $obj_bulletin->cloture == "oui" && $cachet_statut->apres_cloture == 1){
+        $pdf->Image($filePath,150,$y+7, 40,19);
+      }elseif(is_readable($filePath) && $obj_bulletin->cloture == "non" && $cachet_statut->avant_cloture == 1){
+        $pdf->Image($filePath,150,$y+7, 40,19);
       }
 
   }

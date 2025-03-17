@@ -256,7 +256,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 
 
 						//On garde la trace de l'action
-						$action_effectue = "Ajout d'une Avance-Acompte (".$libelle.") au compte du salarié ".$obj_sal_user->firstname."-".$obj_sal_user->lastname." id=".$fk_user." salarié de la société ".$obj_soc->name;
+						$action_effectue = "Ajout d'une Avance-Acompte (".$libelle.") montant (".$montant.") nombre de mois (".$nb_mois.") montant/mois(".$montant_apayer.") au compte du salarié ".$obj_sal_user->firstname."-".$obj_sal_user->lastname." id=".$fk_user." salarié de la société ".$obj_soc->name;
 						$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 						$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Ajout")';
 						$db->query($sql_log);

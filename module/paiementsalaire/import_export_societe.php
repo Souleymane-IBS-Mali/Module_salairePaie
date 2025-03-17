@@ -78,16 +78,23 @@ print '</tr>';*/
 print '</table>';
 
 print '<div class="div-table-responsive-no-min">';
-				print '<table class="noborder centpercent">';
+	        print '<table class="noborder centpercent">';
 
-				// Line for title
-				print '<!-- line title to add new entry -->';
-				print '<tr class="liste_titre">';
+		// Line for title
+		print '<!-- line title to add new entry -->';
+		print '<tr class="liste_titre">';
                 print '<th>Exports</th><th></th><th></th>';
                 print '</tr>';
 
                 print '<tr class="oddeven nodrag nodrop nohover">';
                 print '<td><a href="export.php?mainmenu=paiementsalaire&leftmenu=importexportsociete&action=export_salaire" >Export salaires</a></td>';
+                print '<td></td>';
+                print '<td></td>';
+
+                print '</tr>';
+
+                print '<tr class="oddeven nodrag nodrop nohover">';
+                print '<td><a href="export.php?mainmenu=paiementsalaire&leftmenu=importexportsociete&action=export_inps" >Export Fiche INPS</a></td>';
                 print '<td></td>';
                 print '<td></td>';
 

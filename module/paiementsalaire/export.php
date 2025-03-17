@@ -32,27 +32,16 @@
  */
 
 require_once './../main.inc.php';
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 
-//Import des fichiers spreadsheet implementé par dolibarr
-require_once DOL_DOCUMENT_ROOT.'/includes/phpoffice/phpspreadsheet/src/autoloader.php';
-require_once DOL_DOCUMENT_ROOT.'/includes/Psr/autoloader.php';
-require_once PHPEXCELNEW_PATH.'Spreadsheet.php';
-// Importer les classes nécessaires de PhpSpreadsheet
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
-//require_once DOL_DOCUMENT_ROOT.'/core/class/html.formpaiementsalaire.class.php';
-//require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/core/modules/modPaiementSalaire.class.php';
-
-//$PaiementSalaire = new modPaiementSalaire($db);
 
 $form = new Form($db);
 llxHeader('', "Paiement | Salaire");
 //Titre 
 print load_fiche_titre($langs->trans("Export Données"), '', '');
 print '<hr>';
-
+$message = '';
 $array_id_soc = "(0";
 	$sql = "SELECT fk_soc FROM ".MAIN_DB_PREFIX."societe_commerciaux";
 	$sql .= " WHERE fk_user=".$user->id;
@@ -96,6 +85,13 @@ if($action == "choix"){
                 print '<td></td>';
 
                 print '</tr>';
+
+                print '<tr class="oddeven nodrag nodrop nohover">';
+                print '<td><a href="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenu=importexportsociete&action=export_inps" >Export Fiche INPS</a></td>';
+                print '<td></td>';
+                print '<td></td>';
+
+                print '</tr>';
                 /*print '<tr class="oddeven nodrag nodrop nohover">';
                 print '<td></td>';
                 print '<td></td>';
@@ -112,7 +108,9 @@ if($action == "choix"){
 
 
         print '</table>';
-}elseif($action == "export_salaire"){
+}
+
+if($action == "export_salaire"){
     print '<div class="div-table-responsive-no-min">';
 				print '<table class="noborder centpercent">';
 
@@ -199,7 +197,7 @@ if($action == "choix"){
                             <option value=""></option>';
                     $sql_bull = "SELECT DISTINCT annee FROM ".MAIN_DB_PREFIX."bulletin";
                     if($user->id != 1)
-                        $sql_bul .= " WHERE sc.rowid IN ".$array_id_soc." AND sce.grp=1";
+                        $sql_bul .= " WHERE fk_societe IN ".$array_id_soc." AND sce.grp=1";
                     else   
                         $sql_bul .= " WHERE sce.grp=1";
 
@@ -274,15 +272,94 @@ if($action == "choix"){
                 </script>';
 }
 
-function getNextColumnName($currentColumnName) {
-      // Convertir le nom de la colonne en index de colonne
-      $currentColumnIndex = Coordinate::columnIndexFromString($currentColumnName);
-      
-      // Obtenir l'index de la colonne suivante
-      $nextColumnIndex = $currentColumnIndex + 1;
-      
-      // Convertir l'index de la colonne suivante en nom de colonne
-      $nextColumnName = Coordinate::stringFromColumnIndex($nextColumnIndex);
-      
-      return $nextColumnName;
-  }
+
+//la redirection de fiche_cotisation_affiliation 
+if($action == "export_fiche_inps"){
+    $numero = GETPOST("numero_affiliation", "alpha");
+    $annee = GETPOST("annee", "int");
+    $mois = GETPOST("mois", "int");
+    $id_societe = GETPOST("id_societe", "int");
+        
+    $message .= 'Tous les "CHAMPS" sont obligatoire';
+        $action = "export_inps";
+    
+}
+
+
+if($action == "export_inps"){
+    $mois_tab = array(" Janvier "," Février "," Mars "," Avril "," Mai "," Juin "," Juillet "," Août "," Septembre "," Octobre "," Novembre "," Décembre ");
+
+    //N° d'affiliation
+    $array[] = array('label'=> 'N° d\'affiliation => ','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'', 'name'=>'numero_affiliation','value' => GETPOST("numero_affiliation","alpha"));
+
+    //Annee dont les bulletins sont générés
+    $sql_verif = "SELECT DISTINCT annee FROM ".MAIN_DB_PREFIX."bulletin ORDER BY annee DESC";
+    $res_verif = $db->query($sql_verif);
+    $num = $db->num_rows($sql_verif);
+    $a = 1;
+    $key = array();
+    $val = array();
+    while ($a <= $num) {
+        $obj_verif = $db->fetch_object($res_verif);
+        $key[] = $obj_verif->annee;
+        $val[] = $obj_verif->annee;
+        $a ++;
+    }
+	$array[] = array('label'=> 'Annee => ','type'=> 'select', 'size'=>'', 'morecss'=>'', 'moreattr'=>'selected', 'name'=>'annee','values' => array_combine($key,$val));
+
+
+    //Les douze mois de l'année
+    $key = array();
+    $val = array();
+    for ($i=1; $i < 13; $i++) { 
+        $key[] = $i;
+        $val[] = $mois_tab[($i - 1)];
+    }
+	$array[] = array('label'=> 'Mois => ','type'=> 'select', 'size'=>'', 'morecss'=>'', 'moreattr'=>'selected', 'name'=>'mois','values' => array_combine($key,$val));
+
+
+    //la société mère
+    $key = array();
+    $val = array();
+    $sql = "SELECT sc.rowid as r1, sc.nom, sce.rowid as r2, sce.fk_object FROM ".MAIN_DB_PREFIX."societe as sc";
+                $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_extrafields as sce ON sc.rowid=sce.fk_object";
+                if($user->id != 1)
+                    $sql .= " WHERE sc.rowid IN ".$array_id_soc." AND sce.grp=1";
+                else   
+                    $sql .= " WHERE sce.grp=1";
+
+                $result = $db->query($sql);
+        
+                if($result){
+                    $i = 0;
+                    $num = $db->num_rows($result);
+                    while ($i < $num){
+                        $societe = $db->fetch_object($result);
+                        $key[] = $societe->r1;
+                        $val[] = $societe->nom;
+                        $i ++;
+                    }
+                }
+                $array[] = array('label'=> 'Société mère => ','type'=> 'select', 'size'=>'', 'morecss'=>'', 'moreattr'=>'selected', 'name'=>'id_societe','values' => array_combine($key,$val));
+
+    $url = "./doc/fiche_cotisation_affiliation.php?mainmenu=paiementsalaire&leftmenu=societe";
+    $titre = 'Exort de fiche I.N.P.S par N° d\'affiliation';
+
+    $formconfirm = $form->formconfirm(
+        $url, 
+        $titre, 
+        "", 
+        'export_fiche_inps', 
+        $array, 
+        '', 
+        1,
+        240,
+        '30%'
+    );
+    print $formconfirm;
+}
+
+if(!empty($message))
+		print "<script>
+		$.jnotify('".$message."', {delay : 5000, fadeSpeed: 500});
+		</script>";

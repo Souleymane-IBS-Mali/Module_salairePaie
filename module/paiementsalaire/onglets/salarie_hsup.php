@@ -207,7 +207,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 
 			}else{
 				//A la recherche du mois et annee Actuelle
-				$sql_verif = "SELECT mois, annee FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='non'";
+				$sql_verif = "SELECT mois, annee FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='non' AND fk_societe=".$id_societe;
 				$res_verif = $db->query($sql_verif);
 				if($res_verif){
 					if($db->num_rows($res_verif)>0){
@@ -222,6 +222,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					$date = date("Y-m-d");
 					$mois_annee = explode("-", $date);
 				}
+				//var_dump($mois_annee);
 
 				print_barre_liste("", $page, $_SERVER["PHP_SELF"], "", "", "", "", "", "", 'bill', 0, dolGetButtonTitle("Ajouter une nouvelle avance/accompte", '', 'fa fa-plus-circle', $_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenu=salarie&id='.$fk_user.'&fk_salarie='.$fk_salarie.'&id_convention='.$id_convention.'&id_societe='.$id_societe.'&action=ajout_heure_sup' , '', 1), '', 0, 0, 0, 1);
 				print "<h3>Heures Non Payées <mark>".$mois_tab[($mois_annee[1]-1)]." ".$mois_annee[0]."</mark></h3>";

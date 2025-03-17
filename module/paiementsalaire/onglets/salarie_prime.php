@@ -101,7 +101,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 				$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
 				$obj = $db->fetch_object($db->query($sql_select));
 
-				$action_effectue = "Désaffectation d'une prime flottante ".$obj_pr->libelle."(".$obj_pr_fl->montant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
+				$action_effectue = "Désaffectation d'une prime flottante ".$obj_pr->libelle."(".$obj_pr_fl->montant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie." de la société ".$obj_soc->name;
 				$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 				$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Désaffectation")';
 				$db->query($sql_log);
@@ -129,7 +129,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 			$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
 			$obj = $db->fetch_object($db->query($sql_select));
 
-			$action_effectue = "Suppression d'une prime exceptionnelle ".$obj_pr->libelle."(".$obj_pr->montant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
+			$action_effectue = "Suppression d'une prime exceptionnelle ".$obj_pr->libelle." (montant ".$obj_pr->montant.", fin ".$obj_pr->date_limit.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie." de la société ".$obj_soc->name;
 			$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 			$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Suppression")';
 			$db->query($sql_log);
@@ -358,7 +358,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
 					$obj = $db->fetch_object($db->query($sql_select));
 
-					$action_effectue = "Ajout d'une prime exceptionnelle ".$libelle." au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
+					$action_effectue = "Ajout d'une prime exceptionnelle ".$libelle."(montant ".$montant." fin ".$date.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
 					$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 					$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Ajout")';
 					$db->query($sql_log);
@@ -557,20 +557,20 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					if( $nbre > 0){
 						$obj_b = $db->fetch_object($res_bulletin);
 						if($obj_b->cloture != 'oui'){
-							$var = "Prime Exceptionnelle : ".$obj_except->date_limit." Soumise au impôt ".$obj_except->soumis_impot." Soumise à cotisation ".$obj_except->soumis_cotisation." et ".$affiche_bulletin;
+							$var = "Prime Exceptionnelle : ".$obj_except->date_limit." Soumise au impôt ".$obj_except->soumis_impot." Soumise à cotisation ".$obj_except->soumis_cotisation." et afficher sur bulletin ".$obj_except->affiche_bulletin;
 							print "<tr class='impair'><td>";
 							print img_error($var).' <span>'.$obj_except->libelle.'</span></td><td>'.apres_virgule($db, $id_societe, $obj_except->montant);
 							print "</td><td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&id_societe=".$id_societe."&leftmenu=salarie&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer_exceptionnelle&id_convention=".$id_convention."&fk_prime=".$obj_except->rowid."'><button class='button'>Dissocier</button></a></td></tr>";
 						}else{
-							$var = "Prime Exceptionnelle : ".$obj_except->date_limit." Soumise au impôt ".$obj_except->soumis_impot." Soumise à cotisation ".$obj_except->soumis_cotisation." et ".$affiche_bulletin;
+							/*$var = "Prime Exceptionnelle : ".$obj_except->date_limit." Soumise au impôt ".$obj_except->soumis_impot." Soumise à cotisation ".$obj_except->soumis_cotisation." et afficher sur bulletin ".$affiche_bulletin;
 							print "<tr class='impair'><td>";
 							print img_error($var).' <span>'.$obj_except->libelle.'</span></td><td>'.apres_virgule($db, $id_societe, $obj_except->montant);
 							print "</td><td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&id_societe=".$id_societe."&leftmenu=salarie&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer_exceptionnelle&id_convention=".$id_convention."&fk_prime=".$obj_except->rowid."'><button class='button'>Dissocier</button></a></td></tr>";
-						}
+						*/}
 
 					}
 				}else{
-					$var = "Prime Exceptionnelle : ".$obj_except->date_limit." Soumise au impôt ".$obj_except->soumis_impot." Soumise à cotisation ".$obj_except->soumis_cotisation." et ".$affiche_bulletin;
+					$var = "Prime Exceptionnelle : ".$obj_except->date_limit." Soumise au impôt ".$obj_except->soumis_impot." Soumise à cotisation ".$obj_except->soumis_cotisation." et afficher sur bulletin ".$obj_except->affiche_bulletin;
 					print "<tr class='impair'><td>";
 					print img_error($var).' <span>'.$obj_except->libelle.'</span></td><td>'.apres_virgule($db, $id_societe, $obj_except->montant);
 					print "</td><td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&id_societe=".$id_societe."&leftmenu=salarie&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer_exceptionnelle&id_convention=".$id_convention."&fk_prime=".$obj_except->rowid."'><button class='button'>Dissocier</button></a></td></tr>";
