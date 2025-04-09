@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Voiture en mouvement</title>
+  <style>
+    body {
+      background: linear-gradient(#cceeff, #87ceeb);
+      overflow: hidden;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .route {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 100px;
+      background: #444;
+    }
+
+    .voiture {
+      position: absolute;
+      bottom: 100px;
+      left: -350px;
+      width: 300px;
+      height: 100px;
+      background: #ff5722;
+      border-radius: 20px 20px 5px 5px;
+      animation: rouler 6s linear infinite;
+    }
+
+    .toit {
+      position: absolute;
+      top: -50px;
+      left: 60px;
+      width: 180px;
+      height: 50px;
+      background: #ff7043;
+      border-radius: 15px 15px 0 0;
+    }
+
+    .fenetre {
+      position: absolute;
+      top: -40px;
+      width: 60px;
+      height: 35px;
+      background: #e0f7fa;
+      border-radius: 5px;
+    }
+
+    .fenetre.gauche {
+      left: 70px;
+    }
+
+    .fenetre.droite {
+      left: 140px;
+    }
+
+    .roue {
+      position: absolute;
+      bottom: -25px;
+      width: 50px;
+      height: 50px;
+      background: #212121;
+      border-radius: 50%;
+      border: 5px solid #555;
+      animation: tourner 1s linear infinite;
+    }
+
+    .roue.gauche {
+      left: 30px;
+    }
+
+    .roue.droite {
+      right: 30px;
+    }
+
+    @keyframes rouler {
+      0% { left: -350px; }
+      100% { left: 110%; }
+    }
+
+    @keyframes tourner {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="voiture">
+    <div class="toit"></div>
+    <div class="fenetre gauche"></div>
+    <div class="fenetre droite"></div>
+    <div class="roue gauche"></div>
+    <div class="roue droite"></div>
+  </div>
+  <div class="route"></div>
+</body>
+</html>

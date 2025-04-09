@@ -1255,7 +1255,7 @@ function simulation_taxe2($db, $fk_salarie, $id_convention){
 
 
 //les prestation à afficher sur le bulletin
-function salarie_prestation($db, $fk_salarie, $id_convention){
+function salarie_prestation($db, $fk_salarie, $id_convention, $id_societe){
 
 	$valeur = 0;
 	$id_prestation = array();
@@ -1291,49 +1291,64 @@ function salarie_prestation($db, $fk_salarie, $id_convention){
 
 	for ($a=0; $a < count($id_prestation); $a++) {
 
-		$sql_bareme = "SELECT * FROM ".MAIN_DB_PREFIX."bareme_prestation WHERE fk_prestation=".$id_prestation[$a];
-		$result_bareme = $db->query($sql_bareme);
-		if($result_bareme){
-			$num = $db->num_rows($result_bareme);
-					$i = 0;
-					$trouve = false;
-				if($num > 0){
-					while($i < $num && $trouve == false){
-						$bareme = $db->fetch_object($result_bareme);
-							$prest_conv_sql = "SELECT fk_convention FROM ".MAIN_DB_PREFIX."bareme_prestation_convention WHERE fk_convention=".$id_convention." AND fk_condition=".$bareme->rowid;
-							$prest_conv_res = $db->query($prest_conv_sql);
-							if($db->num_rows($prest_conv_res) > 0){
-								$trouve = true;
-							}
-						$i ++;
-					}
-					if($bareme){
-						if($bareme->charge == 1){
-							$taux_salarial[] = $bareme->taux_salariale;
-							$taux_patronal[] = 0;
-						}else if($bareme->charge == 2){
-							$taux_patronal[] = $bareme->taux_patronale;
-							$taux_salarial[] = 0;
-						}else{
-							$taux_salarial[] = $bareme->taux_salariale;
-							$taux_patronal[] = $bareme->taux_patronale;
+		//on l'initialise et on écrase l'anciennce valeur après le premier tour du boucle
+		$bareme_part = "";
+		$sql_particulier = 'SELECT taux_salariale, taux_patronale FROM '.MAIN_DB_PREFIX.'taux_cotisation_societe WHERE fk_societe='.$id_societe.' AND fk_prestation='.$id_prestation[$a];
+        $res_part = $db->query($sql_particulier);
+        if($res_part){
+            $num = $db->num_rows($res_part);
+            if (0 < $num)
+                $bareme_part = $db->fetch_object($res_part);
+		}
+
+		if($bareme_part){//avant d'affecter les barème on verifie si la société n'a pas un barème particulier pour cette cotisation
+			$taux_salarial[] = $bareme_part->taux_salariale;
+			$taux_patronal[] = $bareme_part->taux_patronale;
+		}else{
+			$sql_bareme = "SELECT * FROM ".MAIN_DB_PREFIX."bareme_prestation WHERE fk_prestation=".$id_prestation[$a];
+			$result_bareme = $db->query($sql_bareme);
+			if($result_bareme){
+				$num = $db->num_rows($result_bareme);
+						$i = 0;
+						$trouve = false;
+					if($num > 0){
+						while($i < $num && $trouve == false){
+							$bareme = $db->fetch_object($result_bareme);
+								$prest_conv_sql = "SELECT fk_convention FROM ".MAIN_DB_PREFIX."bareme_prestation_convention WHERE fk_convention=".$id_convention." AND fk_condition=".$bareme->rowid;
+								$prest_conv_res = $db->query($prest_conv_sql);
+								if($db->num_rows($prest_conv_res) > 0){ //On sort avec l'objet barème pour notre convention
+									$trouve = true;
+								}
+							$i ++;
 						}
+						if($bareme){ //quand un barème est trouvé, on prend ces valeurs
+							if($bareme->charge == 1){
+								$taux_salarial[] = $bareme->taux_salariale;
+								$taux_patronal[] = 0;
+							}else if($bareme->charge == 2){
+								$taux_patronal[] = $bareme->taux_patronale;
+								$taux_salarial[] = 0;
+							}else{
+								$taux_salarial[] = $bareme->taux_salariale;
+								$taux_patronal[] = $bareme->taux_patronale;
+							}
+						}else{
+							$taux_salarial[] = 0;
+							$taux_patronal[] = 0;
+						}
+
 					}else{
 						$taux_salarial[] = 0;
 						$taux_patronal[] = 0;
 					}
 
-				}else{
-					$taux_salarial[] = 0;
-					$taux_patronal[] = 0;
-				}
+			}else{
+				$taux_salarial[] = 0;
+				$taux_patronal[] = 0;
+			}
 
-		}else{
-			$taux_salarial[] = 0;
-			$taux_patronal[] = 0;
+			//print $id_prestation[$a]."--".$taux_patronal[$a].'--'.$taux_salarial[$a].'<br>';
 		}
-
-		//print $id_prestation[$a]."--".$taux_patronal[$a].'--'.$taux_salarial[$a].'<br>';
 	}
 	$global = array();
 	$global[0] = $taux_patronal;
@@ -1343,7 +1358,7 @@ function salarie_prestation($db, $fk_salarie, $id_convention){
 }
 
 //Les cotisations qui doivent être affichées par organisme
-function salarie_prestation_organisme($db, $fk_salarie, $id_convention){
+function salarie_prestation_organisme($db, $fk_salarie, $id_convention, $id_societe){
 
 	$valeur = 0;
 	$id_prestation = array();
@@ -1390,50 +1405,64 @@ function salarie_prestation_organisme($db, $fk_salarie, $id_convention){
 
 
 	for ($a=0; $a < count($id_prestation); $a++) {
+		$bareme_part = "";
+		$sql_particulier = 'SELECT taux_salariale, taux_patronale FROM '.MAIN_DB_PREFIX.'taux_cotisation_societe WHERE fk_societe='.$id_societe.' AND fk_prestation='.$id_prestation[$a];
+        $res_part = $db->query($sql_particulier);
+        if($res_part){
+            $num = $db->num_rows($res_part);
+            if (0 < $num)
+                $bareme_part = $db->fetch_object($res_part);
+		}
 
-		$sql_bareme = "SELECT * FROM ".MAIN_DB_PREFIX."bareme_prestation WHERE fk_prestation=".$id_prestation[$a];
-		$result_bareme = $db->query($sql_bareme);
-		if($result_bareme){
-			$num = $db->num_rows($result_bareme);
-					$i = 0;
-					$trouve = false;
-				if($num > 0){
-					while($i < $num && $trouve == false){
-						$bareme = $db->fetch_object($result_bareme);
-							$prest_conv_sql = "SELECT fk_convention FROM ".MAIN_DB_PREFIX."bareme_prestation_convention WHERE fk_convention=".$id_convention." AND fk_condition=".$bareme->rowid;
-							$prest_conv_res = $db->query($prest_conv_sql);
-							if($db->num_rows($prest_conv_res) > 0){
-								$trouve = true;
-							}
-						$i ++;
-					}
-					if($bareme){
-						if($bareme->charge == 1){
-							$taux_salarial[] = $bareme->taux_salariale;
-							$taux_patronal[] = 0;
-						}else if($bareme->charge == 2){
-							$taux_patronal[] = $bareme->taux_patronale;
-							$taux_salarial[] = 0;
-						}else{
-							$taux_salarial[] = $bareme->taux_salariale;
-							$taux_patronal[] = $bareme->taux_patronale;
+		if($bareme_part){//avant d'affecter les barème on verifie si la société n'a pas un barème particulier pour cette cotisation
+			$taux_salarial[] = $bareme_part->taux_salariale;
+			$taux_patronal[] = $bareme_part->taux_patronale;
+		}else{
+
+			$sql_bareme = "SELECT * FROM ".MAIN_DB_PREFIX."bareme_prestation WHERE fk_prestation=".$id_prestation[$a];
+			$result_bareme = $db->query($sql_bareme);
+			if($result_bareme){
+				$num = $db->num_rows($result_bareme);
+						$i = 0;
+						$trouve = false;
+					if($num > 0){
+						while($i < $num && $trouve == false){
+							$bareme = $db->fetch_object($result_bareme);
+								$prest_conv_sql = "SELECT fk_convention FROM ".MAIN_DB_PREFIX."bareme_prestation_convention WHERE fk_convention=".$id_convention." AND fk_condition=".$bareme->rowid;
+								$prest_conv_res = $db->query($prest_conv_sql);
+								if($db->num_rows($prest_conv_res) > 0){
+									$trouve = true;
+								}
+							$i ++;
 						}
+						if($bareme){
+							if($bareme->charge == 1){
+								$taux_salarial[] = $bareme->taux_salariale;
+								$taux_patronal[] = 0;
+							}else if($bareme->charge == 2){
+								$taux_patronal[] = $bareme->taux_patronale;
+								$taux_salarial[] = 0;
+							}else{
+								$taux_salarial[] = $bareme->taux_salariale;
+								$taux_patronal[] = $bareme->taux_patronale;
+							}
+						}else{
+							$taux_salarial[] = 0;
+							$taux_patronal[] = 0;
+						}
+
 					}else{
 						$taux_salarial[] = 0;
 						$taux_patronal[] = 0;
 					}
 
-				}else{
-					$taux_salarial[] = 0;
-					$taux_patronal[] = 0;
-				}
+			}else{
+				$taux_salarial[] = 0;
+				$taux_patronal[] = 0;
+			}
 
-		}else{
-			$taux_salarial[] = 0;
-			$taux_patronal[] = 0;
+			//print $id_prestation[$a]."--".$taux_patronal[$a].'--'.$taux_salarial[$a].'<br>';
 		}
-
-		//print $id_prestation[$a]."--".$taux_patronal[$a].'--'.$taux_salarial[$a].'<br>';
 	}
 	$global = array();
 	$global[0] = $taux_patronal;

@@ -716,7 +716,7 @@ if($action == "no_save"){
 
 
                 $index = 0;
-				$global_cotis = salarie_prestation_organisme($db, $obj_salarie->rowid, $salaire_brut_cotisable, $id_convention);
+				$global_cotis = salarie_prestation_organisme($db, $obj_salarie->rowid, $salaire_brut_cotisable, $id_convention, $id_societe);
 				$cotis = $global_cotis[1];
 				$taux_p = $global_cotis[0];
                 $old_fk_orga = 0;
@@ -781,7 +781,7 @@ if($action == "no_save"){
 
 
 				$index = 0;
-				$global_cotis = salarie_prestation($db, $obj_salarie->rowid, $salaire_brut_cotisable, $id_convention);
+				$global_cotis = salarie_prestation($db, $obj_salarie->rowid, $salaire_brut_cotisable, $id_convention, $id_societe);
 				$cotis = $global_cotis[1];
 				$taux_p = $global_cotis[0];
 

@@ -72,9 +72,9 @@ if(empty($action))
 
 						//Reglage automatique
 						//Le cachet doit apparaitre automatiquement après la cloture du mois
-						$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'statut_cachet (fk_societe, apres_cloture)';
-						$sql_log .= ' VALUES('.$id_societe.', 1)';
-						$db->query($sql_log);
+						$sql_cachet = 'INSERT INTO '.MAIN_DB_PREFIX.'statut_cachet (fk_societe, apres_cloture)';
+						$sql_cachet .= ' VALUES('.$id_societe.', 1)';
+						$db->query($sql_cachet);
 
 
 						$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
@@ -304,19 +304,32 @@ if($action == 'liste'){
 	print '<tr class="liste_titre">';
 	print '<td rowspan=2>Sociétés</td>';
 	print '<td rowspan=2>Cachets</td>';
-	print '<td colspan=2 align="center">Le cachet apparait sur les documents</td>';
+	print '<td colspan=2 align="center">Afficher le cachet sur les documents</td>';
 	print '</tr>';
 
 	print '<tr class="liste_titre">';
-	print '<td align="center">Avant Clôture</td>';
-	print '<td align="center">Après Clôture</td>';
+	print '<td align="center">Avant Clôture du mois</td>';
+	print '<td align="center">Après Clôture du mois</td>';
 
 	print '</tr>';
 
 	//societe:nom:rowid::rowid=($SEL$ fk_object from llx_societe_extrafields where grp=1)
    // $sql = "SELECT sce.fk_object from ".MAIN_DB_PREFIX."societe_extrafields as sce where grp=1";
    //recupération des société qui ont cochés géré paye; (case à cocher dans tiers)
-	$sql = "SELECT sc.rowid as r1, sc.nom, sc.name_alias, sc.phone, sc.fax, sc.code_client, sc.zip, sce.rowid as r2, sce.fk_object, sce.conv FROM ".MAIN_DB_PREFIX."societe as sc";
+   $array_id_soc = "(0";
+	$sql = "SELECT fk_soc FROM ".MAIN_DB_PREFIX."societe_commerciaux";
+	$sql .= " WHERE fk_user=".$user->id;
+	$result = $db->query($sql);
+	if($result){
+		$i = 0;
+		$num = $db->num_rows($result);
+		while ($i < $num){
+			$array_id_soc .= ", ".$db->fetch_object($result)->fk_soc;
+			$i ++;
+		}
+	}
+	$array_id_soc .= ")";
+	$sql = "SELECT sc.rowid as r1, sc.nom FROM ".MAIN_DB_PREFIX."societe as sc";
 	$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_extrafields as sce ON sc.rowid=sce.fk_object WHERE sce.grp=1";
 	if($user->id != 1)
 		$sql .= " AND sc.rowid IN ".$array_id_soc;
@@ -355,7 +368,7 @@ if($action == 'liste'){
 			print '<td align="center"> <input type="checkbox" id="apres_cloture" name="apres_cloture" '.$checked2.' onclick="apres_cloture('.$societe->r1.')" /></td>';
 		}else{
 		 	print '<td aligh="right" ><a href="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenu=reglage&id_societe='.$societe->r1.'&action=modifier_cachet">'.img_edit('Modifier le cachet').'</a></td>';
-			 print '<td colspan=2 align="center">Veuiller choisir un cacher</td>';
+			 print '<td colspan=2 align="center">Veuiller choisir un cachet</td>';
 		}
 
 		

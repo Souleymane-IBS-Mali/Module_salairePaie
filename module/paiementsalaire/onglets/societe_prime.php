@@ -1,6 +1,7 @@
 <?php
 require '../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/lib/paiementsalaire.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/class/html.form.class.php';
 
 
 llxHeader("", "Paiement | Salaire");
@@ -33,9 +34,9 @@ $action = "afficher";
 if(!empty(GETPOST('action', 'alpha')))
 	$action = GETPOST('action');
 
-	$id_prime = GETPOST('id_prime');
-	if(!empty(GETPOST("rowid_id", "int")))
-		$rowid = GETPOST("rowid_id", "int");
+$id_prime = GETPOST('id_prime');
+if(!empty(GETPOST("rowid_id", "int")))
+	$rowid = GETPOST("rowid_id", "int");
 
 if($action == "add_prime"){
 	if(empty(GETPOST('libelle', 'alpha'))) {
@@ -57,75 +58,80 @@ if($action == "add_prime"){
 		if($type_i == "exceptionnelle"){//La primes est exceptionnelle
 			//On l'enregistre au compte de tous les salarié de tout les salariés de cette société
 
-			//Récuperation du mois et l'année non cloturé du bulletin
-			$sql_bulletin = "SELECT rowid, annee, mois FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='non' AND fk_societe=".$id_societe." ORDER BY rowid DESC";
-			$res_bulletin = $db->query($sql_bulletin);
-			$nb_jours = cal_days_in_month(CAL_GREGORIAN, date('m'), date('Y'));
-			$date = date("Y")."-".date("m")."-".$nb_jours;
-			if($res_bulletin){
-				$obj_bull = $db->fetch_object($res_bulletin);
-				if(!empty($obj_bull)){
-					$nb_jours = cal_days_in_month(CAL_GREGORIAN, $obj_bull->mois, $obj_bull->annee);
+			if(!empty($montant_excep)){
+				//Récuperation du mois et l'année non cloturé du bulletin
+				$sql_bulletin = "SELECT rowid, annee, mois FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='non' AND fk_societe=".$id_societe." ORDER BY rowid DESC";
+				$res_bulletin = $db->query($sql_bulletin);
+				$nb_jours = cal_days_in_month(CAL_GREGORIAN, date('m'), date('Y'));
+				$date = date("Y")."-".date("m")."-".$nb_jours;
+				if($res_bulletin){
+					$obj_bull = $db->fetch_object($res_bulletin);
+					if(!empty($obj_bull)){
+						$nb_jours = cal_days_in_month(CAL_GREGORIAN, $obj_bull->mois, $obj_bull->annee);
 
-					if($obj_bull->mois < 10)
-						$date = $obj_bull->annee."-0".$obj_bull->mois."-".$nb_jours;
-					else $date = $obj_bull->annee."-".$obj_bull->mois."-".$nb_jours;
-				}else{
-					$sql_bulletin = "SELECT rowid, annee, mois FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='oui' AND fk_societe=".$id_societe. " ORDER BY rowid DESC";
-					$res_bulletin = $db->query($sql_bulletin);
-					if($res_bulletin){
-						$obj_bull = $db->fetch_object($res_bulletin);
-						if(!empty($obj_bull)){
-							if((int)$obj_bull->mois == 12){
-								$nb_jours = cal_days_in_month(CAL_GREGORIAN, 1, ($obj_bull->annee+1));
-								$date = $date = ($obj_bull->annee+1)."-01"."-".$nb_jours;
-							}else{
-								if($obj_bull->mois < 9)
-									$date = $obj_bull->annee."-0".($obj_bull->mois+1)."-".$nb_jours;
-								else $date = $obj_bull->annee."-".($obj_bull->mois+1)."-".$nb_jours;
+						if($obj_bull->mois < 10)
+							$date = $obj_bull->annee."-0".$obj_bull->mois."-".$nb_jours;
+						else $date = $obj_bull->annee."-".$obj_bull->mois."-".$nb_jours;
+					}else{
+						$sql_bulletin = "SELECT rowid, annee, mois FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='oui' AND fk_societe=".$id_societe. " ORDER BY rowid DESC";
+						$res_bulletin = $db->query($sql_bulletin);
+						if($res_bulletin){
+							$obj_bull = $db->fetch_object($res_bulletin);
+							if(!empty($obj_bull)){
+								if((int)$obj_bull->mois == 12){
+									$nb_jours = cal_days_in_month(CAL_GREGORIAN, 1, ($obj_bull->annee+1));
+									$date = $date = ($obj_bull->annee+1)."-01"."-".$nb_jours;
+								}else{
+									if($obj_bull->mois < 9)
+										$date = $obj_bull->annee."-0".($obj_bull->mois+1)."-".$nb_jours;
+									else $date = $obj_bull->annee."-".($obj_bull->mois+1)."-".$nb_jours;
+								}
 							}
 						}
 					}
 				}
-			}
 
-			//Selection des salarié de cette sociéte
-			$sql = "SELECT sal.rowid FROM ".MAIN_DB_PREFIX."salarie as sal";
-			$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user as u ON u.rowid=sal.fk_user";
-			$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object";
-			$sql .= " WHERE ue.egp=".$id_societe." AND ue.egp=".$id_societe;
-			$sql .= " ORDER BY sal.rowid";
-			$result = $db->query($sql);
-			if($result){
-				$num = $db->num_rows($result);
-				$a = 0;
-				while ($a < $num) {
-					$obj_liste = $db->fetch_object($result);
-					//Enregistrement de la prime
-					$sql_insert_except = 'INSERT INTO '.MAIN_DB_PREFIX.'salarie_prime_exceptionnelle (fk_salarie, libelle, commentaire, montant, date_limit, affiche_bulletin, soumis_impot, soumis_cotisation)
-					VALUES ('.$obj_liste->rowid.',"'.$libelle.'","'.$desc_i.'","'.$montant_excep.'","'.$date.'","'.$affiche_bulletin.'","'.$soumis_impot.'","'.$soumis_cotisation.'")';
-					$result_except = $db->query($sql_insert_except);
-					//print $sql_insert_except.'<br>';
-					$a ++;
+				//Selection des salarié de cette sociéte
+				$sql = "SELECT sal.rowid FROM ".MAIN_DB_PREFIX."salarie as sal";
+				$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user as u ON u.rowid=sal.fk_user";
+				$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object";
+				$sql .= " WHERE ue.egp=".$id_societe." AND ue.egp=".$id_societe." AND archiver='non'";
+				$sql .= " ORDER BY sal.rowid";
+				$result = $db->query($sql);
+				if($result){
+					$num = $db->num_rows($result);
+					$a = 0;
+					while ($a < $num) {
+						$obj_liste = $db->fetch_object($result);
+						//Enregistrement de la prime
+						$sql_insert_except = 'INSERT INTO '.MAIN_DB_PREFIX.'salarie_prime_exceptionnelle (fk_salarie, libelle, commentaire, montant, date_limit, affiche_bulletin, soumis_impot, soumis_cotisation)
+						VALUES ('.$obj_liste->rowid.',"'.$libelle.'","'.$desc_i.'","'.$montant_excep.'","'.$date.'","'.$affiche_bulletin.'","'.$soumis_impot.'","'.$soumis_cotisation.'")';
+						$result_except = $db->query($sql_insert_except);
+						//print $sql_insert_except.'<br>';
+						$a ++;
+					}
+
+					if($result_except){
+						$message = "Prime Exceptionnelle enregistrée avec succès.<br>Cette prime est affectée à tous les salariés de -->".$obj_soc->nom."<--";
+						//sauvegarde des trace de l'action
+						$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
+						$obj = $db->fetch_object($db->query($sql_select));
+
+						$action_effectue = "Ajout d'une prime exceptionnelle ".$libelle."(".$montant_excep.") à tous les salarié de ".$obj_soc->nom;
+						$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
+						$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Ajout")';
+						$db->query($sql_log);
+
+						$action = 'afficher';
+
+					}else{
+						$message = "Un problème est survenu !";
+						$action = 'create';
+					}
 				}
-
-				if($result_except){
-					$message = "Prime Exceptionnelle enregistrée avec succès.<br>Cette est affectée à tous les salariés de -->".$obj_soc->nom."<--";
-					//sauvegarde des trace de l'action
-					$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
-					$obj = $db->fetch_object($db->query($sql_select));
-
-					$action_effectue = "Ajout d'une prime exceptionnelle ".$libelle."(".$montant_excep.") à tous les salarié de ".$obj_soc->nom;
-					$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
-					$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Ajout")';
-					$db->query($sql_log);
-
-					$action = 'afficher';
-
-				}else{
-					$message = "Un problème est survenu !";
-					$action = 'create';
-				}
+			}else{ 
+				$message = 'Le champ "MONTANT" est obligatoire Pour le type "EXCEPTIONNELLE"';
+				$action = 'create';
 			}
 
 		}else{
@@ -155,7 +161,62 @@ if($action == "add_prime"){
 
 }
 
-	if($action == 'supprimer'){
+if($action == "supprimer" || $action == "supprimer_except"){
+
+	if($action == "supprimer")
+		$mon_ac = "suppression";
+	else $mon_ac = "suppression_except";
+
+	$id_prime = GETPOST('id_prime','int');
+        $monform = new Form1($db);
+		$url = $_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&id_prime=".$id_prime;
+            $formconfirm = $monform->formconfirm(
+                $url,
+                'Voulez-vous vraiment effectué cette suppression',
+                "",
+                $mon_ac,
+                '',
+                '',
+                1,
+                150,
+                '30%'
+            );
+            print $formconfirm;
+
+            $action = 'afficher';
+}
+
+//suppression d'une prime exceptionnelle global
+if($action == 'suppression_except'){
+
+	$id_prime = GETPOST('id_prime','int');
+	$sql_pr_sal = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_prime_exceptionnelle WHERE rowid=".$id_prime;
+	$result_s = $db->query($sql_pr_sal);
+	if($result_s){
+		$obj_sal = $db->fetch_object($result_s);
+
+		$sqlDel = "DELETE FROM ".MAIN_DB_PREFIX."salarie_prime_exceptionnelle WHERE libelle='".$obj_sal->libelle."' AND date_limit='".$obj_sal->date_limit."' AND montant='".$obj_sal->montant."'";
+		$result = $db->query($sqlDel);
+
+		if($result){
+
+			$message = "Prime Exceptionnelle globale supprimée avec succès";
+			//sauvegarde des traces de l'action
+			$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
+			$obj = $db->fetch_object($db->query($sql_select));
+
+			$action_effectue = "Suppression d'une prime EXCEPTIONNELE GLOBALE SOCIETE (libelle : ".$obj_sal->libelle.", montant : ".$obj_sal->montant." date limite : ".$obj_sal->date_limit."  de la société ".$obj_soc->nom;
+			$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
+			$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Suppression")';
+			$db->query($sql_log);
+		}else $message = "Un problème est survenu";
+
+	}else $message = "Un problème est survenu";
+
+			$action = 'afficher';
+}
+	//Suppresion d'une prime ordinaire
+if($action == 'suppression'){
 		$id_prime = GETPOST('id_prime', 'int');
 
 		//recuperation des info de la prime
@@ -183,7 +244,11 @@ if($action == "add_prime"){
 		}else $message = "Un problème est survenu";
 
 		$action = 'afficher';
-	}
+}
+
+
+
+
 
 	if($action == 'disable'){
 		$id_prime = GETPOST('id_prime', 'int');
@@ -383,6 +448,8 @@ if($action == 'afficher'){
 	<td class="liste_titre" style="padding: 15px; width : 5%;" >Type</td>
 	<td class="liste_titre" style="padding: 15px; width : 5%;" >Applique au</td>
 	<td class="liste_titre" style="padding: 15px; width : 5%;" >Opération</td></tr>';
+
+	//Les primes de convention
 	$indSql = "SELECT * FROM ".MAIN_DB_PREFIX."primes WHERE fk_convention=".$id_convention." AND active=1";
 	if(!empty($id_accord))
 		$indSql .= " AND fk_accord_etablissement=".$id_accord;
@@ -417,10 +484,10 @@ if($action == 'afficher'){
 			$i ++;
 		}
 	}
+
+	//les primes sociétés
 	$indSql = "SELECT * FROM ".MAIN_DB_PREFIX."primes WHERE fk_societe=".$id_societe." ORDER BY active DESC";
 	$result = $db->query($indSql);//= $db->query($covSql);
-
-
 	if($result){
 		$actl[0] = img_picto($langs->trans("Disabled"), 'switch_off', 'class="size15x"');
 		$actl[1] = img_picto($langs->trans("Activated"), 'switch_on', 'class="size15x"');
@@ -451,19 +518,20 @@ if($action == 'afficher'){
 				print '<td>';
 				print'<a class="reposition" href="'.$url.'?mainmenu=paiementsalaire&leftmenu=societe&id_societe='.$id_societe.'&id_convention='.$id_convention.'&action='.$acts[$obj->active].'&id_prime='.$obj->rowid.'&token='.newToken().'">'.$actl[$obj->active].'</a>&nbsp;';
 				print '&nbsp;&nbsp;&nbsp;<a class="reposition editfielda" href="'.$url.'?mainmenu=paiementsalaire&leftmenu=societe&id_societe='.$id_societe.'&id_convention='.$id_convention.'&action=detail&id_prime='.$obj->rowid.'">'.img_edit().'</a>';
-				print '&nbsp;&nbsp;&nbsp;<a class="reposition editfielda" id="delete'.$i.'" onclick="myFunction('.$i.')" href="'.$url.'?mainmenu=paiementsalaire&leftmenu=societe&id_societe='.$id_societe.'&id_convention='.$id_convention.'&action=supprimer&id_prime='.$obj->rowid.'">'.img_delete().'</a>&nbsp;';
+				print '&nbsp;&nbsp;&nbsp;<a class="reposition editfielda" id="delete'.$i.'" href="'.$url.'?mainmenu=paiementsalaire&leftmenu=societe&id_societe='.$id_societe.'&id_convention='.$id_convention.'&&id_prime='.$obj->rowid.'&&action=supprimer">'.img_delete().'</a>&nbsp;';
 				print "</td></tr>";
 				$i ++;
 			}
 
 			//Affichage des primes exceptionnelles affectées à tous les salariés de la sociétés
+			$signal = 0;
 			$tab_aff = array();
 			$nb_sal = 0; //nombre total de salarié de cette société
 			$id_sal = "(0";
 			$sql = "SELECT sal.rowid FROM ".MAIN_DB_PREFIX."salarie as sal";
 			$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user as u ON u.rowid=sal.fk_user";
 			$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object";
-			$sql .= " WHERE ue.egp=".$id_societe." AND ue.egp=".$id_societe;
+			$sql .= " WHERE ue.egp=".$id_societe." AND ue.egp=".$id_societe." AND archiver='non'";
 			$sql .= " ORDER BY sal.rowid";
 			$result = $db->query($sql);
 			if($result){
@@ -476,7 +544,6 @@ if($action == 'afficher'){
 				}
 			}
 			$id_sal .= ")";
-			$rowid_pr = "0";
 			$sql_pr_sal = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_prime_exceptionnelle WHERE fk_salarie IN ".$id_sal;
 			$result_s = $db->query($sql_pr_sal);
 			if($result_s){
@@ -484,7 +551,6 @@ if($action == 'afficher'){
 				$a = 0;
 				while ($a < $nb_pr_except) {
 					$obj_sal = $db->fetch_object($result_s);
-					$rowid_pr .= ", ".$obj_sal->rowid;
 					$sql_pr_sal2 = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_prime_exceptionnelle WHERE fk_salarie IN ".$id_sal;
 					$result_s2 = $db->query($sql_pr_sal2);
 					$compter = 0;
@@ -502,7 +568,7 @@ if($action == 'afficher'){
 						}
 					}
 
-					if($compter == $nb_sal){ //si le nombre de salarié compté égal au nombre total de salarié on affcihe la prime
+					if($compter == $nb_sal){ //si le nombre de salarié compté égal au nombre total de salarié on affiche la prime
 						$trouve = true;
 						for ($i=0; $i < count($tab_aff); $i++) {
 							if($obj_sal->libelle == $tab_aff[$i]->libelle && $obj_sal->montant == $tab_aff[$i]->montant
@@ -519,11 +585,14 @@ if($action == 'afficher'){
 							$res_bulletin = $db->query($sql_bulletin);
 							if($db->num_rows($res_bulletin)){
 								print '<tr class="pair"><td align="left" style="padding: 10px; width : 5%;"><b>'.$obj_sal->libelle.''.img_picto("Elle disparitra après la cloture du mois concerné","error").'<b></td>';
-								print '<td style="width : 5%">Exceptionnelle</td>';
-								print '<td style="width : 5%">'.$obj_sal->montant.'</td>';
-								print '<td style="width : 5%">'.$obj_sal->date_limit.'</td>';
+								print '<td style="width : 5%">Exceptionnelle('.$obj_sal->date_limit.')</td>';
+								print '<td style="width : 5%">Tous les salariés('.$obj_sal->montant.')</td>';
+								print '<td style="width : 5%">';
+								print '<a class="reposition editfielda" id="delete'.$i.'" href="'.$url.'?mainmenu=paiementsalaire&leftmenu=societe&id_societe='.$id_societe.'&id_convention='.$id_convention.'&id_prime='.$obj_sal->rowid.'&action=supprimer_except">'.img_delete().'</a>&nbsp;';
+								print '</td>';
 								print '</tr>';
 								$tab_aff[] = $obj_sal;
+								$signal ++;
 							}
 						}
 
@@ -560,13 +629,14 @@ if($action == 'afficher'){
 			}
 
 			//Affichage des primes exceptionnelles affectées à tous les salariés de la sociétés
+			$signal = 0;
 			$tab_aff = array();
 			$nb_sal = 0; //nombre total de salarié de cette société
 			$id_sal = "(0";
 			$sql = "SELECT sal.rowid FROM ".MAIN_DB_PREFIX."salarie as sal";
 			$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user as u ON u.rowid=sal.fk_user";
 			$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object";
-			$sql .= " WHERE ue.egp=".$id_societe." AND ue.egp=".$id_societe;
+			$sql .= " WHERE ue.egp=".$id_societe." AND ue.egp=".$id_societe." AND archiver='non'";
 			$sql .= " ORDER BY sal.rowid";
 			$result = $db->query($sql);
 			if($result){
@@ -622,11 +692,12 @@ if($action == 'afficher'){
 							$res_bulletin = $db->query($sql_bulletin);
 							if($db->num_rows($res_bulletin)){
 								print '<tr class="pair"><td align="left" style="padding: 10px; width : 5%;"><b>'.$obj_sal->libelle.''.img_picto("Elle disparitra après la cloture du mois concerné","error").'<b></td>';
-								print '<td style="width : 5%">Exceptionnelle</td>';
-								print '<td style="width : 5%">'.$obj_sal->montant.'</td>';
-								print '<td style="width : 5%">'.$obj_sal->date_limit.'</td>';
+								print '<td style="width : 5%">Exceptionnelle('.$obj_sal->date_limit.')</td>';
+								print '<td style="width : 5%">Tous les salariés('.$obj_sal->montant.')</td>';
+								print '<td style="width : 5%"></td>';
 								print '</tr>';
 								$tab_aff[] = $obj_sal;
+								$signal ++;
 							}
 						}
 
@@ -640,20 +711,9 @@ if($action == 'afficher'){
 
 		$db->free($result);
 
-		if($num == 0 && $num2 == 0) print "<tr><td align='center' colspan='4'>Auccune Prime</td></tr>";
+		if($num == 0 && $num2 == 0 && $signal == 0) print "<tr><td align='center' colspan='4'>Auccune Prime</td></tr>";
 
-		print "<script>
-		function myFunction(e){
-		   var b = 'delete'+e;
-		   var button_generer = document.getElementById(b);
-		   if(!confirm('Click sur OK pour confirmer cette suppression')){
-			   var lien = '".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&action=afficher';
-			   button_generer.setAttribute('href', lien);
-
-		   }
-		  }
-
-		</script>";
+		
 	}else print '<tr><td align="center" colspan="3">Auccune prime Créée!</td></tr>';
 }
 

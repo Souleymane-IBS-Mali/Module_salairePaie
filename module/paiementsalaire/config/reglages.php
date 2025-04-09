@@ -61,21 +61,29 @@ llxHeader("", "Paiement | Salaire");
 
                 print '</tr>';
                 print '<tr class="oddeven nodrag nodrop nohover">';
-                print '<td><a href="reglage_bulletin.php?mainmenu=paiementsalaire&leftmenu=reglage" >Separateurs decimals</a></td>';
+                print '<td><a title="Constutition des chiffres sur le bulletin" href="reglage_bulletin.php?mainmenu=paiementsalaire&leftmenu=reglage" >Separateurs decimals</a></td>';
                 print '<td></td>';
                 print '<td></td>';
 
                 print '</tr>';
 
                 print '<tr class="oddeven nodrag nodrop nohover">';
-                print '<td><a href="logo_societe.php?mainmenu=paiementsalaire&leftmenu=reglage" >Logo société</a></td>';
+                print '<td><a title="Pouvoir importer un logo de la société" href="logo_societe.php?mainmenu=paiementsalaire&leftmenu=reglage" >Logo société</a></td>';
                 print '<td></td>';
                 print '<td></td>';
 
                 print '</tr>';
 
                 print '<tr class="oddeven nodrag nodrop nohover">';
-                print '<td><a href="cachet_societe.php?mainmenu=paiementsalaire&leftmenu=reglage" >Cacheter les documents</a></td>';
+                print '<td><a title="Pouvoir mettre un cachet sur les documents" href="cachet_societe.php?mainmenu=paiementsalaire&leftmenu=reglage" >Cacheter les documents</a></td>';
+                print '<td></td>';
+                print '<td></td>';
+
+                print '</tr>';
+
+                $info = "Utilisez cette fonctionnalité uniquement si : Une cotisation à un taux différent que celui indiqué dans la configuration>cotisation. Une fois un barème particulier ajouté à une cotisation pour une société, lors de la génération des salaires les baremes pour cette cotisation(configuration>cotisation) séra ignoré pour la société en question (le logiciel va automatique utilisé le barème particulier)";
+                print '<tr class="oddeven nodrag nodrop nohover">';
+                print '<td><a Tite="Cas particulier pour les taux des cotisations" href="cotisation_societe_cas_particulier.php?mainmenu=paiementsalaire&leftmenu=reglage" >Cotisations (Cas particulier)</a> '.info_admin($info, 1).'</td>';
                 print '<td></td>';
                 print '<td></td>';
 

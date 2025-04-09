@@ -310,7 +310,7 @@ if($user->rights->paiementsalaire->societe->read){
                           $pourcentage_org = array();
 
                           $index = 0;
-                          $global_cotis = salarie_prestation_organisme($db, $obj_verif->fk_salarie, $id_convention);
+                          $global_cotis = salarie_prestation_organisme($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
                           $cotis = $global_cotis[1];
                           $taux_p = $global_cotis[0];
                           foreach ($cotis as $key => $value) {
@@ -348,7 +348,7 @@ if($user->rights->paiementsalaire->societe->read){
 
                             //les prestations à afficher sur le bulletin
                             $index = 0;
-                              $global_cotis = salarie_prestation($db, $obj_verif->fk_salarie, $id_convention);
+                              $global_cotis = salarie_prestation($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
                               $cotis = $global_cotis[1];
                               $taux_p = $global_cotis[0];
                               foreach ($cotis as $key => $value) {
@@ -534,7 +534,7 @@ if($user->rights->paiementsalaire->societe->read){
                           $pourcentage_org = array();
 
                           $index = 0;
-                          $global_cotis = salarie_prestation_organisme($db, $obj_verif->fk_salarie, $id_convention);
+                          $global_cotis = salarie_prestation_organisme($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
                           $cotis = $global_cotis[1];
                           $taux_p = $global_cotis[0];
                           foreach ($cotis as $key => $value) {
@@ -572,7 +572,7 @@ if($user->rights->paiementsalaire->societe->read){
 
                             //les prestations à afficher sur le bulletin
                             $index = 0;
-                              $global_cotis = salarie_prestation($db, $obj_verif->fk_salarie, $id_convention);
+                              $global_cotis = salarie_prestation($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
                               $cotis = $global_cotis[1];
                               $taux_p = $global_cotis[0];
                               foreach ($cotis as $key => $value) {
@@ -814,7 +814,7 @@ if($user->rights->paiementsalaire->societe->read){
                           $pourcentage_org = array();
 
                           $index = 0;
-                          $global_cotis = salarie_prestation_organisme($db, $obj_verif->fk_salarie, $id_convention);
+                          $global_cotis = salarie_prestation_organisme($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
                           $cotis = $global_cotis[1];
                           $taux_p = $global_cotis[0];
                           foreach ($cotis as $key => $value) {
@@ -852,7 +852,7 @@ if($user->rights->paiementsalaire->societe->read){
 
                             //les prestations à afficher sur le bulletin
                             $index = 0;
-                              $global_cotis = salarie_prestation($db, $obj_verif->fk_salarie, $id_convention);
+                              $global_cotis = salarie_prestation($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
                               $cotis = $global_cotis[1];
                               $taux_p = $global_cotis[0];
                               foreach ($cotis as $key => $value) {
@@ -1364,13 +1364,17 @@ if($user->rights->paiementsalaire->societe->read){
 
                           print "<td style='padding: 0px' ><span class='fa fa-plus' style='color: gray'></a>&nbsp;&nbsp;&nbsp;";
                           if($user->rights->paiementsalaire->salarie->voirDocument)
-                            print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span>&nbsp; &nbsp;</a>&nbsp;
+                            print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp;&nbsp; &nbsp;
                             <a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span> &nbsp;</a>&nbsp;
-                            <a href='./../doc/export_bonus.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->name."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp;&nbsp;
-                            <a style='text-decoration : none;' title='Supprimer' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=attente_suppression&annee=".$annee_rechercher."&mois=".($i + 1)."'>".img_delete("", "")."</a>&nbsp;";
-                          else 
-                            print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-                            <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+                            <a href='./../doc/export_bonus.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->name."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp;&nbsp;";
+
+                            $sql_sup = "SELECT cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='oui' AND annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
+                            $res_sup = $db->query($sql_sup);
+                            if($db->num_rows($res_sup) == 0)
+                              print "<a style='text-decoration : none;' title='Supprimer' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=attente_suppression&annee=".$annee_rechercher."&mois=".($i + 1)."'>".img_delete("", "")."</a>&nbsp;";
+                            else 
+                              print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+                              <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
                           print "</td>";
 
                         }else{

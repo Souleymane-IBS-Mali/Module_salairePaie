@@ -102,7 +102,21 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					$obj = $db->fetch_object($result);
 					if ($obj)
 					{
-							print "<tr class='impair'><td align='center'>";
+						print "<tr class='impair'><td align='center'>";
+						$bareme_part = "";
+						$sql_particulier = 'SELECT taux_salariale, taux_patronale FROM '.MAIN_DB_PREFIX.'taux_cotisation_societe WHERE fk_societe='.$id_societe.' AND fk_prestation='.$obj->rowid;
+						$res_part = $db->query($sql_particulier);
+						if($res_part){
+							$num = $db->num_rows($res_part);
+							if (0 < $num)
+								$bareme_part = $db->fetch_object($res_part);
+						}
+						
+						$info = "Cette cotisation (".$obj->code.") possède un barème particulier pour la société à laquelle ce salarié est affectée. Configuraton,reglage,cotisations";
+						if($bareme_part){
+							print $obj->code.'  '.info_admin($info, 1).'</td><td align="center">'.$bareme_part->taux_salariale.'<td align="center">'.$bareme_part->taux_patronale;
+							print "</td><td align='center'>Affectée</td></tr>";
+						}else{
 							$taux_prest_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bareme_prestation WHERE fk_prestation=".$obj->rowid;
 							$result_taux_prest = $db->query($taux_prest_sql);
 							if($result_taux_prest){
@@ -126,6 +140,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 									print "</td><td align='center'>Affectée</td></tr>";
 								}
 							}
+						}
 					
 					}
 					$i ++;

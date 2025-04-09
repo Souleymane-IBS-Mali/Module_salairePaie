@@ -560,7 +560,7 @@ global $db, $obj_soc;
 								$pourcentage_org = array();
 
 								$index = 0;
-								$global_cotis = salarie_prestation_organisme($db, $obj_salarie->rowid, $id_convention);
+								$global_cotis = salarie_prestation_organisme($db, $obj_salarie->rowid, $id_convention, $id_societe);
 								$cotis = $global_cotis[1];
 								$taux_p = $global_cotis[0];
 								foreach ($cotis as $key => $value) {
@@ -598,7 +598,7 @@ global $db, $obj_soc;
 
 									//les prestations à afficher sur le bulletin
 									$index = 0;
-										$global_cotis = salarie_prestation($db, $obj_salarie->rowid, $id_convention);
+										$global_cotis = salarie_prestation($db, $obj_salarie->rowid, $id_convention, $id_societe);
 										$cotis = $global_cotis[1];
 										$taux_p = $global_cotis[0];
 										foreach ($cotis as $key => $value) {
@@ -759,6 +759,16 @@ global $db, $obj_soc;
 							}
 
 							$date_embauche = ($obj_salarie->dateemployment?:($obj_salarie->date_anciennete?:"N/A"));
+
+
+							//Récuperation de l'id du contrat pour le salarié
+							$sql_contrat2 = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_contrat WHERE fk_salarie=".$obj_salarie->rowid." AND active=1";
+							$res_contrat2 = $db->query($sql_contrat2);
+										
+							//Récuperation du libelle du contrat pour l'id du contrat
+							$sql_type_contrat = "SELECT libelle FROM ".MAIN_DB_PREFIX."type_contrat WHERE rowid=".$db->fetch_object($res_contrat2)->fk_type_contrat;
+							$restype_contrat = $db->query($sql_type_contrat);
+							$contrat = $db->fetch_object($restype_contrat)->libelle;
 
 							$sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin (nom, prenom, fk_salarie, matricule, situation_familiale, nombre_enfant, nombre_enfant_hand, calcul_salaire, categorie
 							, echelon, contrat, diplome, type_salarie, fonction, date_embauche, sexe, pays, ville, addresse, tel, email, annee, mois, salaire_base, sursalaire, salaire_brut, salaire_brut_cotisable,

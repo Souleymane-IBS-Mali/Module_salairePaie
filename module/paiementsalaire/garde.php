@@ -43,13 +43,43 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/html.formother.class.php';
 llxHeader("", "Paiement | Salaire");
 //include(DOL_DOCUMENT_ROOT.'/paiementsalaire/installateur.php');
 //include(DOL_DOCUMENT_ROOT.'/paiementsalaire/onglets/whmcs.php');
+//include('./versionnig.php');
 
 $showtutorial = img_picto('', 'object_accounting',);
 
    print load_fiche_titre(''. $showtutorial. "Les statistiques concernant l'utilisation de ce module", '', '')."\n";
     //print '<hr>';
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Convention
+   //Insertion de la version
+   $num_v = "1.0.0";
+   $statut = "stable";
+   $changelog = "Prémière version du module SalairePaie";
+   $compatible_dolibarr = "Compatible avec toutes les version dolibarr inférieur à 20.0.2";
+   $download_link = "https://dolipaie-ibs-mali.com";
+   $autheur = "Internet Business Services IBS-Mali";
+
+   $soc_sql = "SELECT * FROM ".MAIN_DB_PREFIX."version_dolipaie WHERE numero_version='".$num_v."'";
+   $soc_res = $db->query($soc_sql);//= $db->query($covSql);
+   if($soc_res)
+        $num = $db->num_rows($soc_res);
+
+    if(0 >= $num ){
+
+        $soc_sql = "SELECT * FROM ".MAIN_DB_PREFIX."version_dolipaie";
+        $soc_res = $db->query($soc_sql);//= $db->query($covSql);
+        if($soc_res)
+            $nb = $db->num_rows($soc_res);
+
+        if($nb > 0 )
+            $soc_sql = "UPDATE ".MAIN_DB_PREFIX."version_dolipaie SET active=0 WHERE active=1";
+        //$soc_res = $db->query($soc_sql);
+
+        $sql_version = 'INSERT INTO '.MAIN_DB_PREFIX.'version_dolipaie (numero_version, date_publication, statut, changelog, compatibilite_dolibarr, lien_telechargement, autheur, active)';
+        $sql_version .= ' VALUES("'.$num_v.'",now(),"'.$statut.'","'.$changelog.'","'.$compatible_dolibarr.'","'.$download_link.'", "'.$autheur.'",1)';
+        $db->query($sql_version);
+        print $db->error();
+
+    }
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 print "<div style='display:flex; flex:2; flex-direction:row;'>";
@@ -148,7 +178,7 @@ print "<div style='flex:1; border-bottom: 1px solid #f0ecec;'>";
 
             if($db->query($sql_masse_sal) && $db->num_rows($db->query($sql_masse_sal))){
                 $obj_bull = $db->fetch_object($db->query($sql_masse_sal));                
-                $sql_masse_sal = "SELECT SUM(salaire_brut) as masse_salariale, mois, annee, cloture FROM ".MAIN_DB_PREFIX."bulletin";
+                $sql_masse_sal = "SELECT SUM(salaire_brut) as masse_salariale FROM ".MAIN_DB_PREFIX."bulletin";
                 $sql_masse_sal .= " WHERE fk_societe=".$societe->rowid." AND mois=".$obj_bull->mois." AND annee=".$obj_bull->annee." ORDER BY annee DESC, mois DESC";
                 $result1 = $db->query($sql_masse_sal);
 
@@ -236,7 +266,7 @@ print "<div style='flex:2; border-top: 1px border-bottom: 1px solid #f0ecec;'>";
 
             if($db->query($sql_masse_sal)){
                 $obj_bull = $db->fetch_object($db->query($sql_masse_sal));  
-                $sql_masse_sal = "SELECT SUM(salaire_brut) as masse_salariale, mois, annee, cloture FROM ".MAIN_DB_PREFIX."bulletin";
+                $sql_masse_sal = "SELECT SUM(salaire_brut) as masse_salariale FROM ".MAIN_DB_PREFIX."bulletin";
                 $sql_masse_sal .= " WHERE fk_societe=".$societe->rowid." AND mois=".$obj_bull->mois." AND annee=".$obj_bull->annee." ORDER BY annee DESC, mois DESC";
                 $result1 = $db->query($sql_masse_sal);
 

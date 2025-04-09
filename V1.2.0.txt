@@ -1,0 +1,23 @@
+V1.0.0
+Le module salairePaie est fonctionnelle et génère les salaires 
+V1.1.0
+Ajout des fonctionnalités cacheter les documents avant clotures du mois et après clotures du mois
+Déplacement des modèles de bulletins dans la configuration du module (comme pour les facture)
+V1.2.0
+    1- Correction de bug dans société_paie.php(onglet salaires dans société)
+    2- correction de bug dans bulletin.php(salariés onglet salaire)
+    3- Correction de bug complements salaire (on ne plus supprimer un complement après la cloture du mois)
+    4- Correction de bug societe_prime.php création de prime exceptionnelle à tous les salariés (société ongle prime, ajout d'une prime exceptionnelle)
+    5- Correction de bug valeur du type de contrat sur bulletin
+
+    Copatibilité avec la version 20.0.2 de dolibarr
+    6- Amelioration de sql dans la page de garde (garde.php) pour l'affichage des information du dernier mois traité
+    7- Amelioration de sql dans la page de garde (garde.php) pour l'affichage des information du dernier inps mois traité
+
+    8- ajout de la fonctinnalité : possibilité de mettre un taux particulier pour les cotisations en fonction des sociétés
+        -Modification de la fonction salarie_prestation(..., $id_societe) dans paiementsalaire.lib.php
+        -Modification generation_salaire.php
+        -Modification de bulletin (no_save ou apperçu du bulletin)
+
+    7- Ajout d'une table de gestion des versions
+    8- Gestion des version à travers WHMCS

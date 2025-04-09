@@ -217,6 +217,7 @@ $whmcsurl = 'https://my.ibs-mali.com/';
         $licence = "Active";
 
         //Prendre le nombre de salariés
+        //var_dump($results["configoptions"]);
         $tab = explode("|", $results["configoptions"]);
         for ($i=0; $i < count($tab); $i++) { 		
             $config_info_tab = explode('=', $tab[$i]);//$results["configoptions"] = (Salaries=25)
@@ -225,6 +226,39 @@ $whmcsurl = 'https://my.ibs-mali.com/';
 
             if($config_info_tab[0]=="Entreprises" && is_int((int)$config_info_tab[1]))
                 $nb_entreprise_licence = $config_info_tab[1];
+
+            if($config_info_tab[0]=="Version" && !empty($config_info_tab[1])){
+                $soc_sql = "SELECT * FROM ".MAIN_DB_PREFIX."version_dolipaie WHERE active=1";
+                $soc_res = $db->query($soc_sql);//= $db->query($covSql);
+                if($soc_res)
+                    $obj = $db->fetch_object($soc_res);
+
+                $version = explode('.', $config_info_tab[1]);
+                $vx = $version[0]; //V1 ou V2 ou V... | par ce que $version[0] contient la lettre V il faut qu'on le traite comme une chaine de caractère
+
+                $old_vers = explode('.', $obj->numero_version);
+                if($vx[1] == $old_vers[0]){  //Comparer les premiers indices des versions | si les premier indices sont égaux
+                    if($version[1] == $old_vers[1]){
+                        if($version[2] > $old_vers[2]){
+                            //Mise à jour disponible
+                            $sql_update = 'UPDATE '.MAIN_DB_PREFIX.'version_dolipaie SET mise_a_jour="'.$config_info_tab[1].'" WHERE active=1';
+                            $db->query($sql_update);
+                        }
+                    }elseif($version[1] > $old_vers[1]){
+                        //Mise à jour disponible
+                        $sql_update = 'UPDATE '.MAIN_DB_PREFIX.'version_dolipaie SET mise_a_jour="'.$config_info_tab[1].'" WHERE active=1';
+                        $db->query($sql_update);
+                    }
+
+                }elseif($vx[1] > $old_vers[0]){
+                    //Mise à jour disponible
+                    $sql_update = 'UPDATE '.MAIN_DB_PREFIX.'version_dolipaie SET mise_a_jour="'.$config_info_tab[1].'" WHERE active=1';
+                    $db->query($sql_update);
+                }
+
+            }
+                
+
 
             
         }
@@ -251,7 +285,7 @@ $whmcsurl = 'https://my.ibs-mali.com/';
         }
 
         if(!empty($results['localkey']))//stockage de la clé local dans un fichier
-            file_put_contents(DOL_DOCUMENT_ROOT.'/paiementsalaire/onglets/local.txt', $results['localkey']);
+        file_put_contents(DOL_DOCUMENT_ROOT.'/paiementsalaire/onglets/local.txt', $results['localkey']);
         
         
         //Enregistrement dans le log

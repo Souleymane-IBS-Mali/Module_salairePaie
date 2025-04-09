@@ -51,7 +51,7 @@ if(!empty(GETPOST("bareme_row", "int")))
 
  $action = GETPOST('action','alpha');
 if(empty($action))	
-	$action = 'liste';
+	$action = 'detail_prestation';
 
     if($action == "add_bareme"){
         $result = null;

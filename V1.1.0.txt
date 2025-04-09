@@ -1,5 +1,0 @@
-V1.0.0
-Le module salairePaie est fonctionnelle et génère les salaires 
-V1.1.0
-Ajout des fonctionnalités cacheter les documents avant clotures du mois et après clotures du mois
-Déplacement des modèles de bulletins dans la configuration du module (comme pour les facture)

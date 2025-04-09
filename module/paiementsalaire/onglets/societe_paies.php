@@ -170,12 +170,47 @@ if ($results['status'] == "Active") {
     $licence = "Active";
 
 	//Prendre le nombre de salariés
-	$tab = explode("|", $results["configoptions"]);
-	for ($i=0; $i < count($tab); $i++) { 		
-		$config_info_tab = explode('=', $tab[$i]);//$results["configoptions"] = (Salaries=25)
-		if($config_info_tab[0]=="Salaries" && is_int((int)$config_info_tab[1]))
-			$nombre_salarie_licence = $config_info_tab[1];
-	}
+        //var_dump($results["configoptions"]);
+        $tab = explode("|", $results["configoptions"]);
+        for ($i=0; $i < count($tab); $i++) { 		
+            $config_info_tab = explode('=', $tab[$i]);//$results["configoptions"] = (Salaries=25)
+            if($config_info_tab[0]=="Salaries" && is_int((int)$config_info_tab[1]))
+                $nombre_salarie_licence = $config_info_tab[1];
+
+            if($config_info_tab[0]=="Entreprises" && is_int((int)$config_info_tab[1]))
+                $nb_entreprise_licence = $config_info_tab[1];
+
+            if($config_info_tab[0]=="Version" && !empty($config_info_tab[1])){
+                $soc_sql = "SELECT * FROM ".MAIN_DB_PREFIX."version_dolipaie WHERE active=1";
+                $soc_res = $db->query($soc_sql);//= $db->query($covSql);
+                if($soc_res)
+                    $obj = $db->fetch_object($soc_res);
+
+                $version = explode('.', $config_info_tab[1]);
+                $vx = $version[0]; //V1 ou V2 ou V... | par ce que $version[0] contient la lettre V il faut qu'on le traite comme une chaine de caractère
+
+                $old_vers = explode('.', $obj->numero_version);
+                if($vx[1] == $old_vers[0]){  //Comparer les premiers indices des versions | si les premier indices sont égaux
+                    if($version[1] == $old_vers[1]){
+                        if($version[2] > $old_vers[2]){
+                            //Mise à jour disponible
+                            $sql_update = 'UPDATE '.MAIN_DB_PREFIX.'version_dolipaie SET mise_a_jour="'.$config_info_tab[1].'" WHERE active=1';
+                            $db->query($sql_update);
+                        }
+                    }elseif($version[1] > $old_vers[1]){
+                        //Mise à jour disponible
+                        $sql_update = 'UPDATE '.MAIN_DB_PREFIX.'version_dolipaie SET mise_a_jour="'.$config_info_tab[1].'" WHERE active=1';
+                        $db->query($sql_update);
+                    }
+
+                }elseif($vx[1] > $old_vers[0]){
+                    //Mise à jour disponible
+                    $sql_update = 'UPDATE '.MAIN_DB_PREFIX.'version_dolipaie SET mise_a_jour="'.$config_info_tab[1].'" WHERE active=1';
+                    $db->query($sql_update);
+                }
+
+            }
+		}
 	//Enregistrement des informations de licence dans la base de donnée
 	$sql_licence = "SELECT rowid FROM ".MAIN_DB_PREFIX."dolipaie_type";
 	$result_licence = $db->query($sql_licence);
@@ -186,13 +221,13 @@ if ($results['status'] == "Active") {
 			$result_sql_sup = $db->query($sql_sql_sup);
 
 			$sql_insert = "INSERT INTO ".MAIN_DB_PREFIX."dolipaie_type"; 
-			$sql_insert .= " (licensekey, local_key, nb_salarie, licence_status, proprietaire, societe, email, nom_produit, date_activation, date_expiration, type_abonnement)";
-			$sql_insert .= " VALUES('".$licensekey."', '".$results['localkey']."', ".$nombre_salarie_licence.", '".$results["status"]."', '".$results["registeredname"]."', '".$results["companyname"]."', '".$results["email"]."', '".$results["productname"]."', '".$results["regdate"]."', '".$results["nextduedate"]."', '".$results["billingcycle"]."')";
+			$sql_insert .= " (licensekey, local_key, nb_salarie, licence_status, proprietaire, societe, email, nom_produit, date_activation, date_expiration, type_abonnement, nb_societe)";
+			$sql_insert .= " VALUES('".$licensekey."', '".$results['localkey']."', ".$nombre_salarie_licence.", '".$results["status"]."', '".$results["registeredname"]."', '".$results["companyname"]."', '".$results["email"]."', '".$results["productname"]."', '".$results["regdate"]."', '".$results["nextduedate"]."', '".$results["billingcycle"]."', ".$nb_entreprise_licence.")";
 			$result_insert = $db->query($sql_insert);
 		}else{//on insert les informations pour la prémière fois
 			$sql_insert = "INSERT INTO ".MAIN_DB_PREFIX."dolipaie_type"; 
-			$sql_insert .= " (licensekey, local_key, nb_salarie, licence_status, proprietaire, societe, email, nom_produit, date_activation, date_expiration, type_abonnement)";
-			$sql_insert .= " VALUES('".$licensekey."', '".$results['localkey']."', ".$nombre_salarie_licence.", '".$results["status"]."', '".$results["registeredname"]."', '".$results["companyname"]."', '".$results["email"]."', '".$results["productname"]."', '".$results["regdate"]."', '".$results["nextduedate"]."', '".$results["billingcycle"]."')";
+			$sql_insert .= " (licensekey, local_key, nb_salarie, licence_status, proprietaire, societe, email, nom_produit, date_activation, date_expiration, type_abonnement, nb_societe)";
+			$sql_insert .= " VALUES('".$licensekey."', '".$results['localkey']."', ".$nombre_salarie_licence.", '".$results["status"]."', '".$results["registeredname"]."', '".$results["companyname"]."', '".$results["email"]."', '".$results["productname"]."', '".$results["regdate"]."', '".$results["nextduedate"]."', '".$results["billingcycle"]."', ".$nb_entreprise_licence.")";
 			$result_insert = $db->query($sql_insert);
 		}
 	}
@@ -913,6 +948,7 @@ if($user->rights->paiementsalaire->societe->read){
 		print $page_link.'</span>';
 	}
 
+	
 			//Gestion des année et des dates pour l'historique => Gestion des actions recherche année
 			if($action == 'annee_rechercher'){
 				$annee_rechercher = GETPOST("annee_rechercher", "int");
@@ -975,198 +1011,224 @@ if($user->rights->paiementsalaire->societe->read){
 					print "<th rowspan='2' align='center' >Opérations</tr>";
 					print "<tr><th>Employé</th><th>Employeur</th></tr>";
 					print "</thead>";
-					if($annee_rechercher == $annee_courant){
-						$gen =false;
+if($annee_rechercher == $annee_courant){
+						
+		$une_fois = false;
+		$dernier_mois = 0;
+		$etat_cloture = "";
 
-						for ($i=0; $i < count($mois_tab); $i++) {
-							//Vérification d'un bulletin bonus (complément salaire)
-							$sql_bonus_bulletin = "SELECT nom_bonus FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
-							$res_bonus_bulletin  = $db->query($sql_bonus_bulletin);
-							$num_bull_bon = $db->num_rows($res_bonus_bulletin);
-							$info_bonus = '';
-							$style = '';
-							if($num_bull_bon > 0){
-								$obj_bonus_bulletin = $db->fetch_object($res_bonus_bulletin);
-								$titre = 'Il existe un Complément salaire "'.$obj_bonus_bulletin->nom_bonus.'" pour ce mois. Cliquez pour voir';
-								$info_bonus = "&nbsp;&nbsp;<div style='display: inline; padding-bottom: 100px;'><img src='./icon/down_arrow.png' onClick=cacher('bonus".$i."') width='20' height='15' title='".$titre."'></div>";
-								$style = 'style="border : 0px;"';
-							}
-	
-								print "<tr class='impair'>";
+		$sql_verif = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher."  AND fk_societe=".$id_societe;
+		$res_verif = $db->query($sql_verif);
+		if($res_verif){
+			$nb = $db->num_rows($res_verif);
+			if($nb > 0){
+					$une_fois = true;
+			}
+		}
+
+		if($une_fois){
+			$sql_verif = "SELECT mois, cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher."  AND fk_societe=".$id_societe." ORDER BY mois DESC";
+			$res_verif = $db->query($sql_verif);
+			if($res_verif){
+				$obj = $db->fetch_object($res_verif);
+				$dernier_mois = $obj->mois;
+				$etat_cloture = $obj->cloture;
+
+			}
+
+		
+
+		}
+
+		//AFFICHAGE
+		$suivant = false;
+		for ($i=0; $i < count($mois_tab); $i++) {
+
+			$total = 0;
+			$a = 0;
+			$somme_taxe = 0;
+			$somme_cotisation = 0;
+			$somme_cotisation_employe = 0;
+			$somme_cotisation_employeur = 0;
+			$tab_obj = array();
+		//Vérification d'un bulletin bonus (complément salaire)
+		$sql_bonus_bulletin = "SELECT nom_bonus FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
+		$res_bonus_bulletin  = $db->query($sql_bonus_bulletin);
+		$num_bull_bon = $db->num_rows($res_bonus_bulletin);
+		$info_bonus = '';
+		$style = '';
+		if($num_bull_bon > 0){
+			$obj_bonus_bulletin = $db->fetch_object($res_bonus_bulletin);
+			$titre = 'Il existe un Complément salaire "'.$obj_bonus_bulletin->nom_bonus.'" pour ce mois. Cliquez pour voir';
+			$info_bonus = "&nbsp;&nbsp;<div style='display: inline; padding-bottom: 100px;'><a href='./bonus_paies.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."'><img src='./icon/down_arrow.png' onClick=cacher('bonus".$i."') width='20' height='15' title='".$titre."'></a></div>";
+			$style = 'style="border : 0px;"';
+		}
+
+
+				$sql_verif = "SELECT rowid, cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
+				$res_verif = $db->query($sql_verif);
+				if($res_verif){
+					$nb_salarie = $db->num_rows($res_verif);
+					if($nb_salarie > 0){
+							$une_fois = true;
+							$obj_verif = $db->fetch_object($res_verif);
+							$sql_som_salaire = "SELECT SUM(salaire_brut) as sal_brut, SUM(net_payer) as sal_net FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
+							$res_som_salaire  = $db->query($sql_som_salaire);
+							$tab_obj[0] = $db->fetch_object($res_som_salaire);
+
+							//$total += $tab_obj[0]->sal_brut + $tab_obj[0]->sal_net;
+
 							
-									$sql_verif = "SELECT rowid, cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
-									$res_verif = $db->query($sql_verif);
-									if($res_verif){
-										$nb_salarie = $db->num_rows($res_verif);
-										if($nb_salarie > 0){
-												$une_fois = true;
-												$obj_verif = $db->fetch_object($res_verif);
-												$sql_som_salaire = "SELECT SUM(salaire_brut) as sal_brut, SUM(net_payer) as sal_net FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
-												$res_som_salaire  = $db->query($sql_som_salaire);
-												$obj_som_salaire = $db->fetch_object($res_som_salaire);
-	
-												//$total += $obj_som_salaire->sal_brut + $obj_som_salaire->sal_net;
-	
-											if(($obj_verif->cloture=="oui")){
-												$total = 0;
-												$a = 0;
-												$somme_taxe = 0;
-												$somme_cotisation = 0;
-												$somme_cotisation_employe = 0;
-												$somme_cotisation_employeur = 0;
-												$sql_id_bulletin = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
-												$res_id_bulletin  = $db->query($sql_id_bulletin);
-												$num_k = $db->num_rows($res_id_bulletin);
-												while ($a < $num_k){
-													$obj_id_bulletin = $db->fetch_object($res_id_bulletin);
-													$sql_som_taxe = "SELECT SUM(montant) as montant FROM ".MAIN_DB_PREFIX."bulletin_taxe WHERE fk_bulletin=".$obj_id_bulletin->rowid;
-													$res_som_taxe  = $db->query($sql_som_taxe);
-													if($res_som_taxe){
-														$obj_som_taxe = $db->fetch_object($res_som_taxe);
-														$somme_taxe += $obj_som_taxe->montant;
-													}
-	
-													$sql_som_cotisation = "SELECT SUM(montant_employe) as som_empl, SUM(montant_employeur) as som_patro FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$obj_id_bulletin->rowid;
-													$res_som_cotisation  = $db->query($sql_som_cotisation);
-													if($res_som_cotisation){
-														$obj_som_cotisation = $db->fetch_object($res_som_cotisation);
-														$somme_cotisation_employe += $obj_som_cotisation->som_empl;
-														$somme_cotisation_employeur += $obj_som_cotisation->som_patro;
-													}
-													$a ++;
-												}
-												$db->free($res_id_bulletin);
-												$somme_cotisation += $somme_cotisation_employe + $somme_cotisation_employeur;
-												$total += $somme_taxe + $somme_cotisation;
-	
-												if(empty($info_bonus))
-													print "<td ".$style." ><b>".$mois_tab[$i]."</b></td>";
-												else{ 
-													print "<td ".$style." ><b>".$mois_tab[$i]."</b>  ".$info_bonus."</td>";
-												}
-												
-	
-												print "<td ".$style.">".$nb_salarie."</td><td ".$style.">".apres_virgule($db, $id_societe, $obj_som_salaire->sal_brut?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $obj_som_salaire->sal_net?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
-												print "<td ".$style." ><button class='button' disabled>Generer</button>";
-												if($user->rights->paiementsalaire->salarie->voirDocument)
-													print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp; &nbsp;&nbsp;
-													<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span></a>&nbsp;&nbsp;
-													<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->nom."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp; &nbsp;&nbsp;";
-												else
-													print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-													<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
-												print "Cloturé</td>";
-												
-	
-												$precedent = true;
-												$gen = false;
-											}else if(($obj_verif->cloture=="non")){
-													$total = 0;
-													$a = 0;
-													$somme_taxe = 0;
-													$somme_cotisation = 0;
-													$somme_cotisation_employe = 0;
-													$somme_cotisation_employeur = 0;
-													$sql_id_bulletin = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
-													$res_id_bulletin  = $db->query($sql_id_bulletin);
-													$num_k = $db->num_rows($res_id_bulletin);
-													while ($a < $num_k){
-														$obj_id_bulletin = $db->fetch_object($res_id_bulletin);
-														$sql_som_taxe = "SELECT SUM(montant) as montant FROM ".MAIN_DB_PREFIX."bulletin_taxe WHERE fk_bulletin=".$obj_id_bulletin->rowid;
-														$res_som_taxe  = $db->query($sql_som_taxe);
-														if($res_som_taxe){
-															$obj_som_taxe = $db->fetch_object($res_som_taxe);
-															$somme_taxe += $obj_som_taxe->montant;
-														}
-	
-														$sql_som_cotisation = "SELECT SUM(montant_employe) as som_empl, SUM(montant_employeur) as som_patro FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$obj_id_bulletin->rowid;
-														$res_som_cotisation  = $db->query($sql_som_cotisation);
-														if($res_som_cotisation){
-															$obj_som_cotisation = $db->fetch_object($res_som_cotisation);
-															$somme_cotisation_employe += $obj_som_cotisation->som_empl;
-															$somme_cotisation_employeur += $obj_som_cotisation->som_patro;
-														}
-														$a ++;
-													}
-													$db->free($res_id_bulletin);
-	
-													$somme_cotisation += $somme_cotisation_employe + $somme_cotisation_employeur;
-													$total += $somme_taxe + $somme_cotisation;
-													if(empty($info_bonus))
-														print "<td ".$style." ><b>".$mois_tab[$i]."</b></td>";
-													else{ 
-														print "<td ".$style." ><b>".$mois_tab[$i]."</b>  ".$info_bonus."</td>";
-													}
-														//print "<td ".$style." ><b>".$mois_tab[$i]." ".$info_bonus."</b></td>";
-														print "<td ".$style.">".$nb_salarie."</td><td ".$style.">".apres_virgule($db, $id_societe, $obj_som_salaire->sal_brut?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $obj_som_salaire->sal_net?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
-														print "<td ".$style." >";
-														if($user->rights->paiementsalaire->societe->genererBulletin)
-															print "<a style='text-decoration : none;' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&action=generer&annee=".$annee_rechercher."&mois=".($i+1)."' id='button_generer'><button class='button' >Générer</button></a>";
-														else
-															print "<button class='button' disabled>Generer</button>";
-	
-														if($user->rights->paiementsalaire->salarie->voirDocument)
-															print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp;&nbsp;
-															<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span> </a>&nbsp;&nbsp;
-															<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->nom."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>";
-														else
-															print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-															<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
-														if($user->rights->paiementsalaire->societe->genererBulletin)
-															print "<a style='text-decoration : none;' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&action=cloture&annee=".$annee_rechercher."&mois=".($i + 1)."' id='cloture'><button class='button' >Cloturer</button></a></td>";
-														else print "N/A</td>";
-	
-														//Vérification d'un bulletin bonus (complément salaire)
-														$gen = true;
-													
-												}
-											}else{
-												if($gen == false){
-														if(($i + 1) == $mois_courant){
-															print "<td ".$style." ><b>".$mois_tab[$i]."</b></td>";
-																print "<td ".$style.">0</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td>";
-																print "<td ".$style." >";
-																if($user->rights->paiementsalaire->societe->genererBulletin)
-																	print "<a style='text-decoration : none;' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&action=generer&annee=".$annee_rechercher."&mois=".($i+1)."' id='button_generer'><button class='button' >Générer</button></a>&nbsp;";
-																else
-																	print "<button class='button' disabled>Generer</button>";
-		
-																	print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-																	<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
-																	print "N/A</td>";
-		
-																	$gen = true;
-														}else{
-															print "<h2 style='background-color: red'>".$db->error()."</h2>";
-															print "<td ".$style." ><b>".$mois_tab[$i]."</b></td>";
-															print "<td ".$style.">0</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 0)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td>";
-															print "<td ".$style." ><button class='button' disabled>Generer</button>
-															<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-															<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
-															print "N/A</td>";
-														}
-												}else{
-													print "<h2 style='background-color: red'>".$db->error()."</h2>";
-													print "<td ".$style." ><b>".$mois_tab[$i]."</b></td>";
-													print "<td ".$style.">0</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 0)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td>";
-													print "<td ".$style." ><button class='button' disabled>Generer</button>
-													<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-													<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
-													print "N/A</td>";
-												}
-											}
-										}else{
-												print "<h2 style='background-color: red'>".$db->error()."</h2>";
-												print "<td ".$style." ><b>".$mois_tab[$i]."</b></td>";
-												print "<td ".$style.">0</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 0)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td>";
-												print "<td ".$style." ><button class='button' disabled>Generer</button>
-												<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-												<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
-												print "N/A</td>";
-											}
-	
-										}
-					}else{
+							$sql_id_bulletin = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
+							$res_id_bulletin  = $db->query($sql_id_bulletin);
+							$num_k = $db->num_rows($res_id_bulletin);
+							while ($a < $num_k){
+								$obj_id_bulletin = $db->fetch_object($res_id_bulletin);
+								$sql_som_taxe = "SELECT SUM(montant) as montant FROM ".MAIN_DB_PREFIX."bulletin_taxe WHERE fk_bulletin=".$obj_id_bulletin->rowid;
+								$res_som_taxe  = $db->query($sql_som_taxe);
+								if($res_som_taxe){
+									$obj_som_taxe = $db->fetch_object($res_som_taxe);
+									$somme_taxe += $obj_som_taxe->montant;
+								}
+
+								$sql_som_cotisation = "SELECT SUM(montant_employe) as som_empl, SUM(montant_employeur) as som_patro FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$obj_id_bulletin->rowid;
+								$res_som_cotisation  = $db->query($sql_som_cotisation);
+								if($res_som_cotisation){
+									$obj_som_cotisation = $db->fetch_object($res_som_cotisation);
+									$somme_cotisation_employe += $obj_som_cotisation->som_empl;
+									$somme_cotisation_employeur += $obj_som_cotisation->som_patro;
+								}
+								$a ++;
+							}
+							$db->free($res_id_bulletin);
+							$somme_cotisation += $somme_cotisation_employe + $somme_cotisation_employeur;
+							$total += $somme_taxe + $somme_cotisation;
+							$tab_obj[0]->somme_cotisation = $somme_cotisation;
+							$tab_obj[0]->somme_taxe = $somme_taxe;
+							$tab_obj[0]->somme_cotisation_employe = $somme_cotisation_employe;
+							$tab_obj[0]->somme_cotisation_employeur = $somme_cotisation_employeur;
+
+
+
+						}
+					}
+
+
+		print "<tr class='impair'>";
+
+				if(empty($info_bonus))
+					print "<td ".$style." ><b>".$mois_tab[$i]."</b></td>";
+				else{ 
+					print "<td ".$style." ><b>".$mois_tab[$i]."</b>  ".$info_bonus."</td>";
+				}
+
+
+			if($une_fois){
+				if(($i + 1) == $dernier_mois){ //Le denier mois généré
+					if($etat_cloture == 'oui'){
+						$suivant = true;
+						print "<td ".$style.">".$nb_salarie."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_brut?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_net?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
+						print "<td ".$style." ><button class='button' disabled>Generer</button>";
+						if($user->rights->paiementsalaire->salarie->voirDocument)
+							print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp; &nbsp;&nbsp;
+							<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span></a>&nbsp;&nbsp;
+							<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->nom."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp; &nbsp;&nbsp;";
+						else
+							print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+							<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+						print "Cloturé</td>";
+					}else{//vu que c'est le dernier mois généré alors cloture=non
+						print "<td ".$style.">".$nb_salarie."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_brut?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_net?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
+						print "<td ".$style." >";
+						if($user->rights->paiementsalaire->societe->genererBulletin)
+							print "<a style='text-decoration : none;' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&action=generer&annee=".$annee_rechercher."&mois=".($i+1)."' id='button_generer'><button class='button' >Générer</button></a>";
+						else
+							print "<button class='button' disabled>Generer</button>";
+			
+						if($user->rights->paiementsalaire->salarie->voirDocument)
+							print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp;&nbsp;
+							<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span> </a>&nbsp;&nbsp;
+							<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->nom."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>";
+						else
+							print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+							<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+						if($user->rights->paiementsalaire->societe->genererBulletin)
+							print "<a style='text-decoration : none;' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&action=cloture&annee=".$annee_rechercher."&mois=".($i + 1)."' id='cloture'><button class='button' >Cloturer</button></a></td>";
+						else print "N/A</td>";
+
+					}
+				}else if(($i + 1) < $dernier_mois){ //on affiche les valeurs (clotue = oui)
+
+					print "<td ".$style.">".$nb_salarie."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_brut?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_net?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
+					print "<td ".$style." ><button class='button' disabled>Generer</button>";
+					if($user->rights->paiementsalaire->salarie->voirDocument)
+						print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp; &nbsp;&nbsp;
+						<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span></a>&nbsp;&nbsp;
+						<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->nom."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp; &nbsp;&nbsp;";
+					else
+						print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+						<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+					print "Cloturé</td>";
+
+				}else if($suivant == true){ //on affiche ce mois avec le bouton générer actif
+					$suivant = false;
+
+					
+					print "<td ".$style.">0</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td>";
+					print "<td ".$style." >";
+					if($user->rights->paiementsalaire->societe->genererBulletin)
+						print "<a style='text-decoration : none;' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&action=generer&annee=".$annee_rechercher."&mois=".($i+1)."' id='button_generer'><button class='button' >Générer</button></a>&nbsp;";
+					else
+						print "<button class='button' disabled>Generer</button>";
+				
+						print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+						<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+						print "N/A</td>";
+				}else{//on affiche les case vide
+					print "<h2 style='background-color: red'>".$db->error()."</h2>";
+					print "<td ".$style.">0</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 0)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td>";
+					print "<td ".$style." ><button class='button' disabled>Generer</button>
+					<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+					<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+					print "N/A</td>";
+				}
+
+			}else{//On va automatiquement au mois courant
+				if(($i + 1) == $mois_courant){
+					
+					print "<td ".$style.">0</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td>";
+					print "<td ".$style." >";
+					if($user->rights->paiementsalaire->societe->genererBulletin)
+						print "<a style='text-decoration : none;' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&action=generer&annee=".$annee_rechercher."&mois=".($i+1)."' id='button_generer'><button class='button' >Générer</button></a>&nbsp;";
+					else
+						print "<button class='button' disabled>Generer</button>";
+				
+						print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+						<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+						print "N/A</td>";
+				}else{//il n y a eu aucune génération et le mois n'est pas égal au mois en cours (vide)
+					print "<h2 style='background-color: red'>".$db->error()."</h2>";
+					
+					print "<td ".$style.">0</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 0)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, 0, 2)."</td>";
+					print "<td ".$style." ><button class='button' disabled>Generer</button>
+					<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+					<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+					print "N/A</td>";
+				}
+
+			}
+
+			print "</tr>";
+
+		}
+
+
+
+
+
+
+
+}else{
 
 						$gen = true;
 						for ($i=0; $i < count($mois_tab); $i++) {
@@ -1179,7 +1241,7 @@ if($user->rights->paiementsalaire->societe->read){
 							if($num_bull_bon > 0){
 								$obj_bonus_bulletin = $db->fetch_object($res_bonus_bulletin);
 								$titre = 'Il existe un Complément salaire "'.$obj_bonus_bulletin->nom_bonus.'" pour ce mois. Cliquez pour voir';
-								$info_bonus = "&nbsp;&nbsp;<div style='display: inline; padding-bottom: 100px;'><img src='./icon/down_arrow.png' onClick=cacher('bonus".$i."') width='20' height='15' title='".$titre."'></div>";
+								$info_bonus = "&nbsp;&nbsp;<div style='display: inline; padding-bottom: 100px;'><a href='./bonus_paies.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."'><img src='./icon/down_arrow.png' onClick=cacher('bonus".$i."') width='20' height='15' title='".$titre."'></a></div>";
 								$style = 'style="border : 0px;"';
 							}
 	
