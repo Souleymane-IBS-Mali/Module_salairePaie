@@ -148,14 +148,11 @@ print "PaiementSalaire : ".$obj->numero_version;
 print "<h2>Documentation</h2>";
 print "Le guide d'utilisation se trouve <a href='".DOL_URL_ROOT."/paiementsalaire/config/manuel_utilisation.docx' target='_blank'><b>Manuel</b></a><br>";
 
-print "<h2>Téléchargé</h2>";
-print "Le lien de téléchargement de la version utilisée <a href='".$obj->lien_telechargement."' target='_blank'><b>Dolipaie</b></a><br>";
-
-if($obj->mise_a_jour){
-	print "<h2>Téléchargé la nouvelle version : <mark>".$obj->mise_a_jour."</mark></h2>";
+if($obj->mise_a_jour  == '1.2.0'){
+	print "<h2>Téléchargez la nouvelle version : <mark>".$obj->mise_a_jour."</mark></h2>";
 	print "Vous pouvez télécharger la nouvelle version de <b>Dolipaie</b> sur la plate-forme d'IBS en vous connectant</a><br>";
 
-	print "<h2>Ajouts, modifications & corrections</h2>";
+	print "<h2>Ajouts, modifications & corrections par rapport à la version <mark>V1.1.0</mark></h2>";
 	print "<div>1- Ajouts
         <ul>
             <li class='item1'>Ajout d'une table de gestion des versions</li>
@@ -187,6 +184,8 @@ if($obj->mise_a_jour){
 		</ul>
 	</div>";
 
+}else{
+	print "<h2>Aucune mise à jour disponible!</h2>";
 }
 // Page end
 print dol_get_fiche_end();
