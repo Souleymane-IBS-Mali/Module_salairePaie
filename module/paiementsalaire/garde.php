@@ -51,9 +51,9 @@ $showtutorial = img_picto('', 'object_accounting',);
     //print '<hr>';
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
    //Insertion de la version
-   $num_v = "1.0.0";
+   $num_v = "1.2.0";
    $statut = "stable";
-   $changelog = "Prémière version du module SalairePaie";
+   $changelog = "Prémière version avec Correction";
    $compatible_dolibarr = "Compatible avec toutes les version dolibarr inférieur à 20.0.2";
    $download_link = "https://dolipaie-ibs-mali.com";
    $autheur = "Internet Business Services IBS-Mali";
@@ -70,9 +70,10 @@ $showtutorial = img_picto('', 'object_accounting',);
         if($soc_res)
             $nb = $db->num_rows($soc_res);
 
-        if($nb > 0 )
+        if($nb > 0 ){
             $soc_sql = "UPDATE ".MAIN_DB_PREFIX."version_dolipaie SET active=0 WHERE active=1";
-        //$soc_res = $db->query($soc_sql);
+            $soc_res = $db->query($soc_sql);
+        }
 
         $sql_version = 'INSERT INTO '.MAIN_DB_PREFIX.'version_dolipaie (numero_version, date_publication, statut, changelog, compatibilite_dolibarr, lien_telechargement, autheur, active)';
         $sql_version .= ' VALUES("'.$num_v.'",now(),"'.$statut.'","'.$changelog.'","'.$compatible_dolibarr.'","'.$download_link.'", "'.$autheur.'",1)';
@@ -304,7 +305,7 @@ print "<div style='flex:2; border-top: 1px border-bottom: 1px solid #f0ecec;'>";
 						//$total += $somme_taxe + $somme_cotisation;
                     }
 
-                    print "<tr class='impair' style='background: none'><td> ".img_picto('', 'company', 'class="paddingright pictofixedwidth"')."".$societe->nom."</td><td align='' style='background: none'>".$nb_salarie." ".img_picto('', 'user', 'class="paddingright pictofixedwidth"')."</td><td>".apres_virgule($db, $societe->rowid, $somme_cotisation)." ".img_picto('', 'bill', 'class="paddingright pictofixedwidth"')."</td><td align=''>".$mois_tab[$masse_salariale_obj->mois-1]." ".$masse_salariale_obj->annee."</td></tr>";
+                    print "<tr class='impair' style='background: none'><td> ".img_picto('', 'company', 'class="paddingright pictofixedwidth"')."".$societe->nom."</td><td align='' style='background: none'>".$nb_salarie." ".img_picto('', 'user', 'class="paddingright pictofixedwidth"')."</td><td>".apres_virgule($db, $societe->rowid, $somme_cotisation)." ".img_picto('', 'bill', 'class="paddingright pictofixedwidth"')."</td><td align=''>".$mois_tab[$obj_bull->mois-1]." ".$obj_bull->annee."</td></tr>";
 
                 }
             }
