@@ -41,36 +41,36 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 			$date = date("Y-m-d");
 
 		if(empty($message)){
-				$mois_annee = explode("-", $date);
-				$sql = "INSERT INTO ".MAIN_DB_PREFIX."salarie_heure_sup (fk_salarie, fk_heur_sup, nb_heure, jour, mois, annee, note)
-				VALUES ('".$fk_salarie."',".$type_heure_sup.",".$nb_heure_sup.",'".$mois_annee[2]."','".$mois_annee[1]."','".$mois_annee[0]."','".$note."')";
-				$result = $db->query($sql);
-				print $db->error();
-				if($result){
-					$message = "Heure Sup associée à ce salarié";
-					//Ajout dans la table log
-					$heure_sup = "SELECT commentaire, taux FROM ".MAIN_DB_PREFIX."heure_sup WHERE rowid=".$type_heure_sup;
-					$result_heure_sup = $db->query($heure_sup);
-					$obj_hs = $db->fetch_object($result_heure_sup);
+			$mois_annee = explode("-", $date);
+			$sql = "INSERT INTO ".MAIN_DB_PREFIX."salarie_heure_sup (fk_salarie, fk_heur_sup, nb_heure, jour, mois, annee, note)
+			VALUES ('".$fk_salarie."',".$type_heure_sup.",".$nb_heure_sup.",'".$mois_annee[2]."','".$mois_annee[1]."','".$mois_annee[0]."','".$note."')";
+			$result = $db->query($sql);
+			print $db->error();
+			if($result){
+				$message = "Heure Sup associée à ce salarié";
+				//Ajout dans la table log
+				$heure_sup = "SELECT commentaire, taux FROM ".MAIN_DB_PREFIX."heure_sup WHERE rowid=".$type_heure_sup;
+				$result_heure_sup = $db->query($heure_sup);
+				$obj_hs = $db->fetch_object($result_heure_sup);
 
-					$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
-					$obj = $db->fetch_object($db->query($sql_select));
+				$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
+				$obj = $db->fetch_object($db->query($sql_select));
 
-					$sql_select = "SELECT firstname, lastname, dateemployment FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$fk_user;
-					$obj_u = $db->fetch_object($db->query($sql_select));
+				$sql_select = "SELECT firstname, lastname, dateemployment FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$fk_user;
+				$obj_u = $db->fetch_object($db->query($sql_select));
 
-					$sql_select = "SELECT nom FROM ".MAIN_DB_PREFIX."societe WHERE rowid=".$id_societe;
-					$obj_s = $db->fetch_object($db->query($sql_select));
+				$sql_select = "SELECT nom FROM ".MAIN_DB_PREFIX."societe WHERE rowid=".$id_societe;
+				$obj_s = $db->fetch_object($db->query($sql_select));
 
-					$action_effectue = "Ajout d'heure sup (desc=".$obj_hs->commentaire." taux=".$obj_hs->taux." nb_hs=".$nb_heure_sup." ".$mois_annee[2]."/".$mois_annee[1]."/".$mois_annee[0].") pour le salarié (N : ".$obj_u->firstname.", P : ".$obj_u->lastname.") de la société ".$obj_s->nom;
-					$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
-					$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Ajout heure sup")';
-					$db->query($sql_log);
+				$action_effectue = "Ajout d'heure sup (desc=".$obj_hs->commentaire." taux=".$obj_hs->taux." nb_hs=".$nb_heure_sup." ".$mois_annee[2]."/".$mois_annee[1]."/".$mois_annee[0].") pour le salarié (N : ".$obj_u->firstname.", P : ".$obj_u->lastname.") de la société ".$obj_s->nom;
+				$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
+				$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Ajout heure sup")';
+				$db->query($sql_log);
 
-				}else{
-					$message = "Un problème est survenu";
-					$action = "ajout_heure_sup";
-				}
+			}else{
+				$message = "Un problème est survenu";
+				$action = "ajout_heure_sup";
+			}
 		}else $action = "ajout_heure_sup";
 
 	}
@@ -298,35 +298,45 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					print "<tr><td align='center' colspan='6'>Pas d'heure sup pour ce salarié</td></tr>";
 				}
 				print "</table>";
-			print "<h3>Heures sup Payées</h3>";
+			print "<h3>Heures sup Payées de ".date('Y')."</h3>";
 			print "<table class='tagtable liste'>";
 			//les heures sup associé ce salarié
 
-
-				print "<tr class='liste_titre'><td>Type</td><td>Taux %</td><td>Nbre Heure";
+				print "<tr class='liste_titre'><td>Type</td><td>Taux %</td><td>Nbre Heure --> Montant";
 				print "</td><td>Mois</td><td>Note</td><td>Opération</td></tr>";
 				$date = date("y-m-d");
 				$mois_annee = explode("-", $date);
 				//$sql = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_heure_sup WHERE fk_salarie='".$fk_salarie."' AND (annee <>".date('Y')." OR (annee =".date('Y')." AND mois<>".$mois_annee[1]."))";
-				$sql = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_heure_sup WHERE fk_salarie='".$fk_salarie."' AND fk_heur_sup NOT IN ".$m;
+				$sql = "SELECT rowid, mois, annee FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".date('Y')." AND fk_salarie=".$fk_salarie." AND cloture='oui'";
 				$sql .= " ORDER BY annee DESC, mois DESC";
 				$result = $db->query($sql);
 				if($result){
 					$i = 0;
 					$num = $db->num_rows($result);
+
 					while ($i < $num){
 						$obj = $db->fetch_object($result);
 						if ($obj)
 						{
-							print "<tr class='impair'><td>";
-							$type_heure_sup = "SELECT * FROM ".MAIN_DB_PREFIX."heure_sup WHERE rowid=".$obj->fk_heur_sup;
-							$result_type_heure_sup = $db->query($type_heure_sup);
-							$obj_type_heure_sup = $db->fetch_object($result_type_heure_sup);
-							print ''.$obj_type_heure_sup->commentaire.'</td><td>'.$obj_type_heure_sup->taux.'</td>';
-							print '<td>'.$obj->nb_heure.'</td>';
-							print "<td>".$mois_tab[(int)$obj->mois-1]." ".$obj->annee."</td>";
-							print "<td>".$obj->note."</td>";
-							print "<td><button class='button' disabled>Dissocier</button></td></tr>";
+							$sql_bull_hs = "SELECT fk_heur_sup, libelle, base, taux, nombre_heure_sup, montant FROM ".MAIN_DB_PREFIX."bulletin_heure_sup WHERE fk_bulletin=".$obj->rowid;
+							$result_bull_hs = $db->query($sql_bull_hs);
+							$num_bull_hs = $db->num_rows($result_bull_hs);
+							if($result_bull_hs && $num_bull_hs > 0){
+								$obj_bull_hs = $db->fetch_object($result_bull_hs);
+
+								print "<tr class='impair'><td>";
+								print ''.$obj_bull_hs->libelle.'</td><td>'.$obj_bull_hs->taux.'</td>';
+								print '<td>'.$obj_bull_hs->nombre_heure_sup.'H --> '.$obj_bull_hs->montant.'</td>';
+
+								$sql_hs = "SELECT note FROM ".MAIN_DB_PREFIX."salarie_heure_sup WHERE fk_heur_sup=".$obj_bull_hs->fk_heur_sup." AND annee=".$obj->annee." AND mois=".$obj->mois;
+								$result_hs = $db->query($sql_hs);
+								if($result_hs)
+									$obj_hs = $db->fetch_object($result_hs);
+
+								print "<td>".$mois_tab[(int)$obj->mois-1]." ".$obj->annee."</td>";
+								print "<td>".$obj->note."</td>";
+								print "<td><button class='button' disabled>Dissocier</button></td></tr>";
+							}
 						}
 						$i ++;
 					}

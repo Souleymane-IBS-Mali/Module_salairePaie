@@ -275,10 +275,10 @@ global $db, $obj_soc;
 									//les primes qui doivent être affichés sur le billetin
 									$tab_info_pr = salarie_prime($db, $obj_salarie->rowid, $salaire_base, $id_convention, $id_societe, $id_accord_etab);
 									$pourcentage_pr = $tab_info_pr[0];
-									$pr = $tab_info_pr[1];
+									$pr_array = $tab_info_pr[1];
 									$index = 0;
 									$m = "";
-									foreach ($pr as $key => $value) {
+									foreach ($pr_array as $key => $value) {
 									if(!empty($key) && !empty($value)){
 										//$somme += $value;
 										$sql = "SELECT libelle, ajout_base_hs, soumis_cotisation, soumis_impot, affiche_bulletin FROM ".MAIN_DB_PREFIX."primes WHERE rowid=".$key;
@@ -369,7 +369,7 @@ global $db, $obj_soc;
 											  }
 
 											  //Si la prime est soumise à la cotisation
-											  if($array_prime_exceptionnelle[$e][5] == 'Oui'){
+											  if($array_prime_exceptionnelle[$e][6] == 'Oui'){
 												$salaire_brut_cotisable += $array_prime_exceptionnelle[$e][1];
 
 											  }

@@ -37,6 +37,14 @@ if($id_societe){
             if($res_sal){
               $obj_salarie = $db->fetch_object($res_sal);
 
+              $sql_soc = "SELECT societe_mere FROM ".MAIN_DB_PREFIX."salairepaie_societe WHERE fk_societe=".$id_societe;
+                $result_soc = $db->query($sql_soc);
+                if($result_soc)
+                  $info_soc = $db->fetch_object($result_soc);
+
+                  $sql_select = "SELECT avant_cloture, apres_cloture FROM ".MAIN_DB_PREFIX."statut_cachet WHERE fk_societe=".$id_societe;
+                $cachet_statut = $db->fetch_object($db->query($sql_select));
+
                 $user_Sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."user where rowid=".$obj_salarie->fk_user;
                 $user_Result = $db->query($user_Sql);
                 $id_salarie = $db->fetch_object($user_Result)->rowid;
@@ -45,7 +53,7 @@ if($id_societe){
 
 
 
-    global $fk_salarie, $id_salarie, $y, $mois, $annee, $id_accord_etab;
+    global $fk_salarie, $id_salarie, $y, $mois, $annee, $id_accord_etab, $info_soc, $cachet_statut;
               }
 
 
@@ -177,12 +185,12 @@ if($id_societe){
 
 
     $pdf->SetLeftMargin(133);
-    $pdf->Cell(30,4, utf8_decode("Retenu"),0,0,'C');
+    $pdf->Cell(30,4, utf8_decode("Retenue(s)"),0,0,'C');
     $pdf->line(163,$y-1,163,$pdf->GetPageHeight()-60);
 
 
     $pdf->SetLeftMargin(163);
-    $pdf->MultiCell(34,4, utf8_decode("Gain"),0,'C');
+    $pdf->MultiCell(34,4, utf8_decode("Gain(s)"),0,'C');
 
     $pdf->line(12,$y_apres_entete +13,$pdf->GetPageWidth()-12,$y_apres_entete +13);
 
@@ -630,8 +638,8 @@ if($id_societe){
              $pdf->line(12,$y-1 ,$pdf->GetPageWidth()-12,$y-1);
              $pdf->Cell(49,4, utf8_decode("Avances/Acomptes"),0,0,'L');
 
-             $pdf->SetLeftMargin(163);
-             $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
+             $pdf->SetLeftMargin(133);
+             $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
            }
 
          }
@@ -685,7 +693,7 @@ if($id_societe){
       $y += 4;
       $pdf->SetY($y);
       $pdf->SetFillColor(245, 245, 245);
-      $pdf->Cell(28,4, utf8_decode("Retenu :"),0,0,'L',true);
+      $pdf->Cell(28,4, utf8_decode("Retenue(s) :"),0,0,'L',true);
       $pdf->SetLeftMargin(61);
       $pdf->MultiCell(31,4, utf8_decode(apres_virgule($db, $id_societe, $retenu, 2)),0,'R',true);
       //Avance
@@ -711,14 +719,36 @@ if($id_societe){
       $pdf->MultiCell(31,4, utf8_decode(apres_virgule($db, $id_societe, ($salaire_net - $somme_avance)?:0, 2)),0,'R',true);
 
       //*********************************************************************** */
+      $directory = DOL_DOCUMENT_ROOT.'/paiementsalaire/config/cachet_societe/';
+			if(is_readable($directory.$id_societe.'.png')){
+				$file = $id_societe.'.png';
+				$filePath = $directory.$file;
+			}elseif(is_readable($directory.$id_societe.'.jpg')){
+				$file = $id_societe.'.jpg';
+				$filePath = $directory.$file;
+			}elseif(is_readable($directory.$id_societe.'.jpeg')){
+				$file = $id_societe.'.jpeg';
+				$filePath = $directory.$file;
+			}
+      //On met le cachet sur le cadre à droite si le mois est cloturé et s'il y a un cachet
       //les cadres
+      //à gauche
       $pdf->SetLeftMargin(13);
       $pdf->SetY($y+7);
-      $pdf->MultiCell(59,14, "",1,'');
+      $pdf->MultiCell(59,13, "",1,'');
 
+      //à droite
       $pdf->SetLeftMargin(133);
       $pdf->SetY($y+7);
-      $pdf->MultiCell(59,14, "",1,'');
+      $pdf->MultiCell(59,13, "",1,'');
+
+      if(is_readable($filePath) && $obj_bulletin->cloture == "oui" && $cachet_statut->apres_cloture == 1){
+        $pdf->Image($filePath,150,$y+7, 40,19);
+      }elseif(is_readable($filePath) && $obj_bulletin->cloture == "non" && $cachet_statut->avant_cloture == 1){
+        $pdf->Image($filePath,150,$y+7, 40,19);
+      }
+
+    
 
   }
 
@@ -750,64 +780,86 @@ function apres_virgule($db, $id_societe, $valeur, $decalage){
 
   //entete des bulletins
 function pdf_pagehead_moyen(&$pdf, $onglet_salarie){
-    global $mysoc,$conf, $db, $fk_salarie, $id_salarie, $mois, $annee, $id_accord_etab;
+    global $mysoc,$conf, $db, $fk_salarie, $id_salarie, $mois, $annee, $id_accord_etab, $info_soc;
 
 
     $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_salarie=".$fk_salarie." AND annee=".$annee." AND mois=".$mois;
       $rest_bulletin = $db->query($bulletin_sql);//= $db->query($covSql);
       $bulletin_obj = $db->fetch_object($rest_bulletin);
 
-      $y = $pdf->GetY();
-      //$debut = DOL_DOCUMENT_ROOT;
-      $debut = $conf->mycompany->dir_output;
-      $tab = explode("/",$debut);
-      //$logo_server = $logodir.'/logos/'.$bulletin_obj->logo_societe;
-
       $bulletin_soc = "SELECT * FROM ".MAIN_DB_PREFIX."societe WHERE rowid=".$bulletin_obj->fk_societe;
       $rest_bulletin_soc = $db->query($bulletin_soc);//= $db->query($covSql);
       $societe_Salarie = $db->fetch_object($rest_bulletin_soc);
 
-      $img = '../../config/logo_societe/'.$bulletin_obj->fk_societe;
-		if(file_exists($img.'.png')){
-			$img .= '.png';
-		}elseif(file_exists($img.'.jpg')){
-			$img .= '.jpg';
-		}else{
-			$img .= '.jpeg';
-		}
-
-		if(is_readable($img)){
-			$logo_server = $img;
-
-		}else{
-      $logo_server = $tab[0].'/'.$tab[1].'/'.$tab[2].'/'.$tab[3].'/documents/societe/'.$bulletin_obj->fk_societe.'/logos/'.$bulletin_obj->logo_societe;
-      $logo_local_pc = $tab[0].'/'.$tab[1].'/dolibarr_documents/societe/'.$societe_Salarie->rowid.'/logos/'.($societe_Salarie->logo?$societe_Salarie->logo:"vide.png");
-    }
-
-      $pdf->SetFillColor(143, 39, 51);
-	  $pdf->SetY(4);
-	   $pdf->SetX(0);
-     $pdf->Cell($pdf->getPageWidth(),16, "",1,0,0,true);
-
-     $pdf->SetFillColor(255, 255, 255);
-      $pdf->SetY(5);
-      $pdf->SetX(20);
-      $pdf->Cell(35,13, "",1,0,0,true);
-
-	  if(is_readable($logo_local_pc)){
-        $pdf->Image($logo_local_pc,20,5, 35,13);
-        $y = $pdf->GetY()+2;
-      }elseif(is_readable($logo_server)){
-		$pdf->Image($logo_server,20,5, 35,13);
-        $y = $pdf->GetY()+2;
-	  }else{
-        $pdf->SetFont('Helvetica','B',16);
-        $pdf->SetY($y-4);
-        $pdf->SetX(20);
+      $y = $pdf->GetY();
+      $debut = DOL_DOCUMENT_ROOT;
+      $tab = explode("/",$debut);
+      $logodir = $conf->mycompany->dir_output;
+      $logo_server = $logodir.'/logos/'.$mysoc->logo;
+      if($info_soc->societe_mere == 0){
+        $logo_1 = $tab[0].'/'.$tab[1].'/'.$tab[2].'/'.$tab[3].($tab[4]?'/'.$tab[4]:'').'/documents/societe/'.$bulletin_obj->fk_societe.'/logos/'.$bulletin_obj->logo_societe;
+        $logo_2 = $tab[0].'/'.$tab[1].'/dolibarr_documents/societe/'.$bulletin_obj->fk_societe.'/logos/'.($bulletin_obj->logo_societe?$bulletin_obj->logo_societe:"vide.png");
+    
+        $pdf->SetFillColor(143, 39, 51);
+        $pdf->SetY(4);
+         $pdf->SetX(0);
+         $pdf->Cell($pdf->getPageWidth(),16, "",1,0,0,true);
+    
+         //cadre blanc pour logo
         $pdf->SetFillColor(255, 255, 255);
-        $pdf->MultiCell(25,11,utf8_decode("Logo"),0,'C', true);
-        $y += 2;
-
+        $pdf->SetY(5);
+        $pdf->SetX(20);
+        $pdf->Cell(35,13, "",1,0,0,true);
+    
+        if(is_readable($logo_2)){
+          $pdf->Image($logo_2,20,5, 35,13);
+          $y = $pdf->GetY()+2;
+        }elseif(is_readable($logo_1)){
+          $pdf->Image($logo_1,20,5, 35,13);
+          $y = $pdf->GetY()+2;
+        }else{
+          $pdf->SetFont('Helvetica','B',16);
+          $pdf->SetY($y-4);
+          $pdf->SetX(20);
+          $pdf->SetFillColor(255, 255, 255);
+          $pdf->MultiCell(25,11,utf8_decode("Logo"),0,'C', true);
+          $y += 2;
+        }
+    
+    
+      }else{
+          $logodir = $conf->mycompany->dir_output;
+          if (!empty($conf->mycompany->multidir_output[$object->entity])) {
+            $logodir = $conf->mycompany->multidir_output[$object->entity];
+          }
+          if (empty($conf->global->MAIN_PDF_USE_LARGE_LOGO)) {
+            $logo = $logodir.'/logos/thumbs/'.$mysoc->logo_small;
+          } else {
+            $logo = $logodir.'/logos/'.$mysoc->logo;
+          }
+        
+          $pdf->SetFillColor(143, 39, 51);
+          $pdf->SetY(4);
+           $pdf->SetX(0);
+           $pdf->Cell($pdf->getPageWidth(),16, "",1,0,0,true);
+        
+           //cadre blanc pour logo
+            $pdf->SetFillColor(255, 255, 255);
+            $pdf->SetY(5);
+            $pdf->SetX(20);
+            $pdf->Cell(35,13, "",1,0,0,true);
+        
+            if(is_readable($logo)){
+              $pdf->Image($logo,20,5, 35,13);
+              $y = $pdf->GetY()+2;
+            }else{
+              $pdf->SetFont('Helvetica','B',16);
+              $pdf->SetY($y-4);
+              $pdf->SetX(20);
+              $pdf->SetFillColor(255, 255, 255);
+              $pdf->MultiCell(25,11,utf8_decode("Logo"),0,'C', true);
+              $y += 2;
+            }
       }
 	  $y = 12;
 	$y_salarie = $y;

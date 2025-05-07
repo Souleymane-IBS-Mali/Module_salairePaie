@@ -78,15 +78,15 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		$salarie = $db->fetch_object($result);
 		//print $salarie->date_embauche."****";
 		$date_donnee = new DateTime($salarie->date_embauche); // Date donnée
-							$aujourdhui = new DateTime(); // Date d'aujourd'hui
+		$aujourdhui = new DateTime(); // Date d'aujourd'hui
 
-							$interval = $date_donnee->diff($aujourdhui);
-							$jours = $interval->days;
-							$nb_conge_eff = $jours;
-							while ($jours > 365) {
-								$jours = $jours - 365;
-							}
-							$solde =  (int)(floor($jours/30)*2.5);
+		$interval = $date_donnee->diff($aujourdhui);
+		$jours = $interval->days;
+		$nb_conge_eff = $jours;
+		while ($jours > 365) {
+			$jours = $jours - 365;
+		}
+		$solde =  (int)(floor($jours/30)*2.5);
 			//print $solde."***".(int)($solde*2.5);
 	}
 

@@ -24,26 +24,31 @@ $spreadsheet->getProperties()->setCreator("Votre Nom")
                              ->setCategory("Fichier de test");
 
 // Définir la valeur de la cellule fusionnée
-//global $mois, $annee, $nom_soc;
-$mois= GETPOST("mois", "int");
+//global $mois, $annee, $nom;
+$fk_salarie= GETPOST("fk_salarie", "int");
 $annee= GETPOST("annee", "int");
+$nom= GETPOST("nom", "alpha");
 $id_societe= GETPOST("id_societe", "int");
+
+
+//Récupération des données
+$fonction = GETPOST("fonction", "alpha");
+$banque = GETPOST("banque", "alpha");
+$compte = GETPOST("compte", "alpha");
+$categorie = GETPOST("categorie", "alpha");
+$situation_matrimoniale = GETPOST("situation_matrimoniale", "alpha");
 
 $mois_tab = array(" Janvier "," Février "," Mars "," Avril "," Mai "," Juin "," Juillet "," Août "," Septembre "," Octobre "," Novembre "," Décembre ");
 
-$soc_sql = "SELECT nom FROM ".MAIN_DB_PREFIX."societe WHERE rowid=".$id_societe;
-      $res_soc = $db->query($soc_sql);
-      if($res_soc)
-            $nom_soc = $db->fetch_object($res_soc)->nom;
 // Ajouter des données
 $sheet = $spreadsheet->getActiveSheet();
 // Fusionner les cellules de A1 à B1
 $sheet->mergeCells('A1:H3');
 //$sheet->mergeCells('A1:A2');
 
-$info = "Etat de salaire de".$mois_tab[$mois-1]." ".$annee." de ".$nom_soc."";
+$info = "Récapitulatif ".$annee." de ".$nom;
 $sheet->setCellValue('A1', $info);
-$sheet->getStyle('A1')->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+      $sheet->getStyle('A1')->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
       
 
       // Appliquer du style à la cellule fusionnée (optionnel)
@@ -54,22 +59,22 @@ $sheet->getStyle('A1')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\St
 
 // Renommer la feuille de calcul
 $sheet->setTitle('Exemple');
-
-$bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+      $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND fk_salarie=".$fk_salarie." AND fk_societe=".$id_societe;
       $bulletin_sql .= " ORDER BY rowid";
       $res_bulletin = $db->query($bulletin_sql);
+
         if($res_bulletin)
             if($db->num_rows($res_bulletin)>0){
             //Les titre des colonnes
             //Matricule
-                  $sheet->setCellValue('A5', 'MATRICULE');
+                  $sheet->setCellValue('A5', 'Mois');
                   $sheet->getStyle('A5')->getFont()->setBold(true);
                   $sheet->mergeCells('A5:A6');
 
 
                   $colonne_courante = "A";
 
-                  //Prénom
+                  /*//Prénom
                   $nextcolonne = getNextColumnName($colonne_courante);
                   $sheet->setCellValue($nextcolonne.'5', 'PRENOM');
                   $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
@@ -88,42 +93,53 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
                   $sheet->setCellValue($nextcolonne.'5', 'DATE RENTREE');
                   $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
                   $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
-                  $colonne_courante = $nextcolonne;
+                  $colonne_courante = $nextcolonne;*/
 
                   //Catégorie
-                  $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'CATEGORIE');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
-                  $colonne_courante = $nextcolonne;
+                  if($categorie){
+                        $nextcolonne = getNextColumnName($colonne_courante);
+                        $sheet->setCellValue($nextcolonne.'5', 'CATEGORIE');
+                        $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
+                        $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                        $colonne_courante = $nextcolonne;
+                  }
 
                   //Situation matrimoniale
-                  $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'SITUAT. MAT');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
-                  $colonne_courante = $nextcolonne;
+                  if($situation_matrimoniale){
+                        $nextcolonne = getNextColumnName($colonne_courante);
+                        $sheet->setCellValue($nextcolonne.'5', 'SITUAT. MAT');
+                        $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
+                        $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                        $colonne_courante = $nextcolonne;
+                  }
+
 
                   //Fonction
-                  $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'FONCTION');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
-                  $colonne_courante = $nextcolonne;
+                  if($fonction){
+                        $nextcolonne = getNextColumnName($colonne_courante);
+                        $sheet->setCellValue($nextcolonne.'5', 'FONCTION');
+                        $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
+                        $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                        $colonne_courante = $nextcolonne;
+                  }
 
                   //Banque
-                  $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'BANQUE');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
-                  $colonne_courante = $nextcolonne;
+                  if($banque){
+                        $nextcolonne = getNextColumnName($colonne_courante);
+                        $sheet->setCellValue($nextcolonne.'5', 'BANQUE');
+                        $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
+                        $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                        $colonne_courante = $nextcolonne;
+                  }
 
                   //Compte
-                  $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'N° COMPTE');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
-                  $colonne_courante = $nextcolonne;
+                  if($compte){
+                        $nextcolonne = getNextColumnName($colonne_courante);
+                        $sheet->setCellValue($nextcolonne.'5', 'N° COMPTE');
+                        $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
+                        $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                        $colonne_courante = $nextcolonne;
+                  }
 
                   //Jours Travaillé
                   $nextcolonne = getNextColumnName($colonne_courante);
@@ -154,7 +170,7 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
                   //Prime d'Aciennete
                   $bulletin_sql_anc = "SELECT bul.rowid, bul_an.libelle FROM ".MAIN_DB_PREFIX."bulletin as bul";
                   $bulletin_sql_anc .= " LEFT JOIN ".MAIN_DB_PREFIX."bulletin_anciennete as bul_an ON bul.rowid=bul_an.fk_bulletin";
-                  $bulletin_sql_anc .= " WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+                  $bulletin_sql_anc .= " WHERE annee=".$annee." AND fk_salarie=".$fk_salarie." AND fk_societe=".$id_societe;
                   $res_bulletin_an = $db->query($bulletin_sql_anc);
                   $obj_bulletin_an = $db->fetch_object($res_bulletin_an);
                   $nextcolonne = getNextColumnName($colonne_courante);
@@ -173,7 +189,7 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
                   $array_libelle_av = array();
 
                   $bulletin_sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin";
-                  $bulletin_sql .= " WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+                  $bulletin_sql .= " WHERE annee=".$annee." AND fk_salarie=".$fk_salarie." AND fk_societe=".$id_societe;
                   $res_bulletin = $db->query($bulletin_sql);
                   if($res_bulletin){
                         $i = 0;
@@ -202,7 +218,7 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
   
                   //Selection des indemnités
                   $bulletin_sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin";
-                  $bulletin_sql .= " WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+                  $bulletin_sql .= " WHERE annee=".$annee." AND fk_salarie=".$fk_salarie." AND fk_societe=".$id_societe;
                   $res_bulletin = $db->query($bulletin_sql);
                   if($res_bulletin){
                         $i = 0;
@@ -232,14 +248,14 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
 
                   //Primes exceptionnelle
                   $bulletin_sql_exc = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin";
-                  $bulletin_sql_exc .= " WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+                  $bulletin_sql_exc .= " WHERE annee=".$annee." AND fk_salarie=".$fk_salarie." AND fk_societe=".$id_societe;
                   $res_bulletin_exc = $db->query($bulletin_sql_exc);
                   if($res_bulletin_exc){
                         $i = 0;
                         $num_all = $db->num_rows($res_bulletin_exc);
                         while ($i < ($num_all)){
                               $obj_bulletin_exc = $db->fetch_object($res_bulletin_exc);
-                              $bulletin_exc_pr = "SELECT DISTINCT fk_prime, libelle FROM ".MAIN_DB_PREFIX."bulletin_prime_exceptionnelle WHERE fk_bulletin=".$obj_bulletin_exc->rowid;
+                              $bulletin_exc_pr = "SELECT fk_prime, libelle FROM ".MAIN_DB_PREFIX."bulletin_prime_exceptionnelle WHERE fk_bulletin=".$obj_bulletin_exc->rowid;
                               $res_pr_ex = $db->query($bulletin_exc_pr);
                               $num_ex = $db->num_rows($res_pr_ex);
                               $a = 0;
@@ -263,25 +279,24 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
                   
                   //Heures sup
                   $bulletin_sql_hs = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin";
-                  $bulletin_sql_hs .= " WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+                  $bulletin_sql_hs .= " WHERE annee=".$annee." AND fk_salarie=".$fk_salarie." AND fk_societe=".$id_societe;
                   $res_bulletin_hs = $db->query($bulletin_sql_hs);
                   if($res_bulletin_hs){
                         $i = 0;
                         $num_all = $db->num_rows($res_bulletin_hs);
                         while ($i < ($num_all)){
                               $obj_bulletin_hs = $db->fetch_object($res_bulletin_hs);
-                              $bulletin_hs = "SELECT DISTINCT fk_heur_sup, libelle FROM ".MAIN_DB_PREFIX."bulletin_heure_sup WHERE fk_bulletin=".$obj_bulletin_hs->rowid;
+                              $bulletin_hs = "SELECT fk_heur_sup, libelle FROM ".MAIN_DB_PREFIX."bulletin_heure_sup WHERE fk_bulletin=".$obj_bulletin_hs->rowid;
                               
                               if($db->num_rows($db->query($bulletin_hs))>0){
                                     $obj_bulletin_heure_sup = $db->fetch_object($db->query($bulletin_hs));
                                     if(!in_array($obj_bulletin_heure_sup->libelle, $array_id_hs)){
                                           $array_id_hs[] = $obj_bulletin_heure_sup->libelle;
-
+                                          //$sheet->insertNewColumnBefore('I', 9);
                                           $hs_sql = "SELECT taux, commentaire FROM ".MAIN_DB_PREFIX."heure_sup WHERE rowid=".$obj_bulletin_heure_sup->fk_heur_sup;
                                           $type_sal_heure_sup = $db->query($hs_sql);
                                           $obj_sal_heure_sup = $db->fetch_object($sal_heure_sup);
 
-                                          //$sheet->insertNewColumnBefore('I', 9);
                                           //Nombre d'heure sup
                                           $nextcolonne = getNextColumnName($colonne_courante);
                                           $sheet->setCellValue($nextcolonne.'5', "Nombre HS à ".$obj_sal_heure_sup->taux);
@@ -395,7 +410,7 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
 
                   //Liste des avance
                   $bulletin_sql_av = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin";
-                  $bulletin_sql_av .= " WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+                  $bulletin_sql_av .= " WHERE annee=".$annee." AND fk_salarie=".$fk_salarie." AND fk_societe=".$id_societe;
                   $res_bulletin_av = $db->query($bulletin_sql_av);
                   if($res_bulletin_av){
                         $i = 0;
@@ -448,24 +463,27 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
 //--------------------------------------------------------------------
             //Affichage des valeurs
             $numero_ligne = 7;
-            $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
-            $bulletin_sql .= " ORDER BY rowid";
-            $res_bulletin = $db->query($bulletin_sql);
-                  if($res_bulletin){
-                        $i = 0;
-                        $num_all = $db->num_rows($res_bulletin);
-                        while ($i < ($num_all)){
+            $i = 0;
+            $num_all = $db->num_rows($res_bulletin);
+            while ($i < count($mois_tab)){
+                  //Ajout d'une nouvelle ligne
+                  $sheet->insertNewRowBefore($numero_ligne+2, $numero_ligne);
+
+                  //Mois
+                  $sheet->setCellValue('A'.$numero_ligne, $mois_tab[$i]);
+                  $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".($i+1)." AND fk_salarie=".$fk_salarie." AND fk_societe=".$id_societe;
+                  $bulletin_sql .= " ORDER BY rowid";
+                  $res_bulletin = $db->query($bulletin_sql);
+                  $num_all = $db->num_rows($res_bulletin);
+                  if($res_bulletin)
+                        if($num_all > 0){
                               $cout = 0;
                         //Objet Utilisateur
                               $obj_bulletin = $db->fetch_object($res_bulletin);
-                              //Ajout d'une nouvelle ligne
-                              $sheet->insertNewRowBefore($numero_ligne+2, $numero_ligne);
-
-                              //Matricule
-                              $sheet->setCellValue('A'.$numero_ligne, $obj_bulletin->matricule);
+                              
 
                               $colonne_courante = "A";
-                              //Ajout du nom et prénom
+                              /*//Ajout du nom et prénom
                               $nextcolonne = getNextColumnName($colonne_courante);
                               $sheet->setCellValue($nextcolonne.$numero_ligne, $obj_bulletin->prenom);
                               $colonne_courante = $nextcolonne;
@@ -478,41 +496,51 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
                               //Date rentrée
                               $nextcolonne = getNextColumnName($colonne_courante);
                               $sheet->setCellValue($nextcolonne.$numero_ligne, $obj_bulletin->date_embauche);
-                              $colonne_courante = $nextcolonne;
+                              $colonne_courante = $nextcolonne;*/
 
                               //Ajout de la catégorie
-                              $categ = $obj_bulletin->categorie;
-                              if(!empty($obj_bulletin->echelon) && $obj_bulletin->echelon != 'N/A')
-                                    $categ .= '->'.$obj_bulletin->echelon;
-                              $nextcolonne = getNextColumnName($colonne_courante);
-                              $sheet->setCellValue($nextcolonne.$numero_ligne, $categ);
-                              $colonne_courante = $nextcolonne;
+                              if($categorie){
+                                    $categ = $obj_bulletin->categorie;
+                                    if(!empty($obj_bulletin->echelon) && $obj_bulletin->echelon != 'N/A')
+                                          $categ .= '->'.$obj_bulletin->echelon;
+                                    $nextcolonne = getNextColumnName($colonne_courante);
+                                    $sheet->setCellValue($nextcolonne.$numero_ligne, $categ);
+                                    $colonne_courante = $nextcolonne;
+                              }
 
 
                               //Ajout la situation familiale
-                              $stuati_fa = $obj_bulletin->situation_familiale.' '.$obj_bulletin->nombre_enfant.' '.$obj_bulletin->nombre_enfant_hand;
-                              $nextcolonne = getNextColumnName($colonne_courante);
-                              $sheet->setCellValue($nextcolonne.$numero_ligne, $stuati_fa);
-                              $colonne_courante = $nextcolonne;
+                              if($situation_matrimoniale){
+                                    $stuati_fa = $obj_bulletin->situation_familiale.' '.$obj_bulletin->nombre_enfant.' '.$obj_bulletin->nombre_enfant_hand;
+                                    $nextcolonne = getNextColumnName($colonne_courante);
+                                    $sheet->setCellValue($nextcolonne.$numero_ligne, $stuati_fa);
+                                    $colonne_courante = $nextcolonne;
+                              }
 
                               //Fonction
-                              $nextcolonne = getNextColumnName($colonne_courante);
-                              $sheet->setCellValue($nextcolonne.$numero_ligne, $obj_bulletin->fonction);
-                              $colonne_courante = $nextcolonne;
+                              if($fonction){
+                                    $nextcolonne = getNextColumnName($colonne_courante);
+                                    $sheet->setCellValue($nextcolonne.$numero_ligne, $obj_bulletin->fonction);
+                                    $colonne_courante = $nextcolonne;
+                              }
 
                               //Banque
-                              $nextcolonne = getNextColumnName($colonne_courante);
-                              $sheet->setCellValue($nextcolonne.$numero_ligne, $obj_bulletin->banque);
-                              $colonne_courante = $nextcolonne;
+                              if($banque){
+                                    $nextcolonne = getNextColumnName($colonne_courante);
+                                    $sheet->setCellValue($nextcolonne.$numero_ligne, $obj_bulletin->banque);
+                                    $colonne_courante = $nextcolonne;
+                              }
 
                               //Compte
-                              $nextcolonne = getNextColumnName($colonne_courante);
-                              $sheet->setCellValue($nextcolonne.$numero_ligne, $obj_bulletin->compte);
-                              $colonne_courante = $nextcolonne;
+                              if($compte){
+                                    $nextcolonne = getNextColumnName($colonne_courante);
+                                    $sheet->setCellValue($nextcolonne.$numero_ligne, $obj_bulletin->compte);
+                                    $colonne_courante = $nextcolonne;
+                              }
 
 
                               //Ajout nombre du nombre de jours travaillés
-                              $salSql = "SELECT jour FROM ".MAIN_DB_PREFIX."salarie_nombre_jour_travaille where annee=".$annee." AND mois=".$mois." AND fk_salarie=".$obj_bulletin->fk_salarie;
+                              $salSql = "SELECT jour FROM ".MAIN_DB_PREFIX."salarie_nombre_jour_travaille where annee=".$annee." AND mois=".($i + 1)." AND fk_salarie=".$fk_salarie;
                               $result = $db->query($salSql);
                               $nb_jours = $db->fetch_object($result)->jour;
                               $nextcolonne = getNextColumnName($colonne_courante);
@@ -521,7 +549,7 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
 
                               //Pourcentage des par montant par mois
                               $taux = 100;
-                              $nb_total_jour = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
+                              $nb_total_jour = cal_days_in_month(CAL_GREGORIAN, ($i + 1), $annee);
                               if($nb_jours != $nb_total_jour){
                                     $taux = round(($nb_jours * 100)/$nb_total_jour, 2);
                               }
@@ -603,7 +631,7 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
                               $bulletin_hs = "SELECT nombre_heure_sup, montant FROM ".MAIN_DB_PREFIX."bulletin_heure_sup WHERE fk_bulletin=".$obj_bulletin->rowid." AND libelle='".$array_id_hs[$j]."'";
                               $obj_bulletin_hs = $db->fetch_object($db->query($bulletin_hs));
                               $montant_hs += $obj_bulletin_hs->montant;
-
+                                    //$sheet->insertNewColumnBefore('I', 9);
                               //nombre d'heure sup
                               $nextcolonne = getNextColumnName($colonne_courante);
                               $sheet->setCellValue($nextcolonne.$numero_ligne, $obj_bulletin_hs->nombre_heure_sup?:0);
@@ -612,7 +640,7 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
                               //Montant heure sup
                               $nextcolonne = getNextColumnName($colonne_courante);
                               $sheet->setCellValue($nextcolonne.$numero_ligne, $montant_hs);
-                              $colonne_courante = $nextcolonne;  
+                              $colonne_courante = $nextcolonne; 
                               
                         }
                               
@@ -740,11 +768,22 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
                               $sheet->setCellValue($nextcolonne.$numero_ligne, round($cout));
                               $colonne_courante = $nextcolonne;
 
-
-                              $numero_ligne ++;
-                              $i ++;
                         }
-                  }
+                  $numero_ligne ++;
+                  $i ++;
+            }
+
+            /*$numero_ligne ++;
+            $sheet->insertNewRowBefore($numero_ligne+2, $numero_ligne);
+            //Total
+             $sheet->setCellValue('A'.$numero_ligne, "Totaux");
+             $colonne_courante = "A";
+             
+             
+             $nextcolonne = getNextColumnName($colonne_courante);
+             $sheet->setCellValue($nextcolonne.$numero_ligne, $categ);
+             $colonne_courante = $nextcolonne;*/
+
      /* $salSql = "SELECT jour FROM ".MAIN_DB_PREFIX."salarie_nombre_jour_travaille where annee=".$annee." AND mois=".$mois." AND fk_salarie=".$obj_salarie->rowid;
     $result = $db->query($salSql);
     $nb_jours = $db->fetch_object($result)->jour;
@@ -770,22 +809,25 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee."
 
 }
 
-$mois= GETPOST("mois", "int");
 $annee= GETPOST("annee", "int");
+$nom= GETPOST("nom", "alpha");
 $id_societe= GETPOST("id_societe", "int");
 
 //Enregistrement dans les log || Traçabilité
 $sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
 $obj = $db->fetch_object($db->query($sql_select));
 
+$sql_soc = "SELECT nom FROM ".MAIN_DB_PREFIX."societe WHERE rowid=".$id_societe;
+$obj_soc = $db->fetch_object($db->query($sql_soc));
+
 //On garde la trace de l'action
-$action_effectue = "Exportation des états de salaire de la société ".$nom_soc." du mois de ".$mois_tab[$mois - 1]." ".$annee." dans société Salaire";
+$action_effectue = "Génération du récapitulatif de ".$annee." du salarié ".$nom." de la société ".$obj_soc->nom;
 $sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
-$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Exportation")';
+$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Récapitulatif")';
 $db->query($sql_log);
 
 // Envoyer le fichier au navigateur
-$filename = $nom_soc."_".$mois_tab[$mois-1]."_".$annee.'_'.gmdate('D_d_M_Y_H:i:s'); //le nom du fichier
+$filename = "Recapitulatif_".$nom."_".$annee; //le nom du fichier
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment;filename="'.$filename.'.xlsx"');
 header('Cache-Control: max-age=0');

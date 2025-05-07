@@ -351,6 +351,11 @@ function salaire_Head($fk_salarie, $id, $id_societe, $id_convention)
 	$head[$h][2] = 'simulation';
 	$h++;
 
+	$head[$h][0] = dol_buildpath("/paiementsalaire/onglets/recapitulatif.php?mainmenu=paiementsalaire&leftmenu=salarie&id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id_convention=".$id_convention."&id=".$id, 1);
+	$head[$h][1] = $langs->trans("Récapitulatif");
+	$head[$h][2] = 'recap';
+	$h++;
+
 	//); // to remove a tab
 	complete_head_from_modules($conf, $langs, null, $head, $h, 'paiementsalaire@paiementsalaire');
 
@@ -2306,24 +2311,6 @@ function pdf_pagehead(&$pdf, $onglet_salarie){
 				$pdf->MultiCell(40,19,utf8_decode("Logo"),0,'C');
 			}
 
-			/*$img = '../config/logo_societe/'.$bulletin_obj->fk_societe;
-			if(file_exists($img.'.png')){
-				$img .= '.png';
-			}elseif(file_exists($img.'.jpg')){
-				$img .= '.jpg';
-			}else{
-				$img .= '.jpeg';
-			}
-
-			if(is_readable($img)){
-				$pdf->Image($logo_server,20,12, 40,19);
-			}else{
-				$pdf->SetFont('Helvetica','B',16);
-				$pdf->SetY(12);
-				$pdf->SetX(20);
-				$pdf->MultiCell(40,19,utf8_decode("Logo"),0,'C');
-			}*/
-
 		}else{
 				$logodir = $conf->mycompany->dir_output;
 				if (!empty($conf->mycompany->multidir_output[$object->entity])) {
@@ -2498,10 +2485,10 @@ function pdf_pagehead(&$pdf, $onglet_salarie){
 		$pdf->SetY($y);
 		$pdf->MultiCell(60,4, utf8_decode("Niveau salarié : ".$bulletin_obj->type_salarie),0,'');
 
-		$y = $pdf->GetY()+1;
+		/*$y = $pdf->GetY()+1;
 		$pdf->SetY($y);
 		$pdf->MultiCell(60,4, utf8_decode("Type de contrat : ".$bulletin_obj->contrat),0,'');
-
+		*/
 
 		$y = $pdf->GetY()+1;
 		$pdf->SetY($y);
@@ -2831,10 +2818,10 @@ function pdf_pagehead(&$pdf, $onglet_salarie){
 		$pdf->SetY($y);
 		$pdf->MultiCell(60,4, utf8_decode("Niveau salarié : ".$type_salarie),0,'');
 
-		$y = $pdf->GetY()+1;
+		/*$y = $pdf->GetY()+1;
 		$pdf->SetY($y);
 		$pdf->MultiCell(60,4, utf8_decode("Type de contrat : ".$contrat),0,'');
-
+*/
 
 		$y = $pdf->GetY()+1;
 		$pdf->SetY($y);
@@ -2861,7 +2848,7 @@ function pdf_pagehead_moyen(&$pdf, $onglet_salarie){
 
 if($onglet_salarie){
 
-	global $id_societe, $obj_salarie, $obj_user;
+	global $id_societe, $obj_salarie, $obj_user, $id_salarie;
 
 	$y = $pdf->GetY();
       $debut = DOL_DOCUMENT_ROOT;
@@ -2876,49 +2863,74 @@ if($onglet_salarie){
 		$societe_Salarie = $db->fetch_object($rest_bulletin_soc);
 		$nom_logo = $societe_Salarie->logo;
 	  }
-
-		   $img = '../../config/logo_societe/'.$id_societe;
-		if(file_exists($img.'.png')){
-			$img .= '.png';
-		}elseif(file_exists($img.'.jpg')){
-			$img .= '.jpg';
-		}else{
-			$img .= '.jpeg';
-		}
-
-		if(is_readable($img)){
-			$logo_server = $img;
-
-		}else{
-			$logo_server = $tab[0].'/'.$tab[1].'/'.$tab[2].'/'.$tab[3].'/documents/societe/'.$bulletin_obj->fk_societe.'/logos/'.$nom_logo;
-			$logo_local_pc = $tab[0].'/'.$tab[1].'/dolibarr_documents/societe/'.$societe_Salarie->rowid.'/logos/'.($societe_Salarie->logo?$societe_Salarie->logo:"vide.png");
-		}
-	  $pdf->SetFillColor(143, 39, 51);
-	  $pdf->SetY(4);
-	   $pdf->SetX(0);
-	   $pdf->Cell($pdf->getPageWidth(),16, "",1,0,0,true);
-
-	   //Cadre blanc pour logo
-	   $pdf->SetFillColor(255, 255, 255);
-      $pdf->SetY(5);
-      $pdf->SetX(20);
-      $pdf->Cell(35,13, "",1,0,0,true);
-
-	  if(is_readable($logo_local_pc)){
-        $pdf->Image($logo_local_pc,20,5, 35,13);
-        $y = $pdf->GetY()+2;
-      }elseif(is_readable($logo_server)){
-		$pdf->Image($logo_server,20,5, 35,13);
-        $y = $pdf->GetY()+2;
+	  
+	  $debut = DOL_DOCUMENT_ROOT;
+	  $tab = explode("/",$debut);
+	  $logodir = $conf->mycompany->dir_output;
+	  $logo_server = $logodir.'/logos/'.$mysoc->logo;
+	  if($info_soc->societe_mere == 0){
+		$logo_1 = $tab[0].'/'.$tab[1].'/'.$tab[2].'/'.$tab[3].'/documents/societe/'.$societe_Salarie->rowid.'/logos/'.$societe_Salarie->logo;
+		$logo_2 = $tab[0].'/'.$tab[1].'/dolibarr_documents/societe/'.$societe_Salarie->rowid.'/logos/'.($societe_Salarie->logo?$societe_Salarie->logo:"vide.png");
+	
+		  $pdf->SetFillColor(143, 39, 51);
+		$pdf->SetY(4);
+		 $pdf->SetX(0);
+		 $pdf->Cell($pdf->getPageWidth(),16, "",1,0,0,true);
+  
+		 //cadre blanc pour logo
+		  $pdf->SetFillColor(255, 255, 255);
+		  $pdf->SetY(5);
+		  $pdf->SetX(20);
+		  $pdf->Cell(35,13, "",1,0,0,true);
+  
+		  if(is_readable($logo_2)){
+			  $pdf->Image($logo_2,20,5, 35,13);
+			  $y = $pdf->GetY()+2;
+		  }elseif(is_readable($logo_1)){
+			  $pdf->Image($logo_1,20,5, 35,13);
+			  $y = $pdf->GetY()+2;
+		  }else{
+			  $pdf->SetFont('Helvetica','B',16);
+			  $pdf->SetY($y-4);
+			  $pdf->SetX(20);
+			  $pdf->SetFillColor(255, 255, 255);
+			  $pdf->MultiCell(25,11,utf8_decode("Logo"),0,'C', true);
+			  $y += 2;
+		  }
 	  }else{
-        $pdf->SetFont('Helvetica','B',16);
-        $pdf->SetY($y-4);
-        $pdf->SetX(20);
-        $pdf->SetFillColor(255, 255, 255);
-        $pdf->MultiCell(25,11,utf8_decode("Logo"),0,'C', true);
-        $y += 2;
-
-      }
+			  $logodir = $conf->mycompany->dir_output;
+			  if (!empty($conf->mycompany->multidir_output[$object->entity])) {
+				  $logodir = $conf->mycompany->multidir_output[$object->entity];
+			  }
+			  if (empty($conf->global->MAIN_PDF_USE_LARGE_LOGO)) {
+				  $logo = $logodir.'/logos/thumbs/'.$mysoc->logo_small;
+			  } else {
+				  $logo = $logodir.'/logos/'.$mysoc->logo;
+			  }
+		  
+			  $pdf->SetFillColor(143, 39, 51);
+			  $pdf->SetY(4);
+			   $pdf->SetX(0);
+			   $pdf->Cell($pdf->getPageWidth(),16, "",1,0,0,true);
+		
+			   //cadre blanc pour logo
+				$pdf->SetFillColor(255, 255, 255);
+				$pdf->SetY(5);
+				$pdf->SetX(20);
+				$pdf->Cell(35,13, "",1,0,0,true);
+		
+				if(is_readable($logo)){
+					$pdf->Image($logo,20,5, 35,13);
+					$y = $pdf->GetY()+2;
+				}else{
+					$pdf->SetFont('Helvetica','B',16);
+					$pdf->SetY($y-4);
+					$pdf->SetX(20);
+					$pdf->SetFillColor(255, 255, 255);
+					$pdf->MultiCell(25,11,utf8_decode("Logo"),0,'C', true);
+					$y += 2;
+				}
+	  }
 
 	  $y = 12;
 		$y_salarie = $y;
@@ -3176,48 +3188,39 @@ if($onglet_salarie){
 
 
 	$y = $pdf->GetY();
-      $debut = DOL_DOCUMENT_ROOT;
-      //$debut = $conf->mycompany->dir_output;
-      $tab = explode("/",$debut);
-      $logo_server = $logodir.'/logos/'.$bulletin_obj->logo_societe;
+	$debut = DOL_DOCUMENT_ROOT;
+	$tab = explode("/",$debut);
+	$logodir = $conf->mycompany->dir_output;
+	$logo_server = $logodir.'/logos/'.$mysoc->logo;
+	if($info_soc->societe_mere == 0){
+		$logo_1 = $tab[0].'/'.$tab[1].'/'.$tab[2].'/'.$tab[3].($tab[4]?'/'.$tab[4]:'').'/documents/societe/'.$bulletin_obj->fk_societe.'/logos/'.$bulletin_obj->logo_societe;
+		$logo_2 = $tab[0].'/'.$tab[1].'/dolibarr_documents/societe/'.$bulletin_obj->fk_societe.'/logos/'.($bulletin_obj->logo_societe?$bulletin_obj->logo_societe:"vide.png");
 
-	  if($info_soc->societe_mere == 0){
-		$logo_1 = $tab[0].'/'.$tab[1].'/'.$tab[2].'/'.$tab[3].'/documents/societe/'.$bulletin_obj->fk_societe.'/logos/'.$bulletin_obj->logo_societe;
-		$logo_2 = $tab[0].'/'.$tab[1].'/dolibarr_documents/societe/'.$societe_Salarie->rowid.'/logos/'.($societe_Salarie->logo?$societe_Salarie->logo:"vide.png");
+		$pdf->SetFillColor(143, 39, 51);
+	  $pdf->SetY(4);
+	   $pdf->SetX(0);
+	   $pdf->Cell($pdf->getPageWidth(),16, "",1,0,0,true);
+
+	   //cadre blanc pour logo
+		$pdf->SetFillColor(255, 255, 255);
+		$pdf->SetY(5);
+		$pdf->SetX(20);
+		$pdf->Cell(35,13, "",1,0,0,true);
 
 		if(is_readable($logo_2)){
-			///home/dolites/public_html
-			$pdf->Image($logo_2,20,12, 40,19);
-		}else if(is_readable($logo_1)){
-			$pdf->Image($logo_1,20,12, 40,19);
-
-		}else{
-
-			
-			$pdf->SetFont('Helvetica','B',16);
-			$pdf->SetY(12);
-			$pdf->SetX(20);
-			$pdf->MultiCell(40,19,utf8_decode("Logo"),0,'C');
-		}
-
-		/*$img = '../config/logo_societe/'.$bulletin_obj->fk_societe;
-		if(file_exists($img.'.png')){
-			$img .= '.png';
-		}elseif(file_exists($img.'.jpg')){
-			$img .= '.jpg';
-		}else{
-			$img .= '.jpeg';
-		}
-
-		if(is_readable($img)){
-			$pdf->Image($logo_server,20,12, 40,19);
+			$pdf->Image($logo_2,20,5, 35,13);
+			$y = $pdf->GetY()+2;
+		}elseif(is_readable($logo_1)){
+			$pdf->Image($logo_1,20,5, 35,13);
+			$y = $pdf->GetY()+2;
 		}else{
 			$pdf->SetFont('Helvetica','B',16);
-			$pdf->SetY(12);
+			$pdf->SetY($y-4);
 			$pdf->SetX(20);
-			$pdf->MultiCell(40,19,utf8_decode("Logo"),0,'C');
-		}*/
-
+			$pdf->SetFillColor(255, 255, 255);
+			$pdf->MultiCell(25,11,utf8_decode("Logo"),0,'C', true);
+			$y += 2;
+		}
 	}else{
 			$logodir = $conf->mycompany->dir_output;
 			if (!empty($conf->mycompany->multidir_output[$object->entity])) {
@@ -3229,45 +3232,31 @@ if($onglet_salarie){
 				$logo = $logodir.'/logos/'.$mysoc->logo;
 			}
 		
-		if(is_readable($logo)){
-			///home/dolites/public_html
-			$pdf->Image($logo,20,12, 40,19);
-		}else{
-
-			
-			$pdf->SetFont('Helvetica','B',16);
-			$pdf->SetY(12);
-			$pdf->SetX(20);
-			$pdf->MultiCell(40,19,utf8_decode("Logo"),0,'C');
-		}
+			$pdf->SetFillColor(143, 39, 51);
+			$pdf->SetY(4);
+			 $pdf->SetX(0);
+			 $pdf->Cell($pdf->getPageWidth(),16, "",1,0,0,true);
+	  
+			 //cadre blanc pour logo
+			  $pdf->SetFillColor(255, 255, 255);
+			  $pdf->SetY(5);
+			  $pdf->SetX(20);
+			  $pdf->Cell(35,13, "",1,0,0,true);
+	  
+			  if(is_readable($logo)){
+				  $pdf->Image($logo,20,5, 35,13);
+				  $y = $pdf->GetY()+2;
+			  }else{
+				  $pdf->SetFont('Helvetica','B',16);
+				  $pdf->SetY($y-4);
+				  $pdf->SetX(20);
+				  $pdf->SetFillColor(255, 255, 255);
+				  $pdf->MultiCell(25,11,utf8_decode("Logo"),0,'C', true);
+				  $y += 2;
+			  }
 	}
 
-	  $pdf->SetFillColor(143, 39, 51);
-	  $pdf->SetY(4);
-	   $pdf->SetX(0);
-	   $pdf->Cell($pdf->getPageWidth(),16, "",1,0,0,true);
-
-	   //cadre blanc pour logo
-	   $pdf->SetFillColor(255, 255, 255);
-      $pdf->SetY(5);
-      $pdf->SetX(20);
-      $pdf->Cell(35,13, "",1,0,0,true);
-
-	  if(is_readable($logo_local_pc)){
-        $pdf->Image($logo_local_pc,20,5, 35,13);
-        $y = $pdf->GetY()+2;
-      }elseif(is_readable($logo_server)){
-		$pdf->Image($logo_server,20,5, 35,13);
-        $y = $pdf->GetY()+2;
-	  }else{
-        $pdf->SetFont('Helvetica','B',16);
-        $pdf->SetY($y-4);
-        $pdf->SetX(20);
-        $pdf->SetFillColor(255, 255, 255);
-        $pdf->MultiCell(25,11,utf8_decode("Logo"),0,'C', true);
-        $y += 2;
-
-      }
+	  
 
 	  $y = 12;
 	$y_salarie = $y;
@@ -3485,563 +3474,6 @@ $pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($categ),0,1,'L'
 	$date_embauche = $obj_user->dateemployment;
 	$pdf->SetTextColor(0, 0, 70);
 	$pdf->SetFont('Helvetica','',9);
-	$pdf->SetX($x + 45);
-	$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($bulletin_obj->type_salarie),0,1,'L');
-
-}
-}
-
-
-//Entête de bulletin du modele avance
-
-function pdf_pagehead_avance(&$pdf, $onglet_salarie){
-
-	global $mysoc,$conf, $db, $fk_salarie, $fk_user, $mois, $annee, $id_accord_etab, $id_convention, $societe_Salarie;
-
-
-if($onglet_salarie){
-
-	global $id_societe, $obj_salarie, $obj_user;
-
-	$y = $pdf->GetY();
-      //$debut = DOL_DOCUMENT_ROOT;
-      $debut = $conf->mycompany->dir_output;
-      $tab = explode("/",$debut);
-      //$logo_server = $logodir.'/logos/'.$bulletin_obj->logo_societe;
-
-		   $img = '../../config/logo_societe/'.$societe_Salarie->rowid;
-		if(file_exists($img.'.png')){
-			$img .= '.png';
-		}elseif(file_exists($img.'.jpg')){
-			$img .= '.jpg';
-		}else{
-			$img .= '.jpeg';
-		}
-
-		if(is_readable($img)){
-			$logo_server = $img;
-		}else{
-			$logo_server = $tab[0].'/'.$tab[1].'/'.$tab[2].'/'.$tab[3].'/documents/societe/'.$societe_Salarie->rowid.'/logos/'.$societe_Salarie->logo;
-			$logo_local_pc = $tab[0].'/'.$tab[1].'/dolibarr_documents/societe/'.$societe_Salarie->rowid.'/logos/'.($societe_Salarie->logo?$societe_Salarie->logo:"vide.png");
-		}
-	  if(is_readable($logo_local_pc)){
-        $pdf->Image($logo_local_pc,30,3, 40,19);
-        $y = $pdf->GetY()+2;
-      }elseif(is_readable($logo_server)){
-		$pdf->Image($logo_server,30,3, 40,19);
-        $y = $pdf->GetY()+2;
-	  }else{
-        $pdf->SetFont('Helvetica','B',16);
-        $pdf->SetY($y);
-        $pdf->SetX(30);
-        $pdf->MultiCell(40,6,utf8_decode("Logo"),1,'C');
-        $y += 2;
-
-      }
-
-		$y_salarie = $y;
-		$x = 12;
-
-		//espace pris par le logo
-		$y += 12;
-		//petit rectangle à gauche
-		$pdf->SetFillColor(246, 246, 246);
-		$pdf->SetLineWidth(0.1);
-		$pdf->SetDrawColor(50, 50, 50);
-		//$y += 6;
-		$pdf->SetY($y);
-	   $pdf->SetX($x);
-	   $pdf->Cell(90,42, "",0,0,0,true);
-
-	   //Informations dans le rectangle
-	   $x = 12;
-	   $y += 2;
-	   $pdf->SetTextColor(0, 0, 0);
-	   $pdf->SetFont('Helvetica','B',9);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->MultiCell(100,5,utf8_decode("Etablissement : ".$societe_Salarie->nom),0,'L');
-
-		$x = 12;
-	   $y += 7;
-		$pdf->SetTextColor(0, 0, 0);
-	   $pdf->SetFont('Helvetica','',9);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->MultiCell(100,5,utf8_decode($societe_Salarie->address),0,'L');
-
-	   $convention = $obj_conv->nom;
-		$pays_Sql = "SELECT label FROM ".MAIN_DB_PREFIX."c_country where rowid=".$societe_Salarie->fk_pays;
-		$pays_Result = $db->query($pays_Sql);
-		if(!empty($obj_user->fk_country))
-			$pays = $db->fetch_object($pays_Result)->label;
-
-   $y += 5;
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$pdf->MultiCell(89,5,utf8_decode($societe_Salarie->town." ".$pays),0,'L');
-
-	if($societe_Salarie->siren){
-		$y += 5;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->MultiCell(89,5,utf8_decode($societe_Salarie->siren),0,'L');
-	}
-
-	$tel = $societe_Salarie->phone;
-	if(empty($tel))
-		$tel = $societe_Salarie->fax;
-	else $tel .= " / ".$societe_Salarie->fax;
-
-	if($tel){
-		$y += 5;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->Cell(89,5,utf8_decode("Tel : ".$tel),0,'L');
-	}
-
-	if($societe_Salarie->email){
-		$y += 5;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->Cell(89,5,utf8_decode("Email : ".$societe_Salarie->email),0,'L');
-	}
-	if($societe_Salarie->url){
-		$y += 5;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->Cell(89,5,utf8_decode("Web : ".$societe_Salarie->url),0,'L');
-	}
-
-	$sql_conv = "SELECT nom FROM ".MAIN_DB_PREFIX."convention WHERE rowid=".$id_convention;
-	$res_conv = $db->query($sql_conv);//= $db->query($sql_conv);
-	$obj_conv = $db->fetch_object($res_conv);
-	$convention = $obj_conv->nom;
-   $y += 8;
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$pdf->MultiCell(100,3,utf8_decode("Conv. Coll. : ".$convention),0,'L');
-
-		//information à gauche en bas du petit rectangle
-	   $y = 69;
-	   $pdf->SetFont('Helvetica','B',9);
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$du = "01-".$mois."-".$annee;
-		$au = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
-		$pdf->MultiCell(100,3,utf8_decode("Période du :   ".$du."   au ".$au."-".$mois."-".$annee),0,'L');
-
-
-	   $y += 4;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->MultiCell(100,3,utf8_decode("Payé le : ".$au."-".$mois."-".$annee." par Virement"),0,'L');
-
-		$type_bank = "";
-		$banque = "SELECT libelle FROM ".MAIN_DB_PREFIX."type_banque WHERE rowid=".$obj_salarie->fk_type_banque;
-		$result_banque = $db->query($banque);
-		if($result_banque){
-
-			$obj_type_banque = $db->fetch_object($result_banque);
-			$type_bank =  $obj_type_banque->libelle;
-
-		}
-
-	   $y += 4;
-	   if(!empty($type_bank)){
-			$pdf->SetTextColor(0, 0, 0);
-			$pdf->SetY($y);
-			$pdf->SetX($x);
-			$pdf->MultiCell(100,3,utf8_decode($type_bank." : ".$obj_salarie->compte),0,'L');
-	   }
-		//Les information sur le salarié
-		$x = 100 + 3;
-		$pdf->SetY($y_salarie-4);
-		$pdf->SetX($x);
-		$pdf->SetTextColor(0, 0, 70);
-		$pdf->SetFont('Helvetica','B',18);
-
-		$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 - 5,5,utf8_decode("Bulletin De Paie"),0,'C');
-
-		$y_salarie = $pdf->getY() + 12;
-		$x = 100 + 7;
-		$pdf->SetY($y_salarie);
-		$pdf->SetX($x);
-		$pdf->SetTextColor(0, 0, 70);
-		$pdf->SetFont('Helvetica','B',14);
-		$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 - 5,3,utf8_decode($obj_user->firstname." ".$obj_user->lastname),0,'L');
-
-		$x = 100 + 7;
-		$y_salarie += 6;
-		$pdf->SetY($y_salarie);
-		$pdf->SetX($x);
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetFont('Helvetica','B',9);
-		$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 -12 - 8,3,utf8_decode($obj_user->address),0,'L');
-
-
-		$pays_Sql = "SELECT label FROM ".MAIN_DB_PREFIX."c_country where rowid=".$societe_Salarie->fk_pays;
-		$pays_Result = $db->query($pays_Sql);
-		if(!empty($obj_user->fk_country))
-			$pays = $db->fetch_object($pays_Result)->label;
-
-		$y_salarie += 5;
-		$pdf->SetY($y_salarie);
-		$pdf->SetX($x);
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetFont('Helvetica','B',9);
-		$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 -12 - 8,3,utf8_decode($obj_user->town." ".$pays),0,'L');
-
-//ecart entre information
-	$y_salarie += 6;
-
-		$x = 100 + 7;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetFont('Helvetica','',10);
-		$y_salarie += 5;
-	   	$pdf->SetY($y_salarie);
-	   	$pdf->SetX($x);
-		$pdf->Cell(35 - 5,3,utf8_decode("Matricule "),0,0,'L');
-		$pdf->SetTextColor(0, 0, 70);
-		$pdf->SetFont('Helvetica','B',10);
-		$pdf->SetX($x +45);
-		$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($obj_salarie->matricule),0,1,'L');
-
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetFont('Helvetica','',10);
-		$y_salarie += 6;
-	   	$pdf->SetY($y_salarie);
-
-	   	$pdf->SetX($x);
-		$pdf->Cell(35 - 5,3,utf8_decode("Catégorie "),0,0,'L');
-		$grilleSql = "SELECT code_categorie FROM ".MAIN_DB_PREFIX."dcategories WHERE rowid=".$obj_salarie->fk_categorie;
-		$grilleResult = $db->query($grilleSql);//= $db->query($grilleSql);
-		if($grilleResult)
-			$obj_grille = $db->fetch_object($grilleResult);
-		$categ = $obj_grille->code_categorie;
-
-		$grilleSql = "SELECT libelle FROM ".MAIN_DB_PREFIX."echelon WHERE rowid=".$obj_salarie->fk_echelon;
-		$grilleResult = $db->query($grilleSql);//= $db->query($grilleSql);
-		if($grilleResult)
-			$obj_grille = $db->fetch_object($grilleResult);
-
-		if(!empty($obj_grille->libelle))
-			$categ .= '==>'.$obj_grille->libelle;
-
-		$pdf->SetTextColor(0, 0, 70);
-		$pdf->SetFont('Helvetica','B',10);
-		$pdf->SetX($x +45);
-		$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($categ),0,1,'L');
-
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetFont('Helvetica','',10);
-		$y_salarie += 6;
-	   	$pdf->SetY($y_salarie);
-	   	$pdf->SetX($x);
-		$pdf->Cell(35 - 5,3,utf8_decode("Fonction "),0,0,'L');
-		$fonction = $obj_user->job;
-		$pdf->SetTextColor(0, 0, 70);
-		$pdf->SetFont('Helvetica','B',10);
-		$pdf->SetX($x +45);
-		$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($fonction),0,1,'L');
-
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetFont('Helvetica','',10);
-		$y_salarie += 6;
-	   	$pdf->SetY($y_salarie);
-	   	$pdf->SetX($x);
-		$pdf->Cell(35 - 5,3,utf8_decode("Date embauche "),0,0,'L');
-		$date_embauche = $obj_user->dateemployment;
-		$pdf->SetTextColor(0, 0, 70);
-		$pdf->SetFont('Helvetica','B',10);
-		$pdf->SetX($x +45);
-		$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($date_embauche),0,1,'L');
-
-
-		$sql_contrat3 = "SELECT * FROM ".MAIN_DB_PREFIX."type_salarie WHERE rowid=".$obj_salarie->type_salarie;
-		$res_contrat3 = $db->query($sql_contrat3);
-		$contrat = "N/A";
-		if($res_contrat3){
-
-			$contrat = $db->fetch_object($restype_contrat)->libelle;
-		}
-
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetFont('Helvetica','',10);
-		$y_salarie += 6;
-	   	$pdf->SetY($y_salarie);
-	   	$pdf->SetX($x);
-		$pdf->Cell(35 - 5,3,utf8_decode("Niveau salarié "),0,0,'L');
-		$date_embauche = $obj_user->dateemployment;
-		$pdf->SetTextColor(0, 0, 70);
-		$pdf->SetFont('Helvetica','B',10);
-		$pdf->SetX($x +45);
-		$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($contrat),0,1,'L');
-
-
-}else{
-	$bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_salarie=".$fk_salarie." AND annee='".$annee."' AND mois='".$mois."'";
-	$rest_bulletin = $db->query($bulletin_sql);//= $db->query($covSql);
-	$bulletin_obj = $db->fetch_object($rest_bulletin);
-
-
-	$y = $pdf->GetY();
-      $debut = DOL_DOCUMENT_ROOT;
-      //$debut = $conf->mycompany->dir_output;
-      $tab = explode("/",$debut);
-      $logo_server = $logodir.'/logos/'.$bulletin_obj->logo_societe;
-
-		   $img = '../../config/logo_societe/'.$bulletin_obj->fk_societe;
-		if(file_exists($img.'.png')){
-			$img .= '.png';
-		}elseif(file_exists($img.'.jpg')){
-			$img .= '.jpg';
-		}else{
-			$img .= '.jpeg';
-		}
-
-		if(is_readable($img)){
-			$logo_server = $img;
-
-		}else{
-			$logo_server = $tab[0].'/'.$tab[1].'/'.$tab[2].'/'.$tab[3].'/documents/societe/'.$societe_Salarie->rowid.'/logos/'.$rest_bulletin->logo_societe;
-			$logo_local_pc = $tab[0].'/'.$tab[1].'/dolibarr_documents/societe/'.$societe_Salarie->rowid.'/logos/'.($societe_Salarie->logo?$societe_Salarie->logo:"vide.png");
-		}
-
-	  if(is_readable($logo_local_pc)){
-        $pdf->Image($logo_local_pc,30,3, 40,19);
-        $y = $pdf->GetY()+2;
-      }elseif(is_readable($logo_server)){
-		$pdf->Image($logo_server,30,3, 40,19);
-        $y = $pdf->GetY()+2;
-	  }else{
-        $pdf->SetFont('Helvetica','B',16);
-        $pdf->SetY($y);
-        $pdf->SetX(30);
-        $pdf->MultiCell(40,6,utf8_decode("Logo"),1,'C');
-        $y += 2;
-
-      }
-	$y_salarie = $y;
-	$x = 12;
-
-	//espace pris par le logo
-	$y += 12;
-	//petit rectangle à gauche
-	$pdf->SetFillColor(246, 246, 246);
-	$pdf->SetLineWidth(0.1);
-	$pdf->SetDrawColor(50, 50, 50);
-	$pdf->SetY($y);
-   $pdf->SetX($x);
-   $pdf->MultiCell(90,42, "",0,0,true);
-
-   //Informations dans le rectangle
-   $y += 2;
-   $pdf->SetTextColor(0, 0, 0);
-   $pdf->SetFont('Helvetica','B',9);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$pdf->MultiCell(100,5,utf8_decode("Etablissement : ".$bulletin_obj->nom_societe),0,'L');
-
-   $y += 7;
-	$pdf->SetTextColor(0, 0, 0);
-   $pdf->SetFont('Helvetica','',9);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$pdf->MultiCell(100,5,utf8_decode($societe_Salarie->address),0,'L');
-		$pays_Sql = "SELECT label FROM ".MAIN_DB_PREFIX."c_country where rowid=".$societe_Salarie->fk_pays;
-		$pays_Result = $db->query($pays_Sql);
-		if(!empty($obj_user->fk_country))
-			$pays = $db->fetch_object($pays_Result)->label;
-
-   $y += 5;
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$pdf->MultiCell(89,5,utf8_decode($societe_Salarie->town." ".$pays),0,'L');
-
-	if($societe_Salarie->siren){
-		$y += 5;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->MultiCell(89,5,utf8_decode($societe_Salarie->siren),0,'L');
-	}
-
-	$tel = $societe_Salarie->phone;
-	if(empty($tel))
-		$tel = $societe_Salarie->fax;
-	else $tel .= " / ".$societe_Salarie->fax;
-
-	if($tel){
-		$y += 5;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->Cell(89,5,utf8_decode("Tel : ".$tel),0,'L');
-	}
-
-	if($societe_Salarie->email){
-		$y += 5;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->Cell(89,5,utf8_decode("Email : ".$societe_Salarie->email),0,'L');
-	}
-	if($societe_Salarie->url){
-		$y += 5;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->Cell(89,5,utf8_decode("Web : ".$societe_Salarie->url),0,'L');
-	}
-
-
-   $convention = $bulletin_obj->nom_convention;
-   $y += 8;
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$pdf->MultiCell(100,3,utf8_decode("Conv. Coll. : ".$convention),0,'L');
-
-	//information à gauche en bas du petit rectangle
-   $y = 67;
-   $pdf->SetFont('Helvetica','B',9);
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$du = "01-".$mois."-".$annee;
-	$au = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
-	$pdf->MultiCell(100,3,utf8_decode("Période du :   ".$du."   au ".$au."-".$mois."-".$annee),0,'L');
-
-
-   $y += 4;
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$pdf->MultiCell(100,3,utf8_decode("Payé le : ".$au."-".$mois."-".$annee." par Virement"),0,'L');
-
-   $y += 4;
-   if(!empty($bulletin_obj->banque)){
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$pdf->MultiCell(100,3,utf8_decode($bulletin_obj->banque." : ".$bulletin_obj->compte),0,'L');
-   }
-	//Les information sur le salarié
-	$x = 100 + 3;
-	$pdf->SetY($y_salarie-4);
-	$pdf->SetX($x);
-	$pdf->SetTextColor(0, 0, 70);
-	$pdf->SetFont('Helvetica','B',18);
-
-	$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12-5,5,utf8_decode("Bulletin De Paie"),0,'C');
-
-	$x = 100 + 7;
-	$y_salarie = $pdf->getY() + 12;
-	$pdf->SetY($y_salarie);
-	$pdf->SetX($x);
-	$pdf->SetTextColor(0, 0, 70);
-	$pdf->SetFont('Helvetica','B',14);
-	$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($bulletin_obj->prenom." ".$bulletin_obj->nom),0,'L');
-
-	$x = 100 + 7;
-	$y_salarie += 6;
-	$pdf->SetY($y_salarie);
-	$pdf->SetX($x);
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetFont('Helvetica','B',9);
-	$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 -12 - 8,3,utf8_decode($bulletin_obj->addresse),0,'L');
-
-
-	$y_salarie += 5;
-	$pdf->SetY($y_salarie);
-	$pdf->SetX($x);
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetFont('Helvetica','B',9);
-	$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 -12 - 8,3,utf8_decode($bulletin_obj->ville." ".$bulletin_obj->pays),0,'L');
-
-//ecart entre information
-$y_salarie += 6;
-
-
-$x = 100 + 7;
-$pdf->SetTextColor(0, 0, 0);
-$pdf->SetFont('Helvetica','',10);
-$y_salarie += 5;
-   $pdf->SetY($y_salarie);
-   $pdf->SetX($x);
-$pdf->Cell(35 - 5,3,utf8_decode("Matricule "),0,0,'L');
-$pdf->SetTextColor(0, 0, 70);
-$pdf->SetFont('Helvetica','B',10);
-$pdf->SetX($x + 45);
-$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($bulletin_obj->matricule),0,1,'L');
-
-$pdf->SetTextColor(0, 0, 0);
-$pdf->SetFont('Helvetica','',10);
-$y_salarie += 6;
-$pdf->SetY($y_salarie);
-$pdf->SetX($x);
-$pdf->Cell(35 - 5,3,utf8_decode("Catégorie "),0,0,'L');
-$categ = $bulletin_obj->categorie."".($bulletin_obj->echelon?"==>".$bulletin_obj->echelon:"");
-
-$pdf->SetTextColor(0, 0, 70);
-$pdf->SetFont('Helvetica','B',10);
-$pdf->SetX($x + 45);
-$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($categ),0,1,'L');
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetFont('Helvetica','',10);
-	$y_salarie += 6;
-	   $pdf->SetY($y_salarie);
-	   $pdf->SetX($x);
-	$pdf->Cell(35 - 5,3,utf8_decode("Fonction "),0,0,'L');
-	$fonction = $obj_user->job;
-	$pdf->SetTextColor(0, 0, 70);
-	$pdf->SetFont('Helvetica','B',10);
-	$pdf->SetX($x + 45);
-	$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($bulletin_obj->fonction),0,1,'L');
-
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetFont('Helvetica','',10);
-	$y_salarie += 6;
-	   $pdf->SetY($y_salarie);
-	   $pdf->SetX($x);
-	$pdf->Cell(35 - 5,3,utf8_decode("Date embauche "),0,0,'L');
-	$date_embauche = $obj_user->dateemployment;
-	$pdf->SetTextColor(0, 0, 70);
-	$pdf->SetFont('Helvetica','B',10);
-	$pdf->SetX($x + 45);
-	$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($bulletin_obj->date_embauche),0,1,'L');
-
-	/*$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetFont('Helvetica','',10);
-	$y_salarie += 6;
-	   $pdf->SetY($y_salarie);
-	   $pdf->SetX($x);
-	$pdf->Cell(35 - 5,3,utf8_decode("Contrat "),0,0,'L');
-	$date_embauche = $obj_user->dateemployment;
-	$pdf->SetTextColor(0, 0, 70);
-	$pdf->SetFont('Helvetica','B',10);
-	$pdf->SetX($x + 45);
-	$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($bulletin_obj->contrat),0,1,'L');
-	*/
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetFont('Helvetica','',10);
-	$y_salarie += 6;
-	   $pdf->SetY($y_salarie);
-	   $pdf->SetX($x);
-	$pdf->Cell(35 - 5,3,utf8_decode("Niveau salarié "),0,0,'L');
-	$date_embauche = $obj_user->dateemployment;
-	$pdf->SetTextColor(0, 0, 70);
-	$pdf->SetFont('Helvetica','B',10);
 	$pdf->SetX($x + 45);
 	$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($bulletin_obj->type_salarie),0,1,'L');
 
@@ -4779,9 +4211,10 @@ function prepare_objet_entete($fk_salarie, $id_salarie, $db, $id_societe, $id_co
 	$obj_soc->retour = '../listesalarie.php?mainmenu=paiementsalaire&leftmenu=salarie&id_societe='.$id_societe.'&id_convention='.$id_convention.'&action=recherche';
 
 	//preparation du salarié suivant et precedent
+	//Suivant
 	$sql_prev = "SELECT sal.rowid as id_salarie, sal.matricule, sal.fk_user, u.rowid, u.lastname, u.firstname, u.dateemployment, ue.fk_object, ue.egp FROM ".MAIN_DB_PREFIX."salarie as sal";
 	$sql_prev .= " LEFT JOIN ".MAIN_DB_PREFIX."user as u ON u.rowid=sal.fk_user";
-	$sql_prev .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object Where ue.egp=".$id_societe." AND sal.rowid<".$fk_salarie;
+	$sql_prev .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object Where ue.egp=".$id_societe." AND sal.rowid<".$fk_salarie." AND archiver!='oui'";
 	$sql_prev .= " ORDER BY sal.rowid DESC";
 	$soc_res_prev = $db->query($sql_prev);//= $db->query($covSql);
 	$nom_prenom_prev = "";
@@ -4792,9 +4225,11 @@ function prepare_objet_entete($fk_salarie, $id_salarie, $db, $id_societe, $id_co
 			$nom_prenom_prev = $obj_prev->firstname." ".$obj_prev->lastname;
 
 		}
+	
+	//Précedent
 	$sql_next = "SELECT sal.rowid as id_salarie, sal.matricule, sal.fk_user, u.rowid, u.lastname, u.firstname, u.dateemployment, ue.fk_object, ue.egp FROM ".MAIN_DB_PREFIX."salarie as sal";
 	$sql_next .= " LEFT JOIN ".MAIN_DB_PREFIX."user as u ON u.rowid=sal.fk_user";
-	$sql_next .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object Where ue.egp=".$id_societe." AND sal.rowid>".$fk_salarie;
+	$sql_next .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object Where ue.egp=".$id_societe." AND sal.rowid>".$fk_salarie." AND archiver!='oui'";
 	$sql_next .= " ORDER BY sal.rowid";
 	$soc_res_next = $db->query($sql_next);//= $db->query($covSql);
 	$nom_prenom_next = "";
@@ -4921,99 +4356,84 @@ function salarie_indemnite_simulation($db, $fk_salarie='', $salaire_base, $fk_ca
 
 	//Traitements sur indemnités------------------------------------------
 //Indemnités
-
 $taille = count($all_indemnite_unique_rowid);
 for($i = 0; $i < $taille; $i++){
 	$sql = "SELECT * FROM ".MAIN_DB_PREFIX."indemnite WHERE rowid=".$all_indemnite_unique_rowid[$i]." AND active=1";
 	$indemnite_res = $db->query($sql);
-
 	if($indemnite_res){
-		$ind = $db->fetch_object($indemnite_res);
-		$cond_ind_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_indemnite WHERE fk_indemnite=".$ind->rowid;
-		$result_cond_ind = $db->query($cond_ind_sql);
+		$indemnite = $db->fetch_object($indemnite_res);
 
-		if($result_cond_ind){
-
-			$num = $db->num_rows($result_cond_ind);
+		$cond_indemnite_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_indemnite WHERE fk_indemnite=".$indemnite->rowid;
+		$result_cond_indemnite = $db->query($cond_indemnite_sql);
+		if($result_cond_indemnite){
+			$num = $db->num_rows($result_cond_indemnite);
 			$j = 0;
 			while ($j < $num) {
 				$correspond = false;
-				$cond_ind = $db->fetch_object($result_cond_ind);
-			//if($ind->type_indemnite == "obligatoire"){ //Indemnités obligatoires
-				$cond_type_salarie_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_type_salarie_indemnite WHERE fk_condition=".$cond_ind->rowid." AND fk_type_salarie=".$type_salarie;
-				$result_cond_type_salarie = $db->query($cond_type_salarie_sql);
-				$cond_type_salarie = $db->fetch_object($result_cond_type_salarie);
-
-				if(!$cond_type_salarie->rowid){
-					$cond_type_salarie_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_type_salarie_indemnite WHERE fk_condition=".$cond_ind->rowid." AND fk_type_salarie=0";
-					$result_cond_type_salarie = $db->query($cond_type_salarie_sql);
-					$cond_type_salarie = $db->fetch_object($result_cond_type_salarie);
-				}
-				//print $cond_type_salarie->fk_type_salarie."-".$j."-";
-				if($cond_type_salarie->rowid){ //Verification du type salarié
-					$correspond = true;
-				}else{//si pas de type salarié correspondant on verifie la catégorie
-					$cond_categ_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_categorie_indemnite WHERE fk_condition=".$cond_ind->rowid." AND fk_categorie=".$fk_categorie;
+				$cond_indemnite = $db->fetch_object($result_cond_indemnite);
+			//si pas de type salarié correspondant on verifie la catégorie
+					$cond_categ_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_categorie_indemnite WHERE fk_condition=".$cond_indemnite->rowid." AND fk_categorie=".($fk_categorie?:0);
 					$result_cond_categ = $db->query($cond_categ_sql);
 					$cond_categ = $db->fetch_object($result_cond_categ);
 					if(!$cond_categ->rowid){
-						$cond_categ_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_categorie_indemnite WHERE fk_condition=".$cond_ind->rowid." AND fk_categorie=0";
+						$cond_categ_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_categorie_indemnite WHERE fk_condition=".$cond_indemnite->rowid." AND fk_categorie=0";
 						$result_cond_categ = $db->query($cond_categ_sql);
 						$cond_categ = $db->fetch_object($result_cond_categ);
 					}
 
 					if($cond_categ->rowid){ //verification de la catégorie
 						$correspond = true;
+
 					}
-				}
+
 				if($correspond == true){
 					//correspondace avec type salarié ou catégorie
-					if($cond_ind->superieur > 0){
-						if($salaire_base < $cond_ind->superieur){
-							if($cond_ind->type_montant == "forfait"){
-								$indemnite_rowid[$i] = $ind->rowid;
-								$all_indemnite_montant[$i] = $cond_ind->forfait?:0;
-
+					$tail = count($indemnite_rowid);
+					if($cond_indemnite->superieur > 0){
+						if($salaire_base < $cond_indemnite->superieur){
+							if($cond_indemnite->type_montant == "forfait"){
+								$indemnite_rowid[$tail] = $indemnite->rowid;
+								$all_indemnite_montant[$tail] = $cond_indemnite->forfait;
 
 							}
-						}else if(($cond_ind->pourcentage*$salaire_base/100) < $cond_ind->superieur)
-							if($cond_ind->type_montant == "pourcentage"){
-								if(($cond_ind->pourcentage*$salaire_base/100) < $cond_ind->minimum_perception){
-									$indemnite_rowid[$i] = $ind->rowid;
-									$all_indemnite_montant[$i] = $cond_ind->minimum_perception;
+						}else if(($cond_indemnite->pourcentage*$salaire_base/100) < $cond_indemnite->superieur)
+							if($cond_indemnite->type_montant == "pourcentage"){
+								if(($cond_indemnite->pourcentage*$salaire_base/100) < $cond_indemnite->minimum_perception){
+									$indemnite_rowid[$tail] = $indemnite->rowid;
+									$all_indemnite_montant[$tail] = $cond_indemnite->minimum_perception;
+
 								}else{
-									$indemnite_rowid[$i] = $ind->rowid;
-									$all_indemnite_montant[$i] = $cond_ind->pourcentage*$salaire_base/100;
+									$indemnite_rowid[$tail] = $indemnite->rowid;
+									$all_indemnite_montant[$tail] = $cond_indemnite->pourcentage*$salaire_base/100;
+									$all_indemnite_pourcentage[$tail] = $cond_indemnite->pourcentage;
 
 								}
 							}
 					}else{
-						if($cond_ind->type_montant == "forfait"){
-							$indemnite_rowid[$i] = $ind->rowid;
-							$all_indemnite_montant[$i] = $cond_ind->forfait;
+						if($cond_indemnite->type_montant == "forfait"){
+							$indemnite_rowid[$tail] = $indemnite->rowid;
+							$all_indemnite_montant[$tail] = $cond_indemnite->forfait;
 
 						}else{
-							if(($cond_ind->pourcentage*$salaire_base/100) < $cond_ind->minimum_perception){
-								$indemnite_rowid[$i] = $ind->rowid;
-								$all_indemnite_montant[$i] = $cond_ind->minimum_perception;
-
+							if(($cond_indemnite->pourcentage*$salaire_base/100) < $cond_indemnite->minimum_perception){
+								$indemnite_rowid[$tail] = $indemnite->rowid;
+								$all_indemnite_montant[$tail] = $cond_indemnite->minimum_perception;
 							}else{
-								$indemnite_rowid[$i] = $ind->rowid;
-								$all_indemnite_montant[$i] = $cond_ind->pourcentage*$salaire_base/100;
+								//print $cond_indemnite->pourcentage*$salaire_base/100;
+								$indemnite_rowid[$tail] = $indemnite->rowid;
+								$all_indemnite_montant[$tail] = $cond_indemnite->pourcentage*$salaire_base/100;
 
 							}
 						}
 					}
 						$j = $num;
 				}
-				/*if(empty($all_indemnite_montant[$i] ))
-					$all_indemnite_montant[$i] = 0;*/
 		$j++;
 	}
 }
-	}
 }
-	/*for ($i=0; $i < count($indemnite_rowid); $i++) {
+}
+/*for ($i=0; $i < count($indemnite_rowid); $i++) {
 		print "<br>".$indemnite_rowid[$i]." = ".$all_indemnite_montant[$i];
 
 	}*/
@@ -5085,85 +4505,70 @@ function salarie_prime_simulation($db, $fk_salarie= 0, $salaire_base, $fk_catego
 //Indemnités
 $taille = count($all_prime_unique_rowid);
 for($i = 0; $i < $taille; $i++){
-	$sql = "SELECT * FROM ".MAIN_DB_PREFIX."primes WHERE rowid=".$all_prime_unique_rowid[$i]." AND active=1 ";
+	$sql = "SELECT * FROM ".MAIN_DB_PREFIX."primes WHERE rowid=".$all_prime_unique_rowid[$i]." AND active=1";
 	$prime_res = $db->query($sql);
 	if($prime_res){
-		$pr = $db->fetch_object($prime_res);
-		$cond_prime_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_prime WHERE fk_prime=".$pr->rowid;
+		$primes = $db->fetch_object($prime_res);
+		//print $primes->libelle."-----";
+
+		$cond_prime_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_prime WHERE fk_prime=".$primes->rowid;
 		$result_cond_prime = $db->query($cond_prime_sql);
 		if($result_cond_prime){
 			$num = $db->num_rows($result_cond_prime);
 			$j = 0;
-			$categ = $fk_categorie;
 			while ($j < $num) {
-
 				$correspond = false;
 				$cond_prime = $db->fetch_object($result_cond_prime);
-				//if($pr->type_prime == "obligatoire"){ //Indemnités obligatoires
-				$cond_type_salarie_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_type_salarie_prime WHERE fk_condition=".$cond_prime->rowid." AND (fk_type_salarie=0 OR fk_type_salarie=".$type_salarie.")";
-				$result_cond_type_salarie = $db->query($cond_type_salarie_sql);
-				$cond_type_salarie = $db->fetch_object($result_cond_type_salarie);
-
-				if(!$cond_type_salarie->rowid){
-					$cond_type_salarie_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_type_salarie_prime WHERE fk_condition=".$cond_prime->rowid." AND fk_type_salarie=0";
-					$result_cond_type_salarie = $db->query($cond_type_salarie_sql);
-					$cond_type_salarie = $db->fetch_object($result_cond_type_salarie);
-				}
-				//print $cond_type_salarie->fk_type_salarie."-".$j."-";
-				if($cond_type_salarie->rowid){ //Verification du type salarié
-					$correspond = true;
-				}else{//si pas de type salarié correspondant on verifie la catégorie
-					$cond_categ_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_categorie_prime WHERE fk_condition=".$cond_prime->rowid." AND fk_categorie=".$categ;
+			//si pas de type salarié correspondant on verifie la catégorie
+					$cond_categ_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_categorie_prime WHERE fk_condition=".$cond_prime->rowid." AND fk_categorie=".($fk_categorie?:0);
 					$result_cond_categ = $db->query($cond_categ_sql);
-
+					$cond_categ = $db->fetch_object($result_cond_categ);
+					if(!$cond_categ->rowid){
+						$cond_categ_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_categorie_prime WHERE fk_condition=".$cond_prime->rowid." AND fk_categorie=0";
+						$result_cond_categ = $db->query($cond_categ_sql);
 						$cond_categ = $db->fetch_object($result_cond_categ);
-						if(!$cond_categ->rowid){
-							$cond_categ_sql = "SELECT * FROM ".MAIN_DB_PREFIX."condition_categorie_prime WHERE fk_condition=".$cond_prime->rowid." AND fk_categorie=0";
-							$result_cond_categ = $db->query($cond_categ_sql);
-							$cond_categ = $db->fetch_object($result_cond_categ);
-						}
-
+					}
 
 					if($cond_categ->rowid){ //verification de la catégorie
 						$correspond = true;
+
 					}
-				}
+
 				if($correspond == true){
 					//correspondace avec type salarié ou catégorie
-
+					$tail = count($prime_rowid);
 					if($cond_prime->superieur > 0){
 						if($salaire_base < $cond_prime->superieur){
 							if($cond_prime->type_montant == "forfait"){
-								$prime_rowid[$i] = $pr->rowid;
-								$all_prime_montant[$i] = $cond_prime->forfait;
+								$prime_rowid[$tail] = $primes->rowid;
+								$all_prime_montant[$tail] = $cond_prime->forfait;
 
 							}
 						}else if(($cond_prime->pourcentage*$salaire_base/100) < $cond_prime->superieur)
 							if($cond_prime->type_montant == "pourcentage"){
 								if(($cond_prime->pourcentage*$salaire_base/100) < $cond_prime->minimum_perception){
-									$prime_rowid[$i] = $pr->rowid;
-									$all_prime_montant[$i] = $cond_prime->minimum_perception;
+									$prime_rowid[$tail] = $primes->rowid;
+									$all_prime_montant[$tail] = $cond_prime->minimum_perception;
 
 								}else{
-									$prime_rowid[$i] = $pr->rowid;
-									$all_prime_montant[$i] = $cond_prime->pourcentage*$salaire_base/100;
+									$prime_rowid[$tail] = $primes->rowid;
+									$all_prime_montant[$tail] = $cond_prime->pourcentage*$salaire_base/100;
 
 								}
 							}
 					}else{
 						if($cond_prime->type_montant == "forfait"){
-							$prime_rowid[$i] = $pr->rowid;
-							$all_prime_montant[$i] = $cond_prime->forfait;
+							$prime_rowid[$tail] = $primes->rowid;
+							$all_prime_montant[$tail] = $cond_prime->forfait;
 
 						}else{
 							if(($cond_prime->pourcentage*$salaire_base/100) < $cond_prime->minimum_perception){
-								$prime_rowid[$i] = $pr->rowid;
-								$all_prime_montant[$i] = $cond_prime->minimum_perception;
-
+								$prime_rowid[$tail] = $primes->rowid;
+								$all_prime_montant[$tail] = $cond_prime->minimum_perception;
 							}else{
-								$prime_rowid[$i] = $pr->rowid;
-								$all_prime_montant[$i] = $cond_prime->pourcentage*$salaire_base/100;
-
+								//print $cond_prime->pourcentage*$salaire_base/100;
+								$prime_rowid[$tail] = $primes->rowid;
+								$all_prime_montant[$tail] = $cond_prime->pourcentage*$salaire_base/100;
 
 							}
 						}
@@ -5605,23 +5010,6 @@ function pdf_pagehead_bonus(&$pdf, $onglet_salarie){
 				$pdf->MultiCell(40,19,utf8_decode("Logo"),0,'C');
 			}
 
-			/*$img = '../config/logo_societe/'.$bulletin_obj->fk_societe;
-			if(file_exists($img.'.png')){
-				$img .= '.png';
-			}elseif(file_exists($img.'.jpg')){
-				$img .= '.jpg';
-			}else{
-				$img .= '.jpeg';
-			}
-
-			if(is_readable($img)){
-				$pdf->Image($logo_server,20,12, 40,19);
-			}else{
-				$pdf->SetFont('Helvetica','B',16);
-				$pdf->SetY(12);
-				$pdf->SetX(20);
-				$pdf->MultiCell(40,19,utf8_decode("Logo"),0,'C');
-			}*/
 
 		}else{
 				$logodir = $conf->mycompany->dir_output;
@@ -5647,42 +5035,7 @@ function pdf_pagehead_bonus(&$pdf, $onglet_salarie){
 			}
 		}
 
-		   //Pour vérifier la prémière le logo enregistrer dans le bulletin en premier
-		   /*$bulletin_soc = "SELECT * FROM ".MAIN_DB_PREFIX."societe WHERE rowid=".$bulletin_obj->fk_societe;
-			$rest_bulletin_soc = $db->query($bulletin_soc);//= $db->query($covSql);
-			$societe_Salarie = $db->fetch_object($rest_bulletin_soc);
-
-
-			$logo_server = $tab[0].'/'.$tab[1].'/'.$tab[2].'/'.$tab[3].'/documents/societe/'.$societe_Salarie->rowid.'/logos/'.$rest_bulletin->logo_societe;
-			$logo_local_pc = $tab[0].'/'.$tab[1].'/dolibarr_documents/societe/'.$societe_Salarie->rowid.'/logos/'.($societe_Salarie->logo?$societe_Salarie->logo:"vide.png");
-		if(is_readable($logo_server)){
-			   ///home/dolites/public_html
-			   $pdf->Image($logo_server,20,12, 40,19);
-		   }elseif(is_readable($logo_local_pc)){
-			   $pdf->Image($logo_local_pc,20,12, 40,19);
-
-		   }else{
-					$img = '../config/logo_societe/'.$bulletin_obj->fk_societe;
-				if(file_exists($img.'.png')){
-					$img .= '.png';
-				}elseif(file_exists($img.'.jpg')){
-					$img .= '.jpg';
-				}else{
-					$img .= '.jpeg';
-				}
-
-				if(is_readable($img)){
-					$logo_server = $img;
-					$pdf->Image($logo_server,20,12, 40,19);
-
-				}else{
-					$pdf->SetFont('Helvetica','B',16);
-					$pdf->SetY(12);
-					$pdf->SetX(20);
-					$pdf->MultiCell(40,19,utf8_decode($logo_societe->nom_societe),0,'C');
-		   		}
-			}*/
-		   $date = "Complement de Paie :".$mois_tab[$mois_courant-1]." ".($annee ? : date("Y"));
+		   $date = $bulletin_obj->nom_bonus;//." ".$mois_tab[$mois_courant-1]." ".($annee ? : date("Y"));
 		   $pdf->SetTextColor(0, 0, 60);
 		   $pdf->SetFont('Helvetica','B',16);
 
@@ -5747,6 +5100,7 @@ function pdf_pagehead_bonus(&$pdf, $onglet_salarie){
 		   $y_align = $y;
 		   $pdf->MultiCell(1,1,"",0,'C');
 
+		   $pdf->SetX(13);
 		   $pdf->SetLeftMargin(13);
 		   $pdf->MultiCell(60,4, utf8_decode("Matricule : ".$bulletin_obj->matricule),0,'');
 
@@ -5827,10 +5181,10 @@ function pdf_pagehead_bonus(&$pdf, $onglet_salarie){
 		   $pdf->SetY($y);
 		   $pdf->MultiCell(60,4, utf8_decode("Niveau salarié : ".$bulletin_obj->type_salarie),0,'');
 
-		   $y = $pdf->GetY()+1;
+		   /*$y = $pdf->GetY()+1;
 		   $pdf->SetY($y);
 		   $pdf->MultiCell(60,4, utf8_decode("Type de contrat : ".$bulletin_obj->contrat),0,'');
-
+*/
 
 		   $y = $pdf->GetY()+1;
 		   $pdf->SetY($y);

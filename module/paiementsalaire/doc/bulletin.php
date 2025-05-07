@@ -163,11 +163,11 @@ if($action == "no_save"){
     $pdf->line(133,$y-1,133,$pdf->GetPageHeight()-60);
 
     $pdf->SetLeftMargin(133);
-    $pdf->Cell(30,4, utf8_decode("Retenu"),0,0,'C');
+    $pdf->Cell(30,4, utf8_decode("Retenue(s)"),0,0,'C');
     $pdf->line(163,$y-1,163,$pdf->GetPageHeight()-60);
 
     $pdf->SetLeftMargin(163);
-    $pdf->MultiCell(34,4, utf8_decode("Gain"),0,'C');
+    $pdf->MultiCell(34,4, utf8_decode("Gain(s)"),0,'C');
 
     $pdf->line(12,$y_apres_entete +13,$pdf->GetPageWidth()-12,$y_apres_entete +13);
 
@@ -393,8 +393,8 @@ if($action == "no_save"){
 				if($prime_res){
 					$pr = $db->fetch_object($prime_res);
 
-                  $val = $value;
-				$pourc = 100;
+          $val = $value;
+				  $pourc = 100;
 
 					if(count(explode('%',$value."v")) > 1)
 						$val = ($objSalBase->salaire_base*$base_pourcentage*explode('%',$value)[0])/100;
@@ -403,84 +403,82 @@ if($action == "no_save"){
 
 					$pdf->SetLeftMargin(13);
 
-                    $y = $pdf->GetY() + 6;
-                    $pdf->SetY($y);
-                    $pdf->Cell(30,4, utf8_decode($pr->libelle),0,0,'L');
+          $y = $pdf->GetY() + 6;
+          $pdf->SetY($y);
+          $pdf->Cell(30,4, utf8_decode($pr->libelle),0,0,'L');
 
-                    $pdf->SetLeftMargin(63);
-                    $pdf->Cell(20,4, utf8_decode($pourc."%"),0,0,'R');
+          $pdf->SetLeftMargin(63);
+          $pdf->Cell(20,4, utf8_decode($pourc."%"),0,0,'R');
 
-                    $pdf->SetLeftMargin(83);
-                    $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $val, 2)),0,0,'R');
+          $pdf->SetLeftMargin(83);
+          $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $val, 2)),0,0,'R');
 
-                    $pdf->SetLeftMargin(103);
-                    $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $val*$base_pourcentage*$base_pourcentage, 2)),0,0,'R');
+          $pdf->SetLeftMargin(103);
+          $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $val*$base_pourcentage*$base_pourcentage, 2)),0,0,'R');
 
-                    if($pr->soumis_cotisation=="Oui")
+          if($pr->soumis_cotisation == "Oui")
 						$salaire_brut_cotisable += $val*$base_pourcentage;
 
-					if($pr->soumis_impot=="Oui")
-						$salaire_brut_imposable += $val*$base_pourcentage;
+          if($pr->soumis_impot == "Oui")
+            $salaire_brut_imposable += $val*$base_pourcentage;
 
-            if($pr->ajout_base_hs == "Oui"){
-							$array_pr_ind_hs[] = $val*$base_pourcentage;
-						}
-                    $salaire_brut += $val*$base_pourcentage;
-                    $somme_pr_ind += $val*$base_pourcentage;
+          if($pr->ajout_base_hs == "Oui"){
+            $array_pr_ind_hs[] = $val*$base_pourcentage;
+          }
+
+          $salaire_brut += $val*$base_pourcentage;
+          $somme_pr_ind += $val*$base_pourcentage;
 
 					}
 				}
 			}
 
-              $array_prime_exceptionnelle = salarie_prime_exceptionnelle($db, $obj_salarie->rowid, date("m"), date("Y"));
+        $array_prime_exceptionnelle = salarie_prime_exceptionnelle($db, $obj_salarie->rowid, date("m"), date("Y"));
 				for ($e=0; $e < count($array_prime_exceptionnelle); $e++) {
-                    if($array_prime_exceptionnelle[$e][2] == 'oui'){
-                      $pdf->SetLeftMargin(13);
-                      $y = $pdf->GetY() + 6;
-                      $pdf->SetY($y);
-                      $pdf->Cell(30,4, utf8_decode($array_prime_exceptionnelle[$e][4]),0,0,'L');
-                      $pdf->SetLeftMargin(63);
-                      $pdf->Cell(20,4, utf8_decode($array_prime_exceptionnelle[$e][3]."%"),0,0,'R');
+            if($array_prime_exceptionnelle[$e][2] == 'oui'){
+                $pdf->SetLeftMargin(13);
+                $y = $pdf->GetY() + 6;
+                $pdf->SetY($y);
+                $pdf->Cell(30,4, utf8_decode($array_prime_exceptionnelle[$e][4]),0,0,'L');
+                $pdf->SetLeftMargin(63);
+                $pdf->Cell(20,4, utf8_decode($array_prime_exceptionnelle[$e][3]."%"),0,0,'R');
 
-                      $pdf->SetLeftMargin(83);
-                      $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $array_prime_exceptionnelle[$e][1], 2)),0,0,'R');
+                $pdf->SetLeftMargin(83);
+                $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $array_prime_exceptionnelle[$e][1], 2)),0,0,'R');
 
-                      $pdf->SetLeftMargin(103);
-                      $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $array_prime_exceptionnelle[$e][1], 2)),0,0,'R');
+                $pdf->SetLeftMargin(103);
+                $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, ($array_prime_exceptionnelle[$e][1] * $array_prime_exceptionnelle[$e][3])/100, 2)),0,0,'R');
 
-                      $salaire_brut += $array_prime_exceptionnelle[$e][1];
+                $salaire_brut += $array_prime_exceptionnelle[$e][1];
 
-                      //Si la prime est soumise au impôt
-                      if($array_prime_exceptionnelle[$e][5] == 'Oui'){
-                        $salaire_brut_imposable += $array_prime_exceptionnelle[$e][1];
-                      }
-
-                      //Si la prime est soumise à la cotisation
-                      if($array_prime_exceptionnelle[$e][5] == 'Oui'){
-                        $salaire_brut_cotisable += $array_prime_exceptionnelle[$e][1];
-                      }
-
-                      $somme_pr_ind += $array_prime_exceptionnelle[$e][1];
-                  }
-                    $j ++;
+                //Si la prime est soumise au impôt
+                if($array_prime_exceptionnelle[$e][5] == 'Oui'){
+                  $salaire_brut_imposable += $array_prime_exceptionnelle[$e][1];
                 }
 
-              $index = 0;
+                //Si la prime est soumise à la cotisation
+                if($array_prime_exceptionnelle[$e][6] == 'Oui'){
+                  $salaire_brut_cotisable += $array_prime_exceptionnelle[$e][1];
+                }
+
+                $somme_pr_ind += $array_prime_exceptionnelle[$e][1];
+              }
+            $j ++;
+        }
+
+      $index = 0;
 			$tab_info_ind = salarie_indemnite($db, $obj_salarie->rowid, $salaire_base, $id_convention, $id_societe, $id_accord_etab);
 			$pourcentage_ind = $tab_info_ind[0];
-			$ind = $tab_info_ind[1];
-			foreach ($ind as $key => $value) {
+			$ind_array = $tab_info_ind[1];
+			foreach ($ind_array as $key => $value) {
 			if(!empty($key) && !empty($value)){
 				//$somme += $value;
 				$sql = "SELECT * FROM ".MAIN_DB_PREFIX."indemnite WHERE rowid=".$key;
 				$ind_res = $db->query($sql);
 				if($ind_res){
-                  $ind = $db->fetch_object($ind_res);
-					//retiré du salaire de base
-
-
-                      $pdf->SetLeftMargin(13);
-
+              $ind = $db->fetch_object($ind_res);
+					    //retiré du salaire de base
+                $pdf->SetLeftMargin(13);
                   $y = $pdf->GetY() + 6;
                   $pdf->SetY($y);
                   $pdf->Cell(30,4, utf8_decode($ind->libelle),0,0,'L');
@@ -496,15 +494,15 @@ if($action == "no_save"){
 
                   $salaire_brut += $value*$base_pourcentage;
 
-					if($ind->soumis_cotisation=="Oui")
-						$salaire_brut_cotisable += $value*$base_pourcentage;
+                  if($ind->soumis_cotisation == "Oui")
+                    $salaire_brut_cotisable += ($value*$base_pourcentage*$ind->porcentage_soumis_cotis)/100;
 
-					if($ind->soumis_impot=="Oui")
-						$salaire_brut_imposable += $value*$base_pourcentage;
+                  if($ind->soumis_impot == "Oui")
+                    $salaire_brut_imposable += ($value*$base_pourcentage*$ind->porcentage_soumis_impot)/100;
 
-                      if($ind->ajout_base_hs == "Oui"){
-                        $array_pr_ind_hs[] = $value*$base_pourcentage;
-                      }
+                  if($ind->ajout_base_hs == "Oui"){
+                      $array_pr_ind_hs[] = $value*$base_pourcentage;
+                  }
                   $somme_pr_ind += $value*$base_pourcentage;
                   $index ++;
 			}
@@ -512,52 +510,52 @@ if($action == "no_save"){
 		}
 		}
 
-              $ind = indemnite_flottante($db, $obj_salarie->rowid);
-		foreach ($ind as $key => $value) {
+    $ind_array = indemnite_flottante($db, $obj_salarie->rowid);
+		foreach ($ind_array as $key => $value) {
 		  if(!empty($key) && !empty($value)){
 			$sql = "SELECT * FROM ".MAIN_DB_PREFIX."indemnite WHERE rowid=".$key;
 			$ind_res = $db->query($sql);
 			if($ind_res){
-                  $ind = $db->fetch_object($ind_res);
+          $ind = $db->fetch_object($ind_res);
 
-                  $val = $value;
+          $val = $value;
 					$pourc = 100;
 
-				if(count(explode('%',$value."v")) > 1)
-					$val = ($objSalBase->salaire_base*$base_pourcentage*explode('%',$value)[0])/100;
-				if($val != $value)
-					$pourc = explode('%',$value)[0];
+          if(count(explode('%',$value."v")) > 1)
+            $val = ($objSalBase->salaire_base*$base_pourcentage*explode('%',$value)[0])/100;
+          if($val != $value)
+            $pourc = explode('%',$value)[0];
 
+          $pdf->SetLeftMargin(13);
+          $y = $pdf->GetY() + 6;
+          $pdf->SetY($y);
+          $pdf->Cell(30,4, utf8_decode($ind->libelle),0,0,'L');
 
-                  $pdf->SetLeftMargin(13);
-                  $y = $pdf->GetY() + 6;
-                  $pdf->SetY($y);
-                  $pdf->Cell(30,4, utf8_decode($ind->libelle),0,0,'L');
+          $pdf->SetLeftMargin(63);
+          $pdf->Cell(20,4, utf8_decode($pourc."%"),0,0,'R');
 
-                  $pdf->SetLeftMargin(63);
-                  $pdf->Cell(20,4, utf8_decode($pourc."%"),0,0,'R');
+          $pdf->SetLeftMargin(83);
+          $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $val, 2)),0,0,'R');
 
-                  $pdf->SetLeftMargin(83);
-                  $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $val, 2)),0,0,'R');
+          $pdf->SetLeftMargin(103);
+          $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $val*$base_pourcentage, 2)),0,0,'R');
 
-                  $pdf->SetLeftMargin(103);
-                  $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $val*$base_pourcentage, 2)),0,0,'R');
+          if($ind->soumis_cotisation == "Oui")
+					  $salaire_brut_cotisable += ($val*$base_pourcentage*$ind->porcentage_soumis_cotis)/100;
 
-                  if($ind->soumis_cotisation=="Oui")
-					$salaire_brut_cotisable += $val*$base_pourcentage;
+				  if($ind->soumis_impot == "Oui")
+					  $salaire_brut_imposable += ($val*$base_pourcentage*$ind->porcentage_soumis_impot)/100;
 
-				  if($ind->soumis_impot=="Oui")
-					$salaire_brut_imposable += $val*$base_pourcentage;
+          if($ind->ajout_base_hs == "Oui"){
+            $array_pr_ind_hs[] = $val*$base_pourcentage;
+          }
 
-                    if($ind->ajout_base_hs == "Oui"){
-                      $array_pr_ind_hs[] = $val*$base_pourcentage;
-                    }
-                  $salaire_brut += $val*$base_pourcentage;
-                  $somme_pr_ind += $val*$base_pourcentage;
+          $salaire_brut += $val*$base_pourcentage;
+          $somme_pr_ind += $val*$base_pourcentage;
 
-					}
 				}
 			}
+		}
 
               $pdf->SetLeftMargin(13);
               $pdf->SetX(13);
@@ -639,49 +637,49 @@ if($action == "no_save"){
                 //Ajout des primes heures sup à la base des heures sup
 				$specail_base += $somme_pr_ind_hs/173.33;
         $base += $somme_pr_ind_hs/173.33;
-                $tab_hs = salarie_heure_sup($db, $obj_salarie->rowid, date("m"), date("Y"));
-                $id_array = $tab_hs[0];
-                $array_heure_sup_taux = $tab_hs[1];
-                $array_nb_heure_sup = $tab_hs[2];
-                $valeur_heur_sup = 0;
-                //print count($id_array);
-                for($i=0; $i< count($array_heure_sup_taux); $i++){
-                //foreach ($array_heure_sup as $taux => $nb_heure_sup){
-                  //$taux est le taux d'heure sup
-                  //$nb_heure_sup est le nombre d'heure sup effectuée
+        $tab_hs = salarie_heure_sup($db, $obj_salarie->rowid, date("m"), date("Y"));
+        $id_array = $tab_hs[0];
+        $array_heure_sup_taux = $tab_hs[1];
+        $array_nb_heure_sup = $tab_hs[2];
+        $valeur_heur_sup = 0;
+        //print count($id_array);
+        for($i=0; $i< count($array_heure_sup_taux); $i++){
+        //foreach ($array_heure_sup as $taux => $nb_heure_sup){
+          //$taux est le taux d'heure sup
+          //$nb_heure_sup est le nombre d'heure sup effectuée
 
-                    $hs_sql = "SELECT commentaire FROM ".MAIN_DB_PREFIX."heure_sup WHERE rowid=".$id_array[$index];
-                    $type_sal_heure_sup = $db->query($hs_sql);
-                    $obj_sal_heure_sup = $db->fetch_object($sal_heure_sup);
+            $hs_sql = "SELECT commentaire FROM ".MAIN_DB_PREFIX."heure_sup WHERE rowid=".$id_array[$index];
+            $type_sal_heure_sup = $db->query($hs_sql);
+            $obj_sal_heure_sup = $db->fetch_object($sal_heure_sup);
 
-                    $taux = $array_heure_sup_taux[$i];
-                    $nb_heure_sup = $array_nb_heure_sup[$i];
+            $taux = $array_heure_sup_taux[$i];
+            $nb_heure_sup = $array_nb_heure_sup[$i];
 
-                //affichage des heures sup
-                      if($index == 0)
-                        $y = $pdf->GetY() +6;
-                      else $y += 4;
-                      $pdf->SetLeftMargin(13);
-                      $pdf->SetY($y);
-                      $pdf->Cell(49,4, utf8_decode($nb_heure_sup.'HS '.$obj_sal_heure_sup->commentaire),0,0,'L');
+        //affichage des heures sup
+              if($index == 0)
+                $y = $pdf->GetY() +6;
+              else $y += 4;
+              $pdf->SetLeftMargin(13);
+              $pdf->SetY($y);
+              $pdf->Cell(49,4, utf8_decode($nb_heure_sup.'HS '.$obj_sal_heure_sup->commentaire),0,0,'L');
 
-                      $ma_base = $base + $base*$taux/100;
-                      if($trouve){
-                        $ma_base = $specail_base;
-                        $taux = $special_taux;
-                      }
-                      $pdf->SetLeftMargin(63);
-                      $pdf->Cell(20,4, utf8_decode($taux."%"),0,0,'R');
-
-                      $pdf->SetX(83);
-                      $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $ma_base, 2)),0,0,'R');
-
-                      $valeur_heur_sup += $ma_base*$nb_heure_sup;
-                      $pdf->SetX(103);
-                      $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $ma_base*$nb_heure_sup, 2)),0,'R');
-
-                  $index ++;
+              $ma_base = $base + $base*$taux/100;
+              if($trouve){
+                $ma_base = $specail_base;
+                $taux = $special_taux;
               }
+              $pdf->SetLeftMargin(63);
+              $pdf->Cell(20,4, utf8_decode($taux."%"),0,0,'R');
+
+              $pdf->SetX(83);
+              $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $ma_base, 2)),0,0,'R');
+
+              $valeur_heur_sup += $ma_base*$nb_heure_sup;
+              $pdf->SetX(103);
+              $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $ma_base*$nb_heure_sup, 2)),0,'R');
+
+          $index ++;
+        }
 
               $salaire_brut += $valeur_heur_sup;
               $salaire_brut_cotisable += $valeur_heur_sup;
@@ -770,10 +768,10 @@ if($action == "no_save"){
                       $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $salaire_brut_cotisable, 2)),0,0,'R');
 
                       $pdf->SetX(103);
-                      $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $montant_org_patro[$i], 2)),0,0,'R');
+                      $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, round($montant_org_patro[$i]), 2)),0,0,'R');
 
                       $pdf->SetX(133);
-                      $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $montant_org_sal[$i], 2)),0,'R');
+                      $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, round($montant_org_sal[$i]), 2)),0,'R');
 
                       $retenu_prest_empl += $montant_org_sal[$i];
                       $avance = true;
@@ -808,10 +806,10 @@ if($action == "no_save"){
                         $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $salaire_brut_cotisable, 2)),0,0,'R');
 
                         $pdf->SetX(103);
-                        $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $taux_p[$index]*$salaire_brut_cotisable/100, 2)),0,0,'R');
+                        $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, round($taux_p[$index]*$salaire_brut_cotisable/100), 2)),0,0,'R');
 
                         $pdf->SetX(133);
-                        $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $value*$salaire_brut_cotisable/100, 2)),0,'R');
+                        $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, round($value*$salaire_brut_cotisable/100), 2)),0,'R');
                         $retenu_prest_empl += $value*$salaire_brut_cotisable/100;
 
 
@@ -837,13 +835,13 @@ if($action == "no_save"){
               $pdf->Cell(49,4, utf8_decode($obj_taxe->libelle),0,0,'L');
 
               $pdf->SetX(63);
-              $pdf->Cell(20,4, utf8_decode(round($its[0],2)."%"),0,0,'R');
+              $pdf->Cell(20,4, utf8_decode(round($its[0], 2)."%"),0,0,'R');
 
               $pdf->SetX(83);
               $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $salaire_brut_imposable, 2)),0,0,'R');
 
               $pdf->SetX(133);
-              $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $its[2], 2)),0,'R');
+              $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, round($its[2]), 2)),0,'R');
 
 
           }
@@ -900,8 +898,8 @@ if($action == "no_save"){
             $pdf->SetY($y);
             $pdf->Cell(49,4, utf8_decode("==Avances/Acomptes=="),0,0,'L');
 
-            $pdf->SetLeftMargin(163);
-            $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
+            $pdf->SetLeftMargin(133);
+            $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
           }
 
           $y = $pdf->GetY()+5;
@@ -937,7 +935,7 @@ if($action == "no_save"){
       $y += 4;
       $pdf->SetY($y);
       $pdf->SetFillColor(245, 245, 245);
-      $pdf->Cell(28,4, utf8_decode("Retenu :"),0,0,'L','true');
+      $pdf->Cell(28,4, utf8_decode("Retenue(s) :"),0,0,'L','true');
       $pdf->SetLeftMargin(161);
       $pdf->MultiCell(31,4, utf8_decode(apres_virgule($db, $id_societe, round($retenu), 2)),0,'R','true');
 
@@ -1041,84 +1039,84 @@ if($action == "no_save"){
     $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin where fk_salarie=".$obj_salarie->rowid." AND annee=".$annee." AND mois=".$mois;
     $res_bulletin = $db->query($bulletin_sql);
     $obj_bulletin = $db->fetch_object($res_bulletin);
-    if($obj_bulletin->rowid){
-    $retenu = 0;
-    $somme_pr_ind = 0;
+      if($obj_bulletin->rowid){
+      $retenu = 0;
+      $somme_pr_ind = 0;
 
-    //****************************************************************************** */
-    $pdf->SetDrawColor(200, 200, 200);
-    $y_apres_entete = 70;
-    //Entête du tableau et traçage des Ligne verticales
-    $pdf->line(12,$y_apres_entete +7,12,$pdf->GetPageHeight()-60);
-    $pdf->line($pdf->GetPageWidth()-12,$y_apres_entete +7,$pdf->GetPageWidth()-12,$pdf->GetPageHeight()-60);
+      //****************************************************************************** */
+      $pdf->SetDrawColor(200, 200, 200);
+      $y_apres_entete = 70;
+      //Entête du tableau et traçage des Ligne verticales
+      $pdf->line(12,$y_apres_entete +7,12,$pdf->GetPageHeight()-60);
+      $pdf->line($pdf->GetPageWidth()-12,$y_apres_entete +7,$pdf->GetPageWidth()-12,$pdf->GetPageHeight()-60);
 
-    $pdf->SetLeftMargin(12);
-    $pdf->line(12,$y_apres_entete +7,$pdf->GetPageWidth()-12,$y_apres_entete +7);
+      $pdf->SetLeftMargin(12);
+      $pdf->line(12,$y_apres_entete +7,$pdf->GetPageWidth()-12,$y_apres_entete +7);
 
-    $pdf->SetLeftMargin(13);
-    $y = $y_apres_entete +8;
-    $pdf->SetY($y);
-    $pdf->Cell(50,4, utf8_decode("Designation"),0,0,'C');
-    $pdf->line(63,$y-1,63,$pdf->GetPageHeight()-60);
+      $pdf->SetLeftMargin(13);
+      $y = $y_apres_entete +8;
+      $pdf->SetY($y);
+      $pdf->Cell(50,4, utf8_decode("Designation"),0,0,'C');
+      $pdf->line(63,$y-1,63,$pdf->GetPageHeight()-60);
 
-    $pdf->SetLeftMargin(63);
-    $pdf->Cell(20,4, utf8_decode("Taux"),0,0,'C');
-    $pdf->line(83,$y-1,83,$pdf->GetPageHeight()-60);
-
-
-    $pdf->SetLeftMargin(83);
-    $pdf->Cell(20,4, utf8_decode("Base"),0,0,'C');
-    $pdf->line(103,$y-1,103,$pdf->GetPageHeight()-60);
+      $pdf->SetLeftMargin(63);
+      $pdf->Cell(20,4, utf8_decode("Taux"),0,0,'C');
+      $pdf->line(83,$y-1,83,$pdf->GetPageHeight()-60);
 
 
-    $pdf->SetLeftMargin(103);
-    $pdf->Cell(30,4, utf8_decode("Montant"),0,0,'C');
-    $pdf->line(133,$y-1,133,$pdf->GetPageHeight()-60);
+      $pdf->SetLeftMargin(83);
+      $pdf->Cell(20,4, utf8_decode("Base"),0,0,'C');
+      $pdf->line(103,$y-1,103,$pdf->GetPageHeight()-60);
 
 
-    $pdf->SetLeftMargin(133);
-    $pdf->Cell(30,4, utf8_decode("Retenu"),0,0,'C');
-    $pdf->line(163,$y-1,163,$pdf->GetPageHeight()-60);
+      $pdf->SetLeftMargin(103);
+      $pdf->Cell(30,4, utf8_decode("Montant"),0,0,'C');
+      $pdf->line(133,$y-1,133,$pdf->GetPageHeight()-60);
 
 
-    $pdf->SetLeftMargin(163);
-    $pdf->MultiCell(34,4, utf8_decode("Gain"),0,'C');
+      $pdf->SetLeftMargin(133);
+      $pdf->Cell(30,4, utf8_decode("Retenue(s)"),0,0,'C');
+      $pdf->line(163,$y-1,163,$pdf->GetPageHeight()-60);
 
-    $pdf->line(12,$y_apres_entete +13,$pdf->GetPageWidth()-12,$y_apres_entete +13);
 
-    //jours travaillés
-    $pdf->SetTextColor(0, 0, 0);
+      $pdf->SetLeftMargin(163);
+      $pdf->MultiCell(34,4, utf8_decode("Gain(s)"),0,'C');
 
-    $pdf->SetLeftMargin(13);
-    $y = $pdf->GetY() + 2;
-    $pdf->SetY($y);
-    $pdf->Cell(30,4, utf8_decode("Jours travaillés"),0,0,'L');
-    //nombre de de jour du mois
-    $salSql = "SELECT jour FROM ".MAIN_DB_PREFIX."salarie_nombre_jour_travaille where annee=".$obj_bulletin->annee." AND mois=".$obj_bulletin->mois." AND fk_salarie=".$obj_salarie->rowid;
-    $result = $db->query($salSql);
-    $nb_jours = $db->fetch_object($result)->jour;
-    //$nb_jours = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
-    $pdf->SetLeftMargin(63);
-    $pdf->Cell(20,4, utf8_decode($nb_jours),0,0,'R');
+      $pdf->line(12,$y_apres_entete +13,$pdf->GetPageWidth()-12,$y_apres_entete +13);
 
-    //heures normales
-    $pdf->SetLeftMargin(13);
-    $y = $pdf->GetY() +6;
-    $pdf->SetY($y);
-    $pdf->Cell(30,4, utf8_decode("Heures normales"),0,0,'L');
+      //jours travaillés
+      $pdf->SetTextColor(0, 0, 0);
 
-    $pdf->SetLeftMargin(63);
-    $nb_total_jour = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
-    $heur_normal = 173.33;
-    if($nb_jours != $nb_total_jour)
-      $heur_normal = round(($nb_jours*$heur_normal)/$nb_total_jour, 2);
-    $pdf->Cell(20,4, utf8_decode($heur_normal),0,0,'R');
+      $pdf->SetLeftMargin(13);
+      $y = $pdf->GetY() + 2;
+      $pdf->SetY($y);
+      $pdf->Cell(30,4, utf8_decode("Jours travaillés"),0,0,'L');
+      //nombre de de jour du mois
+      $salSql = "SELECT jour FROM ".MAIN_DB_PREFIX."salarie_nombre_jour_travaille where annee=".$obj_bulletin->annee." AND mois=".$obj_bulletin->mois." AND fk_salarie=".$obj_salarie->rowid;
+      $result = $db->query($salSql);
+      $nb_jours = $db->fetch_object($result)->jour;
+      //$nb_jours = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
+      $pdf->SetLeftMargin(63);
+      $pdf->Cell(20,4, utf8_decode($nb_jours),0,0,'R');
 
-    //Salaire de base normale
-    $pdf->SetLeftMargin(13);
-    $y = $pdf->GetY() +6;
-    $pdf->SetY($y);
-    $pdf->Cell(35,4, utf8_decode("Salaire de base normale"),0,0,'L');
+      //heures normales
+      $pdf->SetLeftMargin(13);
+      $y = $pdf->GetY() +6;
+      $pdf->SetY($y);
+      $pdf->Cell(30,4, utf8_decode("Heures normales"),0,0,'L');
+
+      $pdf->SetLeftMargin(63);
+      $nb_total_jour = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
+      $heur_normal = 173.33;
+      if($nb_jours != $nb_total_jour)
+        $heur_normal = round(($nb_jours*$heur_normal)/$nb_total_jour, 2);
+      $pdf->Cell(20,4, utf8_decode($heur_normal),0,0,'R');
+
+      //Salaire de base normale
+      $pdf->SetLeftMargin(13);
+      $y = $pdf->GetY() +6;
+      $pdf->SetY($y);
+      $pdf->Cell(35,4, utf8_decode("Salaire de base normale"),0,0,'L');
 
       $pdf->SetLeftMargin(103);
       $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_base?:0, 2)),0,0,'R');
@@ -1194,14 +1192,14 @@ if($action == "no_save"){
         }
       }
 
-      $bulletin_pr_except_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_prime_exceptionnelle WHERE fk_bulletin=".$obj_bulletin->rowid;
+              $bulletin_pr_except_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_prime_exceptionnelle WHERE fk_bulletin=".$obj_bulletin->rowid;
               $bulletin_pr_except_res = $db->query($bulletin_pr_except_sql);
               if($bulletin_pr_except_res){
                 $j = 0;
                 $num = $db->num_rows($bulletin_pr_except_res);
                 while ($j < $num){
                   $obj_bulletin_pr = $db->fetch_object($bulletin_pr_except_res);
-                  if ($obj_bulletin_pr->affiche_bulletin == 'oui')
+                  if ($obj_bulletin_pr->affiche_bulletin == 'oui' || $obj_bulletin_pr->affiche_bulletin == 'Oui')
                   {
 
                     $pdf->SetLeftMargin(13);
@@ -1213,16 +1211,18 @@ if($action == "no_save"){
                     $pdf->Cell(20,4, utf8_decode($obj_bulletin_pr->pourcentage."%"),0,0,'R');
 
                     $pdf->SetLeftMargin(83);
-                    $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, ($obj_bulletin_pr->montant*$obj_bulletin_pr->pourcentage)/100, 2)),0,0,'R');
+                    $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_pr->montant, 2)),0,0,'R');
 
                     $pdf->SetLeftMargin(103);
-                    $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_pr->montant, 2)),0,0,'R');
+                    $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, ($obj_bulletin_pr->montant*$obj_bulletin_pr->pourcentage)/100, 2)),0,0,'R');
 
                     $somme_pr_ind += $obj_bulletin_pr->montant;
                   }
                     $j ++;
                 }
               }
+
+      //Indemnités
       $bulletin_ind_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_indemnite WHERE fk_bulletin=".$obj_bulletin->rowid;
       $bulletin_ind_res = $db->query($bulletin_ind_sql);
       if($bulletin_ind_res){
@@ -1533,8 +1533,8 @@ if($action == "no_save"){
              $pdf->SetY($y);
              $pdf->Cell(49,4, utf8_decode("==Avances/Acomptes=="),0,0,'L');
 
-             $pdf->SetLeftMargin(163);
-             $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
+             $pdf->SetLeftMargin(133);
+             $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
            }
 
          }
@@ -1591,7 +1591,7 @@ if($action == "no_save"){
       $y += 4;
       $pdf->SetY($y);
       $pdf->SetFillColor(245, 245, 245);
-      $pdf->Cell(28,4, utf8_decode("Retenu :"),0,0,'L','true');
+      $pdf->Cell(28,4, utf8_decode("Retenue(s) :"),0,0,'L','true');
       $pdf->SetLeftMargin(161);
       $pdf->MultiCell(31,4, utf8_decode(apres_virgule($db, $id_societe, $retenu, 2)),0,'R','true');
       //salaire net

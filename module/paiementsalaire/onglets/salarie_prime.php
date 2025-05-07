@@ -1,7 +1,7 @@
 <?php
 require '../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/lib/paiementsalaire.lib.php';
-
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 llxHeader("", "Paiement | Salaire");
 //Titre
 print load_fiche_titre($langs->trans("Edition des Primes"), '', '');
@@ -28,7 +28,8 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		print '<hr>';
 
 		//--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-		//les indemnites associer au salarié
+		//les primes associer au salarié
+		$monform = new Form($db);
 
 
 	//Affectation d'une prime à un salarié
@@ -83,37 +84,79 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		print '<br>';
 	}
 
-	//desaffectation d'une prime à un salarié
+	//Avertissement de suppression
+
+	//Confirmer la suppression
+	if($action == "supprimer_attention"){
+		$fk_prime = GETPOST("fk_prime", "int");
+		$url = $_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&fk_prime=".$fk_prime."&fk_salarie=".$fk_salarie."&id=".$fk_user;
+		$titre = "Voulez-vous vraiment supprimer cette prime";
+
+		  $formconfirm = $monform->formconfirm(
+			  $url, 
+			  $titre, 
+			  "", 
+			  'supprimer', 
+			  $array, 
+			  '', 
+			  1,
+			  180,
+			  '35%'
+		  );
+		  print $formconfirm;
+	}
+
+		//Suppression apres confirmation
 	if($action == "supprimer"){
 		$fk_prime = GETPOST("fk_prime", "int");
 
 		$result = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."primes WHERE rowid=".$fk_prime);
-				$obj_pr = $db->fetch_object($result);
+		$obj_pr = $db->fetch_object($result);
 
-				$sql_fl = "SELECT montant FROM ".MAIN_DB_PREFIX."salarie_prime_flottante WHERE fk_salarie='".$fk_salarie."' AND fk_prime=".$fk_prime;
-				$result_fl = $db->query($sql_fl);
-				$obj_pr_fl = $db->fetch_object($result_fl);
+		$sql_fl = "SELECT montant FROM ".MAIN_DB_PREFIX."salarie_prime_flottante WHERE fk_salarie='".$fk_salarie."' AND fk_prime=".$fk_prime;
+		$result_fl = $db->query($sql_fl);
+		$obj_pr_fl = $db->fetch_object($result_fl);
 
-				$result = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$fk_user);
-				$obj_sal = $db->fetch_object($result);
+		$result = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$fk_user);
+		$obj_sal = $db->fetch_object($result);
 
-				//sauvegarde des trace de l'action
-				$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
-				$obj = $db->fetch_object($db->query($sql_select));
+		//sauvegarde des trace de l'action
+		$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
+		$obj = $db->fetch_object($db->query($sql_select));
 
-				$action_effectue = "Désaffectation d'une prime flottante ".$obj_pr->libelle."(".$obj_pr_fl->montant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie." de la société ".$obj_soc->name;
-				$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
-				$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Désaffectation")';
-				$db->query($sql_log);
+		$action_effectue = "Désaffectation d'une prime flottante ".$obj_pr->libelle."(".$obj_pr_fl->montant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie." de la société ".$obj_soc->name;
+		$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
+		$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Désaffectation")';
+		$db->query($sql_log);
 
-				$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_prime WHERE fk_salarie='".$fk_salarie."' AND fk_prime=".$fk_prime;
-					$result2 = $db->query($sql);
+		$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_prime WHERE fk_salarie='".$fk_salarie."' AND fk_prime=".$fk_prime;
+			$result2 = $db->query($sql);
 
-				$fk_prime = GETPOST("fk_prime", "int");
-				$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_prime_flottante WHERE fk_salarie='".$fk_salarie."' AND fk_prime=".$fk_prime;
-				$result2 = $db->query($sql);
-				$message = "Prime dissociée de ce salarié avec succès";
+		$fk_prime = GETPOST("fk_prime", "int");
+		$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_prime_flottante WHERE fk_salarie='".$fk_salarie."' AND fk_prime=".$fk_prime;
+		$result2 = $db->query($sql);
+		$message = "Prime dissociée de ce salarié avec succès";
 
+	}
+
+	//Confirmer la suppression
+	if($action == "supprimer_attention_exceptionnelle"){
+		$fk_prime = GETPOST("fk_prime", "int");
+		$url = $_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&fk_prime=".$fk_prime."&fk_salarie=".$fk_salarie."&id=".$fk_user;
+		$titre = "Voulez-vous vraiment supprimer cette prime Exceptionnelle";
+
+		  $formconfirm = $monform->formconfirm(
+			  $url, 
+			  $titre, 
+			  "", 
+			  'supprimer_exceptionnelle', 
+			  $array, 
+			  '', 
+			  1,
+			  180,
+			  '35%'
+		  );
+		  print $formconfirm;
 	}
 
 	if($action == "supprimer_exceptionnelle"){
@@ -523,12 +566,12 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 										print $obj1->libelle.'</td><td><input type="text" disabled size="7" name="montant_flottant" value="'.apres_virgule($db, $id_societe, $obj_fl->montant?:0).'" >';
 
 									print "<a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=salarie&id_convention=".$id_convention."&id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=edit_flotant&fk_prime=".$obj->fk_prime."'>".img_edit()."</a></td>";
-									print "<td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=salarie&id_convention=".$id_convention."&id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer&id_convention=".$id_convention."&fk_prime=".$obj->fk_prime."'><button class='button'>Dissocier</button></a></td></tr>";
+									print "<td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=salarie&id_convention=".$id_convention."&id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer_attention&id_convention=".$id_convention."&fk_prime=".$obj->fk_prime."'><button class='button'>Dissocier</button></a></td></tr>";
 								}
 							}else{//affcihage des prime non flottantes
 								print "<tr class='impair'><td>";
 								print ''.$obj1->libelle.'</td><td>'.$obj1->type_prime;
-								print "</td><td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&id_societe=".$id_societe."&leftmenu=salarie&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer&id_convention=".$id_convention."&fk_prime=".$obj->fk_prime."'><button class='button'>Dissocier</button></a></td></tr>";
+								print "</td><td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&id_societe=".$id_societe."&leftmenu=salarie&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer_attention&id_convention=".$id_convention."&fk_prime=".$obj->fk_prime."'><button class='button'>Dissocier</button></a></td></tr>";
 						}
 
 
@@ -550,22 +593,23 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 				//print $num_pr_except.'**';
 				if($num_pr_except > 0) {
 					$obj_bull_pr = $db->fetch_object($res_bulletin_pr_except);
-					$sql_bulletin = "SELECT rowid, cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE rowid=".$obj_bull_pr->fk_bulletin;
+					$sql_bulletin = "SELECT rowid, cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE rowid=".$obj_bull_pr->fk_bulletin." AND cloture != 'oui'";
 					$res_bulletin  = $db->query($sql_bulletin);
+
 					$nbre = $db->num_rows($res_bulletin);
 					//print $nbre;
 					if( $nbre > 0){
 						$obj_b = $db->fetch_object($res_bulletin);
-						if($obj_b->cloture != 'oui'){
+						if($obj_b->cloture == 'non' || $obj_b->cloture == 'Non'){
 							$var = "Prime Exceptionnelle : ".$obj_except->date_limit." Soumise au impôt ".$obj_except->soumis_impot." Soumise à cotisation ".$obj_except->soumis_cotisation." et afficher sur bulletin ".$obj_except->affiche_bulletin;
 							print "<tr class='impair'><td>";
 							print img_error($var).' <span>'.$obj_except->libelle.'</span></td><td>'.apres_virgule($db, $id_societe, $obj_except->montant);
-							print "</td><td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&id_societe=".$id_societe."&leftmenu=salarie&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer_exceptionnelle&id_convention=".$id_convention."&fk_prime=".$obj_except->rowid."'><button class='button'>Dissocier</button></a></td></tr>";
+							print "</td><td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&id_societe=".$id_societe."&leftmenu=salarie&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer_attention_exceptionnelle&id_convention=".$id_convention."&fk_prime=".$obj_except->rowid."'><button class='button'>Dissocier</button></a></td></tr>";
 						}else{
 							/*$var = "Prime Exceptionnelle : ".$obj_except->date_limit." Soumise au impôt ".$obj_except->soumis_impot." Soumise à cotisation ".$obj_except->soumis_cotisation." et afficher sur bulletin ".$affiche_bulletin;
 							print "<tr class='impair'><td>";
 							print img_error($var).' <span>'.$obj_except->libelle.'</span></td><td>'.apres_virgule($db, $id_societe, $obj_except->montant);
-							print "</td><td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&id_societe=".$id_societe."&leftmenu=salarie&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer_exceptionnelle&id_convention=".$id_convention."&fk_prime=".$obj_except->rowid."'><button class='button'>Dissocier</button></a></td></tr>";
+							print "</td><td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&id_societe=".$id_societe."&leftmenu=salarie&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer_attention_exceptionnelle&id_convention=".$id_convention."&fk_prime=".$obj_except->rowid."'><button class='button'>Dissocier</button></a></td></tr>";
 						*/}
 
 					}
@@ -573,7 +617,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					$var = "Prime Exceptionnelle : ".$obj_except->date_limit." Soumise au impôt ".$obj_except->soumis_impot." Soumise à cotisation ".$obj_except->soumis_cotisation." et afficher sur bulletin ".$obj_except->affiche_bulletin;
 					print "<tr class='impair'><td>";
 					print img_error($var).' <span>'.$obj_except->libelle.'</span></td><td>'.apres_virgule($db, $id_societe, $obj_except->montant);
-					print "</td><td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&id_societe=".$id_societe."&leftmenu=salarie&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer_exceptionnelle&id_convention=".$id_convention."&fk_prime=".$obj_except->rowid."'><button class='button'>Dissocier</button></a></td></tr>";
+					print "</td><td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&id_societe=".$id_societe."&leftmenu=salarie&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer_attention_exceptionnelle&id_convention=".$id_convention."&fk_prime=".$obj_except->rowid."'><button class='button'>Dissocier</button></a></td></tr>";
 				}
 
 				$nb ++;

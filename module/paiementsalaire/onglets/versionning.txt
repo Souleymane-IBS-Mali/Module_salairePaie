@@ -1,3 +1,5 @@
+
+De V1.1.0 à V1.2.0
 1- Correction de bug dans société_paie.php(onglet salaires dans société)
 2- correction de bug dans bulletin.php(salariés onglet salaire)
 3- Correction de bug complements salaire (on ne plus supprimer un complement après la cloture du mois)
@@ -16,3 +18,24 @@ Copatibilité avec la version 20.0.2 de dolibarr
 
 7- Ajout d'une table de gestion des versions
 8- Gestion des version à travers WHMCS
+------------------------------------------------------------------------
+V1.3.0
+Correction
+1- correction de nombre enfant handicapé dans validation société
+2- correction de tout bulletin salarié (pourcentage des primes exceptionnelle)
+3- correction de l'affichage des montants et pourcentage dans bulletin et tout_bulletin_salarie
+4- Possibilité de voir l'onglet salaire même si tous les salarié sont archivés
+5- Exportation commune ou par groupe de société.
+6- Les primes se répètent dans le fichier d’exportation.
+7- Les heures sup se répètent dans le fichier d'Exportation
+
+Modification 
+ 1- Sur le fichier d’exportation du complément Salaire le montant coût total n’est pas affiché.
+ 2- Mentionné dans le fichier d’exportation le nombre d’heures sup suivi du montant d’heures sup.
+
+
+Ajouts
+1- Ajout de la fonctionnalité d'export de "Récapitulatif" d'un salarié en fonction de l'année
+2- Ajout de la flexibilité du nombre de colonne à afficher dans liste_personelle.php (catégorie, fonction et solde congé)
+3- Voir ou télécharger les bulletins de tous les salariés (compléménts salaires)
+4- Pouvoir modifier individuellement les compléments salaires

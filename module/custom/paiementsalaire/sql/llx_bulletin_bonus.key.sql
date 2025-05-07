@@ -15,7 +15,7 @@
 -- along with this program. If not, see <http://www.gnu.org/licenses/>.
 --
 -- ========================================================================
---ALTER TABLE llx_bulletin_bonus ADD montant VARCHAR(15);
+ALTER TABLE llx_bulletin_bonus ADD libelle VARCHAR(255);
 --ALTER TABLE llx_bulletin_bonus ADD base VARCHAR(15);
 
 --drop table llx_bulletin_bonus;

@@ -54,10 +54,10 @@ llxHeader("", "Paiement | Salaire");
                 print '<th>Reglages</th><th></th><th></th>';
                 print '</tr>';
 
-                /*print '<tr class="oddeven nodrag nodrop nohover">';
+                print '<tr class="oddeven nodrag nodrop nohover">';
                 print '<td><a href="./modele_bulletin.php?mainmenu=paiementsalaire&leftmenu=reglage" >Modèles bulletins</a></td>';
                 print '<td></td>';
-                print '<td></td>';*/
+                print '<td></td>';
 
                 print '</tr>';
                 print '<tr class="oddeven nodrag nodrop nohover">';

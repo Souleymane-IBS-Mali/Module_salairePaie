@@ -389,7 +389,7 @@ if($user->rights->paiementsalaire->societe->read){
 	$trouve = false;
 	$sql = "SELECT sal.fk_user, u.rowid, u.lastname, u.firstname, u.dateemployment, ue.fk_object, ue.egp FROM ".MAIN_DB_PREFIX."salarie as sal";
 	$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user as u ON sal.fk_user=u.rowid";
-	$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object WHERE sal.archiver != 'oui' AND ue.egp=".$id_societe;
+	$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object WHERE ue.egp=".$id_societe;
 	
 	$result = $db->query($sql);
 	if($result){
@@ -971,7 +971,7 @@ if($user->rights->paiementsalaire->societe->read){
 					print '<input type="hidden" name="token" value="'.newToken().'">';
 					print '<input type="hidden" name="action" value="annee_rechercher">';
 
-					print "<select name='annee_rechercher'>";
+					print "<select style='font-size: 24px; font-weight: bold;' name='annee_rechercher'><option value='0'></option>";
 					$sql_verif = "SELECT DISTINCT annee FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_societe=".$id_societe;
 					$res_verif = $db->query($sql_verif);
 					if($res_verif){
@@ -997,7 +997,7 @@ if($user->rights->paiementsalaire->societe->read){
 
 
 					}
-					print "</select><input type='submit' value='Rechercher'class='button'></form>";
+					print "</select><input type='submit' value='Afficher'class='button'></form>";
 
 				print "</div>";
 				print "<table class='tagtable liste'>";
@@ -1132,7 +1132,7 @@ if($annee_rechercher == $annee_courant){
 						if($user->rights->paiementsalaire->salarie->voirDocument)
 							print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp; &nbsp;&nbsp;
 							<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span></a>&nbsp;&nbsp;
-							<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->nom."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp; &nbsp;&nbsp;";
+							<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp; &nbsp;&nbsp;";
 						else
 							print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
 							<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
@@ -1148,7 +1148,7 @@ if($annee_rechercher == $annee_courant){
 						if($user->rights->paiementsalaire->salarie->voirDocument)
 							print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp;&nbsp;
 							<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span> </a>&nbsp;&nbsp;
-							<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->nom."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>";
+							<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>";
 						else
 							print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
 							<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
@@ -1159,16 +1159,37 @@ if($annee_rechercher == $annee_courant){
 					}
 				}else if(($i + 1) < $dernier_mois){ //on affiche les valeurs (clotue = oui)
 
-					print "<td ".$style.">".$nb_salarie."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_brut?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_net?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
-					print "<td ".$style." ><button class='button' disabled>Generer</button>";
-					if($user->rights->paiementsalaire->salarie->voirDocument)
-						print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp; &nbsp;&nbsp;
-						<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span></a>&nbsp;&nbsp;
-						<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->nom."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp; &nbsp;&nbsp;";
-					else
-						print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-						<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
-					print "Cloturé</td>";
+					if($obj_verif->cloture=="oui"){
+						print "<td ".$style.">".$nb_salarie."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_brut?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_net?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
+						print "<td ".$style." ><button class='button' disabled>Generer</button>";
+						if($user->rights->paiementsalaire->salarie->voirDocument)
+							print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp; &nbsp;&nbsp;
+							<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span></a>&nbsp;&nbsp;
+							<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp; &nbsp;&nbsp;";
+						else
+							print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+							<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+						print "Cloturé2</td>";
+					}else if($obj_verif->cloture=="non"){
+						print "<td ".$style.">".$nb_salarie."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_brut?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_net?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
+						
+						print "<td ".$style." >";
+						if($user->rights->paiementsalaire->societe->genererBulletin)
+							print "<a style='text-decoration : none;' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&action=generer&annee=".$annee_rechercher."&mois=".($i+1)."' id='button_generer'><button class='button' >Générer</button></a>";
+						else
+							print "<button class='button' disabled>Generer</button>";
+						
+						if($user->rights->paiementsalaire->salarie->voirDocument)
+							print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp;&nbsp;
+							<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span> </a>&nbsp;&nbsp;
+							<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>";
+						else
+							print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+							<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+						if($user->rights->paiementsalaire->societe->genererBulletin)
+							print "<a style='text-decoration : none;' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&action=cloture&annee=".$annee_rechercher."&mois=".($i + 1)."' id='cloture'><button class='button' >Cloturer</button></a></td>";
+						else print "N/A</td>";
+					}
 
 				}else if($suivant == true){ //on affiche ce mois avec le bouton générer actif
 					$suivant = false;
@@ -1304,7 +1325,7 @@ if($annee_rechercher == $annee_courant){
 												if($user->rights->paiementsalaire->salarie->voirDocument)
 													print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp; &nbsp;&nbsp;
 													<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span></a>&nbsp;&nbsp;
-													<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->nom."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp; &nbsp;&nbsp;";
+													<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp; &nbsp;&nbsp;";
 												else
 													print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
 													<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
@@ -1361,7 +1382,7 @@ if($annee_rechercher == $annee_courant){
 														if($user->rights->paiementsalaire->salarie->voirDocument)
 															print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp;&nbsp;
 															<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span> </a>&nbsp;&nbsp;
-															<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->nom."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>";
+															<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>";
 														else
 															print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
 															<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";

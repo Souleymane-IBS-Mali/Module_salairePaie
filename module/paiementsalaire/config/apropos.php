@@ -184,6 +184,43 @@ if($obj->mise_a_jour  == '1.2.0'){
 		</ul>
 	</div>";
 
+}elseif($obj->mise_a_jour  == '1.3.0'){
+	print "<h2>Téléchargez la nouvelle version : <mark>".$obj->mise_a_jour."</mark></h2>";
+	print "Vous pouvez télécharger la nouvelle version de <b>Dolipaie</b> sur la plate-forme d'IBS en vous connectant</a><br>";
+
+	print "<h2>Ajouts, modifications & corrections par rapport à la version <mark>V1.1.0</mark></h2>";
+	print "<div>1- Ajouts
+        <ul>
+            <li class='item1'>1- Ajout de la fonctionnalité d'export de 'Récapitulatif' d'un salarié en fonction de l'année (Onglet export)</li>
+            <li class='item2'>2- Ajout de la flexibilité du nombre de colonne à afficher dans liste_personelle.php (catégorie, fonction, solde congé, ...)</li>
+			<li class='item2'>3- Voir ou télécharger les bulletins de tous les salariés (compléménts salaires)</li>
+            <li class='item2'>4- Pouvoir modifier individuellement les compléments salaires</li>
+
+            
+        </ul>
+    </div>";
+
+	print "<div>2- Modifications
+        <ul>
+            <li class='item1'>1- Sur le fichier d’exportation du complément Salaire le montant coût total n’est pas affiché.</li>
+            <li class='item2'>2- Mentionné dans le fichier d’exportation le nombre d’heures sup suivi du montant d’heures sup.</li>
+            
+        </ul>
+    </div>";
+
+	print "<div>3- Correction
+		<ul>
+			<li id='identifiant1'>1- correction de nombre enfant handicapé dans validation société</li>
+			<li id='identifiant2'>2- correction de tout bulletin salarié (pourcentage des primes exceptionnelle)</li>
+			<li id='identifiant3'>3- correction de l'affichage des montants et pourcentage dans bulletin et tout_bulletin_salarie</li>
+			<li id='identifiant4'>4- Possibilité de voir l'onglet salaire même si tous les salarié sont archivés</li>
+			<li id='identifiant5'>5- Exportation commune ou par groupe de société.</li>
+			<li id='identifiant5'>6- Les primes se répètent dans le fichier d’exportation.</li>
+			<li id='identifiant5'>7- Les heures sup se répètent dans le fichier d'Exportation</li>
+
+			
+		</ul>
+	</div>";
 }else{
 	print "<h2>Aucune mise à jour disponible!</h2>";
 }

@@ -51,14 +51,19 @@ if($id_convention){
 	$recherche_nom = "";
 				$recherche_prenom = "";
 				$recherche_matricule = "";
-				$recherche_anciennete = 0;
+				$date_entree = 0;
 				if($action == "recherche"){
 					$recherche_nom = GETPOST("recherche_nom", "alpha");
 					$recherche_prenom = GETPOST("recherche_prenom", "alpha");
 					$recherche_matricule = GETPOST("recherche_matricule", "alpha");
-					$recherche_anciennete = GETPOST("recherche_anciennete", "int");
+					$date_entree = GETPOST("date_entree", "int");
 				}
 	$tri = GETPOST('tri', 'alpha');
+
+	$categorie = GETPOST('categorie', 'alpha');
+	$fonction = GETPOST('fonction');
+	$anciennete_case = GETPOST('anciennete');
+	$solde_conge = GETPOST('solde_conge');
 
 	$trouve = false;
 	$obj_liste = array();
@@ -92,13 +97,13 @@ if($id_convention){
 
 	if(!empty(GETPOST("recherche_matricule", "alpha"))){
 		
-		$sql = "SELECT sal.rowid as salrowid, sal.matricule, sal.fk_user, u.rowid, u.lastname, u.firstname, u.dateemployment, ue.fk_object, ue.egp FROM ".MAIN_DB_PREFIX."salarie as sal";
+		$sql = "SELECT sal.rowid as salrowid, sal.matricule, sal.fk_user, sal.fk_categorie, sal.fk_echelon, u.rowid, u.lastname, u.firstname, u.dateemployment, u.job, ue.fk_object, ue.egp FROM ".MAIN_DB_PREFIX."salarie as sal";
 		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user as u ON u.rowid=sal.fk_user";
 		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object";
 		$sql .= " WHERE ue.egp=".$id_societe." AND ue.egp=".$id_societe." AND sal.archiver = 'non'";
 		$sql .= " AND sal.matricule LIKE '%".GETPOST("recherche_matricule")."%'";
 	}else{
-		$sql = "SELECT sal.rowid as salrowid, sal.matricule, sal.fk_user, u.rowid, u.lastname, u.firstname, u.dateemployment, ue.fk_object, ue.egp FROM ".MAIN_DB_PREFIX."user as u";
+		$sql = "SELECT sal.rowid as salrowid, sal.matricule, sal.fk_user, sal.fk_categorie, sal.fk_echelon, u.rowid, u.lastname, u.firstname, u.dateemployment, u.job, ue.fk_object, ue.egp FROM ".MAIN_DB_PREFIX."user as u";
 		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."salarie as sal ON u.rowid=sal.fk_user";
 		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object";
 		$sql .= " WHERE ue.egp=".$id_societe." AND ue.egp=".$id_societe." AND (sal.archiver != 'oui' OR sal.archiver IS NULL )";
@@ -118,11 +123,13 @@ if($id_convention){
 			$sql .= " OR u.lastname LIKE '%".GETPOST("recherche_prenom", "alpha")."%')";
 		}
 
-		if(!empty(GETPOST("recherche_anciennete", "int"))){
-			$annee = ((int)date("Y")-GETPOST("recherche_anciennete", "int"));
+		if(!empty(GETPOST("date_entree", "int"))){
+			$annee = ((int)date("Y")-GETPOST("date_entree", "int"));
 			$mois = (int)date("m");
 			$jour = (int)date("d");
-			$sql .= " AND YEAR(u.dateemployment)=".$annee." AND MONTH(u.dateemployment)<=".$mois." AND DAY(u.dateemployment)<=".$jour;
+			$sql .= " AND YEAR(u.dateemployment)=".$annee." AND MONTH(u.dateemployment)<=".$mois;
+		}elseif(!empty(GETPOST("date_entree"))){
+			$sql .= " AND u.dateemployment='".GETPOST("date_entree")."'";
 		}
 
 
@@ -138,7 +145,7 @@ if($id_convention){
 			$sql .= " ORDER BY sal.matricule";
 		}else
 			$sql .= " ORDER BY u.lastname";
-
+			
 		$result = $db->query($sql);
 		if($result){
 			$num = $db->num_rows($result);
@@ -253,7 +260,7 @@ if($id_convention){
 					var convention = document.getElementById("limit");
 					convention.addEventListener("change", function () {
 						var limit = convention.value;
-						window.location.href = "'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenusociete&id_societe='.$id_societe.'&id_convention='.$id_convention.'&limit="+limit+"&action=rechercher&recherche_nom='.$recherche_nom.'&recherche_prenom='.$recherche_prenom.'&recherche_matricule='.$recherche_matricule.'&recherche_anciennete='.$recherche_anciennete.'";
+						window.location.href = "'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenusociete&id_societe='.$id_societe.'&id_convention='.$id_convention.'&limit="+limit+"&action=rechercher&recherche_nom='.$recherche_nom.'&recherche_prenom='.$recherche_prenom.'&recherche_matricule='.$recherche_matricule.'&date_entree='.$date_entree.'";
 					},
 					false,
 					);
@@ -267,29 +274,139 @@ if($id_convention){
 				print "<br>";
 				print '<div>';
 				print '<table style="width: 100%;" class="tagtable liste">';
+
+				$largeur = "20%";
+				$nb_col = 0;
+				if($categorie == "on")
+					$nb_col ++;
+				
+				if($fonction == "on")
+					$nb_col ++;
+
+				if($solde_conge == "on")
+					$nb_col ++;
+
+				if($nb_col == 1){ //une colonne plus les 5 affichées par defaut = 6;
+					$largeur = "16%";
+
+				}elseif($nb_col == 2){ //nombre de colonne = 7
+					$largeur = "14%";
+
+				}elseif($nb_col == 3){
+					$largeur = "12%";
+
+				}elseif($nb_col == 4){
+					$largeur = "11%";
+
+				}
+				//1 ligne de titre
 				print '<tr  class="liste_titre" >';
-				print '<td align="center" style="padding: 5px; width: 20%;">
-				<input style="padding:10px" type="text" Placeholder="Nom" value="'.$recherche_nom.'" name="recherche_nom" >
-				<br><label><a title="Trié par le nom" href="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenusociete&id_societe='.$id_societe.'&id_convention='.$id_convention.'&limit='.$limit.'&action=rechercher&recherche_nom='.$recherche_nom.'&recherche_prenom='.$recherche_prenom.'&recherche_matricule='.$recherche_matricule.'&recherche_anciennete='.$recherche_anciennete.'&tri=nom"> Nom</a></label></td>';
-				print '<td align="center"style="padding: 5px; width: 20%;">
-				<input style="padding:10px" type="text" Placeholder="Prenom" value="'.$recherche_prenom.'" name="recherche_prenom" >
-				<br><label><a title="Trié par le prénom" href="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenusociete&id_societe='.$id_societe.'&id_convention='.$id_convention.'&limit='.$limit.'&action=rechercher&recherche_nom='.$recherche_nom.'&recherche_prenom='.$recherche_prenom.'&recherche_matricule='.$recherche_matricule.'&recherche_anciennete='.$recherche_anciennete.'&tri=prenom">Prenom</a></label></td>';
-				print '<td align="center"style="padding: 5px; width: 20%;">
-				<input style="padding:10px" type="text" Placeholder="Matricule" value="'.$recherche_matricule.'" name="recherche_matricule" >
-				<br><label><a title="Trié par le matricule" href="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenusociete&id_societe='.$id_societe.'&id_convention='.$id_convention.'&limit='.$limit.'&action=rechercher&recherche_nom='.$recherche_nom.'&recherche_prenom='.$recherche_prenom.'&recherche_matricule='.$recherche_matricule.'&recherche_anciennete='.$recherche_anciennete.'&tri=matricule">Matricule</a></label></td>';
-				print '<td align="center"style="padding: 5px; width: 20%;">
-				<input style="padding:10px" type="text" Placeholder="Ancienneté" value="'.$recherche_anciennete.'" name="recherche_anciennete" >
-				<br><label><a title="Trié par le anciennété" href="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenusociete&id_societe='.$id_societe.'&id_convention='.$id_convention.'&limit='.$limit.'&action=rechercher&recherche_nom='.$recherche_nom.'&recherche_prenom='.$recherche_prenom.'&recherche_matricule='.$recherche_matricule.'&recherche_anciennete='.$recherche_anciennete.'&tri=anciennete">Ancienneté</a></label></td>';
+				print '<td align="center" style=" width: '.$largeur.';">
+				<input style="padding:10px" type="text" size="'.$largeur.'" Placeholder="Matricule" value="'.$recherche_matricule.'" name="recherche_matricule" ></td>';
+				print '<td align="center" style=" width: '.$largeur.';">
+				<input style="padding:10px" type="text" size="'.$largeur.'" Placeholder="Nom" value="'.$recherche_nom.'" name="recherche_nom" ></td>';
+				print '<td align="center" style=" width: '.$largeur.';">
+				<input style="padding:10px" type="text" size="'.$largeur.'" Placeholder="Prenom" value="'.$recherche_prenom.'" name="recherche_prenom" ></td>';
+				print '<td align="center" style=" width: '.$largeur.';">
+				<input style="padding:10px" type="date" size="'.$largeur.'" Placeholder="Ancienneté" value="'.$date_entree.'" name="date_entree" ></td>';
 
-				print '<td align="center"style="padding: 5px; width: 20%;"><label>Archivage</label></td>';
+				if($categorie == "on")
+					print '<td align="center" style=" width: '.$largeur.';"></td>';
+				
+				if($fonction == "on")
+					print '<td align="center" style=" width: '.$largeur.';"></td>';
+				
+				if($anciennete_case == "on")
+					print '<td align="center" style=" width: '.$largeur.';"></td>';
 
-				print '<td align="center"style="padding: 5px; width: 20%;">';
+				if($solde_conge == "on")
+					print '<td align="center" style=" width: '.$largeur.';"></td>';
+
+
+				print '<td align="center" colspan="2" style=" width: '.$largeur.';">';
 				print '<input type="submit" class="button" value="Rechercher" >';
 				print "</form>";
 				print '<br>	<a href="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenu=salarie&id_societe='.$id_societe.'&id_convention='.$id_convention.'&action=annuler_recherche" class="button" >Annuler</a>';
-
-
 				print '</td></tr>';
+
+				//2 ligne de titre
+				print '<tr  class="liste_titre" >';
+				print '<td align="center"><label><a title="Trié par le matricule" href="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenusociete&id_societe='.$id_societe.'&id_convention='.$id_convention.'&limit='.$limit.'&action=rechercher&recherche_nom='.$recherche_nom.'&recherche_prenom='.$recherche_prenom.'&recherche_matricule='.$recherche_matricule.'&date_entree='.$date_entree.'&tri=matricule">Matricule</a></label></td>';
+				print '<td align="center"><label><a title="Trié par le nom" href="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenusociete&id_societe='.$id_societe.'&id_convention='.$id_convention.'&limit='.$limit.'&action=rechercher&recherche_nom='.$recherche_nom.'&recherche_prenom='.$recherche_prenom.'&recherche_matricule='.$recherche_matricule.'&date_entree='.$date_entree.'&tri=nom"> Nom</a></label></td>';
+				print '<td align="center"><label><a title="Trié par le prénom" href="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenusociete&id_societe='.$id_societe.'&id_convention='.$id_convention.'&limit='.$limit.'&action=rechercher&recherche_nom='.$recherche_nom.'&recherche_prenom='.$recherche_prenom.'&recherche_matricule='.$recherche_matricule.'&date_entree='.$date_entree.'&tri=prenom">Prenom</a></label></td>';
+				print '<td align="center"><label><a title="Trié par le anciennété" href="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenusociete&id_societe='.$id_societe.'&id_convention='.$id_convention.'&limit='.$limit.'&action=rechercher&recherche_nom='.$recherche_nom.'&recherche_prenom='.$recherche_prenom.'&recherche_matricule='.$recherche_matricule.'&date_entree='.$date_entree.'&tri=anciennete">Date d\'entrée</a></label></td>';
+				
+				$checked_categ = "";
+				$checked_fonction = "";
+				$checked_solde = "";
+				$checked_anc = "";
+
+				if($categorie == "on"){
+					print '<td align="center" style=" width: '.$largeur.';">Catégorie</td>';
+					$checked_categ = "checked";
+				}
+
+				if($fonction == "on"){
+					print '<td align="center" style=" width: '.$largeur.';">Fonction</td>';
+					$checked_fonction = "checked";
+				}
+
+				if($anciennete_case == "on"){
+					print '<td align="center" style=" width: '.$largeur.';">Anciennété</td>';
+					$checked_anc = "checked";
+				}
+
+				if($solde_conge == "on"){
+					print '<td align="center" style=" width: '.$largeur.';">Solde congé</td>';
+					$checked_solde = "checked";
+				}
+
+				//Affichage des colonnes supplémentaire
+				print '<td align="center" colspan="2"><label><span id="colonne_plus">'.img_picto('Ajouter ou enlever des colonnes', 'list').'</span></label>';
+				$url = $_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenusociete&id_societe='.$id_societe.'&id_convention='.$id_convention.'&limit='.$limit.'&recherche_nom='.$recherche_nom.'&recherche_prenom='.$recherche_prenom.'&recherche_matricule='.$recherche_matricule.'&date_entree='.$date_entree;
+				print '<form name="ajouter_colonne" method="POST" action="'.$url.'">
+				<div id="colonne" style="display:flex; flex-direction:column; position: absolute; border: solid 1px white; border-radius:5px; background-color:white; text-align:left; padding: 10px; width: 8%; box-shadow: 4px 4px 10px; margin-left: 100px">';
+				print '<input type="hidden" name="token" value="'.newToken().'">';
+				print '<input type="hidden" name="action" value="recherche">';
+				print '<div><input type="checkbox" name="categorie" id="categorie" '.$checked_categ.'><label for="categorie">Catégorie</label></div>';
+				print '<div><input type="checkbox" name="fonction" id="fonction" '.$checked_fonction.'><label for="fonction">Fonction</label></div>';
+				print '<div><input type="checkbox" name="anciennete" id="anciennete" '.$checked_anc.'><label for="anciennete">Anciennété</label></div>';
+				print '<div><input type="checkbox" name="solde_conge" id="solde_conge" '.$checked_solde.'><label for="solde_conge">Solde congé</label></div>';
+				print '<div><input class="button" type="submit" name="valider" value="Valider"></div>';
+				print '</div></form>';
+				print '</td>';
+
+
+				print '</tr>';
+
+				print '<script type="text/javascript">
+					var convention = document.getElementById("limit");
+					var colonne_plus = document.getElementById("colonne_plus");
+					var colonne = document.getElementById("colonne");
+
+					const categorie = document.getElementById("categorie");
+					const fonction = document.getElementById("fonction");
+					const solde_conge = document.getElementById("solde_conge");
+					const anciennete = document.getElementById("anciennete");
+
+
+					colonne.style.display = "none";
+					colonne_plus.addEventListener("click", function () {
+						if(colonne.style.display == "inline" || colonne.style.display == "block"){
+							colonne.style.display = "none";
+						}else{
+							colonne.style.display = "block";
+						}
+					},
+					false,
+					);
+
+
+					</script>';
+				
+				print "</select>";
+				print "</div>";
+
 				$num = count($obj_liste);
 				$adresse = "";
 					$i = $arret;
@@ -299,26 +416,99 @@ if($id_convention){
 						$class = "pair";
 					if(!empty($obj_liste[$i]->salrowid)){
 						print '<tr class="pair">';
+						print '<td align="center" >'.$obj_liste[$i]->matricule.'</td>';
 						print '<td align="center" >'.$obj_liste[$i]->lastname.'</td>';
 						print '<td align="center" >'.$obj_liste[$i]->firstname.'</td>';
-						print '<td align="center" >'.$obj_liste[$i]->matricule.'</td>';
 
 						//calcul de l'anciennete
 						$anciennete = prime_anciennete($db, $obj_liste[$i]->salrowid, $id_convention, date('m'), date('Y'), $obj_liste[$i]->rowid);
 						
-						print '<td align="center">'.$anciennete[0].'</td>';
+						print '<td align="center">'.$obj_liste[$i]->dateemployment.'</td>';
+						if($categorie == "on"){
+							$categorie_Sql = "SELECT code_categorie FROM ".MAIN_DB_PREFIX."dcategories WHERE rowid=".$obj_liste[$i]->fk_categorie;
+							$categorie_Result = $db->query($categorie_Sql);
+							$categorie_Salarie = $db->fetch_object($categorie_Result);
+							$categ = $categorie_Salarie->code_categorie?:"N/A";
+
+							if($obj_salarie->fk_echelon !=0){
+								$echelon_Sql = "SELECT libelle FROM ".MAIN_DB_PREFIX."echelon where rowid=".($obj_liste[$i]->fk_echelon?:0);
+								$echelon_Result = $db->query($echelon_Sql);
+								$echelon_Salarie = $db->fetch_object($echelon_Result);
+								$categ .= "==>".$echelon_Salarie->libelle;
+							}
+							print '<td align="center" style="padding: 5px; width: 20%;">'.$categ.'</td>';
+						}
+
+						if($fonction == "on" && $obj_liste[$i]->dateemployment)
+							print '<td align="center" style="padding: 5px; width: 20%;">'.$obj_liste[$i]->job.'</td>';
+						
+						if($anciennete_case == "on")
+							print '<td align="center">'.$anciennete[0].'an(s)</td>';
+
+						
+
+						if($solde_conge == "on"){
+							$date_donnee = new DateTime($obj_liste[$i]->dateemployment); // Date donnée
+							$aujourdhui = new DateTime(); // Date d'aujourd'hui
+
+							$interval = $date_donnee->diff($aujourdhui);
+							$jours = $interval->days;
+							$nb_conge_eff = $jours;
+							while ($jours > 365) {
+								$jours = $jours - 365;
+							}
+							$solde =  (int)(floor($jours/30)*2.5);
+							print '<td align="center" style="padding: 5px; width: 20%;">'.$solde.'</td>';
+						}
+
 						print '<td align="center" ><a href="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenu=societe&id_societe='.$id_societe.'&fk_salarie='.$obj_liste[$i]->salrowid.'&id='.$obj_liste[$i]->rowid.'&id_convention='.$id_convention.'&action=archiver"><button title="Ce bouton permet d\'archiver ce salarié" class="button">Archiver</button></a></td>';
 						print '<td align="center" ><a title="Voir détails" href="./salarie_information.php?mainmenu=paiementsalaire&leftmenu=societe&fk_salarie='.$obj_liste[$i]->salrowid.'&id_societe='.$id_societe.'&id='.$obj_liste[$i]->rowid.'&id_convention='.$id_convention.'&action=detail"><button class="button">Détails</button></a></td>';
 					}else{
 						print '<tr class="pair">';
+						print '<td align="center" >'.$obj_liste[$i]->matricule.'</td>';
 						print '<td align="center" ><mark>'.$obj_liste[$i]->lastname.'</mark>'.info_admin("Ce salarié n'est pas enregistré", 1).'</td>';
 						print '<td align="center" ><mark>'.$obj_liste[$i]->firstname.'</mark></td>';
-						print '<td align="center" >'.$obj_liste[$i]->matricule.'</td>';
 
 						//calcul de l'anciennete
 						$anciennete = prime_anciennete($db, $obj_liste[$i]->salrowid, $id_convention, date('m'), date('Y'), $obj_liste[$i]->rowid);
 						
-						print '<td align="center">'.$anciennete[0].'</td>';
+						print '<td align="center">'.$obj_liste[$i]->dateemployment.'</td>';
+
+						if($categorie == "on"){
+							$categorie_Sql = "SELECT code_categorie FROM ".MAIN_DB_PREFIX."dcategories WHERE rowid=".$obj_liste[$i]->fk_categorie;
+							$categorie_Result = $db->query($categorie_Sql);
+							$categorie_Salarie = $db->fetch_object($categorie_Result);
+							$categ = $categorie_Salarie->code_categorie?:"N/A";
+
+							if($obj_salarie->fk_echelon !=0){
+								$echelon_Sql = "SELECT libelle FROM ".MAIN_DB_PREFIX."echelon where rowid=".($obj_liste[$i]->fk_echelon?:0);
+								$echelon_Result = $db->query($echelon_Sql);
+								$echelon_Salarie = $db->fetch_object($echelon_Result);
+								$categ .= "==>".$echelon_Salarie->libelle;
+							}
+							print '<td align="center" style="padding: 5px; width: 20%;">'.$categ.'</td>';
+						}
+
+						if($fonction == "on" && $obj_liste[$i]->dateemployment)
+							print '<td align="center" style="padding: 5px; width: 20%;">'.$obj_liste[$i]->job.'</td>';
+						
+						if($anciennete_case == "on")
+							print '<td align="center">'.$anciennete[0].'an(s)</td>';
+
+						if($solde_conge == "on"){
+							$date_donnee = new DateTime($obj_liste[$i]->dateemployment); // Date donnée
+							$aujourdhui = new DateTime(); // Date d'aujourd'hui
+
+							$interval = $date_donnee->diff($aujourdhui);
+							$jours = $interval->days;
+							$nb_conge_eff = $jours;
+							while ($jours > 365) {
+								$jours = $jours - 365;
+							}
+							$solde =  (int)(floor($jours/30)*2.5);
+							print '<td align="center" style="padding: 5px; width: 20%;">'.$solde.'</td>';
+						}
+
 						print '<td align="center" ><a href="./salarie_information.php?mainmenu=paiementsalaire&leftmenu=societe&id_societe='.$id_societe.'&fk_salarie='.$obj_liste[$i]->salrowid.'&id='.$obj_liste[$i]->rowid.'&id_convention='.$id_convention.'&action=edit"><button title="Ce bouton permet d\'enregistrer ce salarié" class="button">Enregistrer</button></a></td>';
 						print '<td align="center" ><a title="Voir détails" href="./salarie_information.php?mainmenu=paiementsalaire&leftmenu=societe&fk_salarie='.$obj_liste[$i]->salrowid.'&id_societe='.$id_societe.'&id='.$obj_liste[$i]->rowid.'&id_convention='.$id_convention.'&action=detail"><button class="button">Détails</button></a></td>';
 					}
@@ -344,37 +534,37 @@ if($id_convention){
 
 			if($nb_page!= 1)
 				if($nb==0 && 1 < ($nb))
-					$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=0&nbpage=1&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>Debut</b>    </a>&nbsp;&nbsp;";
+					$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=0&nbpage=1&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."' style='padding: 5px'><b>Debut</b>    </a>&nbsp;&nbsp;";
 				else if(1 < ($nb+1))
-				$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=0&nbpage=1&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>Debut</b>    </a>&nbsp;&nbsp;";
+				$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=0&nbpage=1&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."' style='padding: 5px'><b>Debut</b>    </a>&nbsp;&nbsp;";
 
 			
 			if($arret > $limit){
 
 				
 				if($nb_page-3>=0)
-					$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*($nb_page-3))."&nbpage=".($nb_page-2)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."&tri=".$tri."' style='padding: 5px'><b>".($nb_page -2)."</b></a>&nbsp;&nbsp;";
+					$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*($nb_page-3))."&nbpage=".($nb_page-2)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."&tri=".$tri."' style='padding: 5px'><b>".($nb_page -2)."</b></a>&nbsp;&nbsp;";
 
 				if($nb_page-2>=0)
-							$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*($nb_page-2))."&nbpage=".($nb_page-1)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."&tri=".$tri."' style='padding: 5px'><b>".($nb_page-1)."</b></a>&nbsp;&nbsp;";
+							$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*($nb_page-2))."&nbpage=".($nb_page-1)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."&tri=".$tri."' style='padding: 5px'><b>".($nb_page-1)."</b></a>&nbsp;&nbsp;";
 				
 				
 				if($nb_page-1>=0)
-						$page_link .= "<a style='background-color: yellow;' href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*($nb_page-1))."&nbpage=".($nb_page)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."&tri=".$tri."' style='padding: 5px'><b>".($nb_page)."</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a style='background-color: yellow;' href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*($nb_page-1))."&nbpage=".($nb_page)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."&tri=".$tri."' style='padding: 5px'><b>".($nb_page)."</b></a>&nbsp;&nbsp;";
 
 			
 
 				
 					if(	(($nb_page+1) <= ($nb)))
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*$nb_page)."&nbpage=".($nb_page+1)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."&tri=".$tri."' style='padding: 5px'><b>".($nb_page + 1)."</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*$nb_page)."&nbpage=".($nb_page+1)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."&tri=".$tri."' style='padding: 5px'><b>".($nb_page + 1)."</b></a>&nbsp;&nbsp;";
 
 				
 					if((($nb_page+2) <= ($nb)))
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*($nb_page +1))."&nbpage=".($nb_page+2)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."&tri=".$tri."' style='padding: 5px'><b>".($nb_page + 2)."</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*($nb_page +1))."&nbpage=".($nb_page+2)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."&tri=".$tri."' style='padding: 5px'><b>".($nb_page + 2)."</b></a>&nbsp;&nbsp;";
 						
 					
 					if((($nb_page+3) <= ($nb)))
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*($nb_page+2))."&nbpage=".($nb_page+3)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."&tri=".$tri."' style='padding: 5px'><b>".($nb_page + 3)."</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*($nb_page+2))."&nbpage=".($nb_page+3)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."&tri=".$tri."' style='padding: 5px'><b>".($nb_page + 3)."</b></a>&nbsp;&nbsp;";
 
 						
 
@@ -384,31 +574,31 @@ if($id_convention){
 				
 					if( 1 <= ($nb))
 						
-						$page_link .= "<a style='background-color: yellow;' href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=0&nbpage=1&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."&tri=".$tri."' style='padding: 5px'><b>1</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a style='background-color: yellow;' href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=0&nbpage=1&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."&tri=".$tri."' style='padding: 5px'><b>1</b></a>&nbsp;&nbsp;";
 				
 				
 					if(2 <= ($nb))
 						
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".$limit."&nbpage=2&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."&tri=".$tri."' style='padding: 5px'><b>2</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".$limit."&nbpage=2&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."&tri=".$tri."' style='padding: 5px'><b>2</b></a>&nbsp;&nbsp;";
 				
 				
 					if(3 <= ($nb))
 						
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*2)."&nbpage=3&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."&tri=".$tri."' style='padding: 5px'><b>3</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*2)."&nbpage=3&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."&tri=".$tri."' style='padding: 5px'><b>3</b></a>&nbsp;&nbsp;";
 					
 					if(4 <= ($nb))
 						
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*3)."&nbpage=4&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."&tri=".$tri."' style='padding: 5px'><b>4</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*3)."&nbpage=4&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."&tri=".$tri."' style='padding: 5px'><b>4</b></a>&nbsp;&nbsp;";
 
 					if(5 <= ($nb))
 						
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*4)."&nbpage=5&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."&tri=".$tri."' style='padding: 5px'><b>5</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*4)."&nbpage=5&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."&tri=".$tri."' style='padding: 5px'><b>5</b></a>&nbsp;&nbsp;";
 
 
 
 			}
 			if($nb_page != ($nb)  )
-					$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*($nb-1))."&nbpage=".($nb)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&recherche_anciennete=".$recherche_anciennete."&tri=".$tri."' style='padding: 5px'>      <b>Fin</b></a>&nbsp;&nbsp;";
+					$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&limit=".$limit."&arret=".($limit*($nb-1))."&nbpage=".($nb)."&action=recherche&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_matricule=".$recherche_matricule."&date_entree=".$date_entree."&tri=".$tri."' style='padding: 5px'>      <b>Fin</b></a>&nbsp;&nbsp;";
 
 			
 		}

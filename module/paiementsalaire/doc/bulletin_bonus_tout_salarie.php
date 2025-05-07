@@ -18,33 +18,39 @@ else $mode = "I";
 
 $mois = GETPOST("mois", "int");
 $annee = GETPOST("annee", "int");
-$fk_user = GETPOST("fk_user", "int");
-$fk_salarie = GETPOST("fk_salarie", "int");
-$id_convention = GETPOST("id_convention", "int");
-
-if($fk_user && $fk_salarie){
   
-$sql = "SELECT * FROM ".MAIN_DB_PREFIX."salarie WHERE rowid=".$fk_salarie;
-$res = $db->query($sql);
-$obj_salarie = $db->fetch_object($res);
 
-  $user_Sql = "SELECT * FROM ".MAIN_DB_PREFIX."user where rowid=".$fk_user;
-	$user_Result = $db->query($user_Sql);
-	$obj_user = $db->fetch_object($user_Result);
 
-  $societe_Sql = "SELECT rowid, nom, name_alias, logo FROM ".MAIN_DB_PREFIX."societe where rowid=".$id_societe;
-	$societe_Result = $db->query($societe_Sql);
-	$societe_Salarie = $db->fetch_object($societe_Result);
 
-  $sql_soc = "SELECT societe_mere FROM ".MAIN_DB_PREFIX."salairepaie_societe WHERE fk_societe=".$id_societe;
-		$result_soc = $db->query($sql_soc);
-		if($result_soc)
-			$info_soc = $db->fetch_object($result_soc);
 
-      $sql_select = "SELECT avant_cloture, apres_cloture FROM ".MAIN_DB_PREFIX."statut_cachet WHERE fk_societe=".$id_societe;
-      $cachet_statut = $db->fetch_object($db->query($sql_select));
+  $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+    $res_bulletin = $db->query($bulletin_sql);
+    $num_all = $db->num_rows($res_bulletin);
+      if($num_all > 0){ //Pour le prémier salarié
+        $obj_bulletin = $db->fetch_object($res_bulletin);
+        $fk_salarie = $obj_bulletin->fk_salarie;
 
-  global $fk_salarie, $fk_user, $societe_Salarie, $y, $mois, $annee, $id_accord_etab, $info_soc;
+        $sql = "SELECT * FROM ".MAIN_DB_PREFIX."salarie WHERE rowid=".$fk_salarie;
+        $res = $db->query($sql);
+        $obj_salarie = $db->fetch_object($res);
+
+          $user_Sql = "SELECT * FROM ".MAIN_DB_PREFIX."user where rowid=".$obj_salarie->fk_user;
+          $user_Result = $db->query($user_Sql);
+          $obj_user = $db->fetch_object($user_Result);
+
+          $societe_Sql = "SELECT rowid, nom, name_alias, logo FROM ".MAIN_DB_PREFIX."societe where rowid=".$id_societe;
+          $societe_Result = $db->query($societe_Sql);
+          $societe_Salarie = $db->fetch_object($societe_Result);
+
+          $sql_soc = "SELECT societe_mere FROM ".MAIN_DB_PREFIX."salairepaie_societe WHERE fk_societe=".$id_societe;
+            $result_soc = $db->query($sql_soc);
+            if($result_soc)
+              $info_soc = $db->fetch_object($result_soc);
+
+              $sql_select = "SELECT avant_cloture, apres_cloture FROM ".MAIN_DB_PREFIX."statut_cachet WHERE fk_societe=".$id_societe;
+              $cachet_statut = $db->fetch_object($db->query($sql_select));
+        global $fk_salarie, $fk_user, $societe_Salarie, $y, $mois, $annee, $id_accord_etab, $info_soc;
+
 
 // Création de la class PDF
   class PDF extends FPDF {
@@ -101,11 +107,35 @@ $obj_salarie = $db->fetch_object($res);
     $pdf->SetTextColor(0);
     // Compteur de pages {nb}
     $pdf->AliasNbPages();
+
+    $i = 0;
+    while ($i < ($num_all)){
+      if($i != 0){
+        $obj_bulletin = $db->fetch_object($res_bulletin);
+        $fk_salarie = $obj_bulletin->fk_salarie;
+
+      }
+
+            //Objet Utilisateur
+            if(!empty($obj_bulletin->fk_salarie )){
+            $sql_sal = "SELECT * FROM ".MAIN_DB_PREFIX."salarie WHERE rowid=".$obj_bulletin->fk_salarie;
+            $res_sal = $db->query($sql_sal);
+            if($res_sal){
+                $obj_salarie = $db->fetch_object($res_sal);
+                $user_Result = $db->query($user_Sql);
+                $id_salarie = $db->fetch_object($user_Result)->rowid;
+
+                global $fk_salarie, $id_salarie, $y, $mois, $annee, $id_accord_etab;
+
+
+                if($i > 0){
+                  $pdf->AddPage();
+                  $pdf->AliasNbPages();
+
+
+                }
     //--------------------------------------------------------------------------------------------
-    $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus where fk_salarie=".$obj_salarie->rowid." AND annee=".$annee." AND mois=".$mois;
-    $res_bulletin = $db->query($bulletin_sql);
-    $obj_bulletin = $db->fetch_object($res_bulletin);
-    if($obj_bulletin->rowid){
+    
     $retenu = 0;
     $somme_pr_ind = 0;
 
@@ -374,7 +404,7 @@ $obj_salarie = $db->fetch_object($res);
              $pdf->Cell(49,4, utf8_decode("==Avances/Acomptes=="),0,0,'L');
     
              $pdf->SetLeftMargin(133);
-             $pdf->Cell(300,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
+             $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
            }
     
          }
@@ -488,6 +518,11 @@ $obj_salarie = $db->fetch_object($res);
         $pdf->Image($filePath,150,$y+6, 40,19);
       }
   
+    }
+
+    
+  }
+    $i ++;
     }
     $pdf->Output('', $mode);
 

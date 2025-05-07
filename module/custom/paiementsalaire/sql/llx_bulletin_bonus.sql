@@ -55,6 +55,7 @@ CREATE TABLE llx_bulletin_bonus
     logo_societe                VARCHAR(255),
     nom_convention              VARCHAR(255),
     nom_bonus                   VARCHAR(255),
+    libelle                     VARCHAR(255),
     montant                     VARCHAR(15),
     base                        VARCHAR(15),
     pourcentage                 VARCHAR(15)

@@ -173,7 +173,7 @@ if($result_user){
 				$tab_url[] = './salarie_information.php?mainmenu=paiementsalaire&leftmenu=salarie&fk_salarie='.$obj_salarie->rowid.'&id_societe='.$id_societe.'&id='.$obj_user->rowid.'&id_convention='.$id_convention.'&action=detail';	
 			}
 
-			if(!$obj_salarie->nombre_enfant_hand == null){
+			if($obj_salarie->nombre_enfant_hand == null){
 				$tab_message[] = "Nombre enfant Handicapé";
 				$tab_info[] = "S'il ce salarié n'a pas d'enfant Handicapé, mettez le Nombre enfant Hand à zéro(0)";
 				$tab_url[] = './salarie_information.php?mainmenu=paiementsalaire&leftmenu=salarie&fk_salarie='.$obj_salarie->rowid.'&id_societe='.$id_societe.'&id='.$obj_user->rowid.'&id_convention='.$id_convention.'&action=detail';	

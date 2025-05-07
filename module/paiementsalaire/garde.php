@@ -51,7 +51,7 @@ $showtutorial = img_picto('', 'object_accounting',);
     //print '<hr>';
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
    //Insertion de la version
-   $num_v = "1.2.0";
+   $num_v = "1.3.0";
    $statut = "stable";
    $changelog = "Prémière version avec Correction";
    $compatible_dolibarr = "Compatible avec toutes les version dolibarr inférieur à 20.0.2";

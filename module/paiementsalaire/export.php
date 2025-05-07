@@ -115,7 +115,7 @@ if($action == "export_salaire"){
 				print '<table class="noborder centpercent">';
 
 				// Line for title
-                print '<form action="export_salaire.php?mainmenu=paiementsalaire&leftmenu=importexportsociete">';
+                print '<form method="post" action="./doc/export_salaire_societe.php?mainmenu=paiementsalaire&leftmenu=importexportsociete">';
                 print '<input type="hidden" name="token" value="'.newToken().'">';
                 print '<input type="hidden" name="action" value="exporter">';
 				print '<!-- line title to add new entry -->';
@@ -127,45 +127,45 @@ if($action == "export_salaire"){
                 print '<td><input type="checkbox" name="prenom" checked disabled> <label>Prénom</label></td>';
                 print '<td><input type="checkbox" name="nom" checked disabled> <label>Nom</label></td>';
                 print '<td><input type="checkbox" id="date_entree" name="date_entree" checked> <label>Date Entrée</label></td>';
-                print '<td><input type="checkbox" id="fonction" name="fonction" checked> <label>Fonction</label></td>';
+                print '<td><input type="checkbox" id="departement" name="departement" checked> <label>Departement</label></td>';
 
                 print '</tr>';
 
                 print '<tr class="oddeven nodrag nodrop nohover">';
+                print '<td><input type="checkbox" id="fonction" name="fonction" checked> <label>Fonction</label></td>';
                 print '<td><input type="checkbox" id="banque" name="banque" checked> <label>Banque</label></td>';
                 print '<td><input type="checkbox" id="compte" name="compte" checked> <label>N° Compte</label></td>';
                 print '<td><input type="checkbox" id="nb_jour_tr" name="nb_jour_tr" checked > <label>Nombre de jour travaillé</label></td>';
-                print '<td><input type="checkbox" id="nb_heure_tr" name="nb_heure_tr" checked > <label>Nombre d\'heure travaillé</label></td>';
 
                 print '</tr>';
 
                 print '<tr class="oddeven nodrag nodrop nohover">';
+                print '<td><input type="checkbox" id="nb_heure_tr" name="nb_heure_tr" checked > <label>Nombre d\'heure travaillé</label></td>';
                 print '<td><input type="checkbox" id="pourcentage" name="pourcentage" checked > <label>Pourcentage(Taux)</label></td>';
                 print '<td><input type="checkbox" id="categorie" name="categorie" checked > <label>Catégorie</label></td>';
                 print '<td><input type="checkbox" id="situation_matrimoniale" name="situation_matrimoniale" checked><label>Situation Matrimoniale '.info_admin('Avec nombre d\'enfant', '1').'</label></td>';
-                print '<td><input type="checkbox" id="salaire_base" name="salaire_base" checked > <label>Salaire de base</label></td>';
 
                 print '</tr>';
                 print '<tr class="oddeven nodrag nodrop nohover">';
+                print '<td><input type="checkbox" id="heure_sup" name="heure_sup" checked > <label>Heure Sup</label></td>';
+                print '<td><input type="checkbox" id="salaire_base" name="salaire_base" checked > <label>Salaire de base</label></td>';
                 print '<td><input type="checkbox" id="sursalaire" name="sursalaire" checked > <label>Sursalaire</label></td>';
                 print '<td><input type="checkbox" id="anciennete" name="anciennete" checked > <label>Anciennété</label></td>';
+
+                print '</tr>';
+
+                print '<tr class="oddeven nodrag nodrop nohover">';
                 print '<td><input type="checkbox" id="primes" name="primes" checked > <label>Primes</label></td>';
                 print '<td><input type="checkbox" id="indemnites" name="indemnites" checked > <label>Indemnités</label></td>';
-
-                print '</tr>';
-
-                print '<tr class="oddeven nodrag nodrop nohover">';
                 print '<td><input type="checkbox" id="salaire_brut" name="salaire_brut" checked > <label>Salaire brut</label></td>';
                 print '<td><input type="checkbox" id="salaire_brut_imposable" name="salaire_brut_imposable" checked > <label>Salaire brut imposable</label></td>';
-                print '<td><input type="checkbox" id="salaire_brut_cotisable" name="salaire_brut_cotisable" checked > <label>Salaire brut cotisable</label></td>';
-                print '<td><input type="checkbox" id="inps_employe" name="inps_employe" checked><label>I.N.P.S Employé</label></td>';
 
                 print '</tr>';
 
                 print '<tr class="oddeven nodrag nodrop nohover">';
-                print '<td><input type="checkbox" id="inps_employeur" name="inps_employeur" checked > <label>I.N.P.S Patro</label></td>';
-                print '<td><input type="checkbox" id="amo_employe" name="amo_employe" checked> <label>AMO Salarié</label></td>';
-                print '<td><input type="checkbox" id="amo_employeur" name="amo_employeur" checked> <label>AMO Patro</label></td>';
+                print '<td><input type="checkbox" id="salaire_brut_cotisable" name="salaire_brut_cotisable" checked > <label>Salaire brut cotisable</label></td>';
+                print '<td><input type="checkbox" id="inps" name="inps" checked><label>I.N.P.S Employé & Patro</label></td>';
+                print '<td><input type="checkbox" id="amo" name="amo" checked> <label>AMO Salarié & Patro</label></td>';
                 print '<td><input type="checkbox" id="its" name="its" checked> <label>I.T.S</label></td>';
                 print '</tr>';
 
@@ -197,9 +197,9 @@ if($action == "export_salaire"){
                             <option value=""></option>';
                     $sql_bull = "SELECT DISTINCT annee FROM ".MAIN_DB_PREFIX."bulletin";
                     if($user->id != 1)
-                        $sql_bul .= " WHERE fk_societe IN ".$array_id_soc." AND sce.grp=1";
-                    else   
-                        $sql_bul .= " WHERE sce.grp=1";
+                        $sql_bull .= " WHERE fk_societe IN ".$array_id_soc;
+
+                    $sql_bull .= " ORDER BY annee DESC";
 
 
                     $res_bull = $db->query($sql_bull);
@@ -212,9 +212,9 @@ if($action == "export_salaire"){
                         $i ++;
                         }
                     }
-                    print '</select></td>';                
-                print "<td colspan=2><br><br><label>Société</label><select name='id_societe' required>";
-                print "<option value='' ></option>";
+                    print '</select></td>';
+                
+                print "<td colspan=2><br><br><label>Société</label>";
                 $sql = "SELECT sc.rowid as r1, sc.nom, sc.name_alias, sc.phone, sc.fax, sc.code_client, sc.zip, sce.rowid as r2, sce.fk_object, sce.conv FROM ".MAIN_DB_PREFIX."societe as sc";
                 $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_extrafields as sce ON sc.rowid=sce.fk_object";
                 if($user->id != 1)
@@ -222,21 +222,26 @@ if($action == "export_salaire"){
                 else   
                     $sql .= " WHERE sce.grp=1";
 
+                $sql .= " ORDER BY sc.rowid";
+
+                $array_id = array();
+                $array_nom = array();
                 $result = $db->query($sql);
-        
                 if($result){
                     $i = 0;
                     $num = $db->num_rows($result);
                     while ($i < $num){
                         $societe = $db->fetch_object($result);
-                        if($id_societe == $societe->r1)
-                            print "<option value=".$societe->r1." selected>".$societe->nom."</option>";
-                        else print "<option value=".$societe->r1.">".$societe->nom."</option>";
+                        $array_id[] = $societe->r1;
+                        $array_nom[] = $societe->nom;
                         $i ++;
                     }
                 }
+                $array_combine = array_combine($array_id, $array_nom);
+                $monform = new Form($db);
+                print $monform->multiselectarray('liste_societe', $array_combine, $array_societe, null, 0, 'quatrevingtpercent widthcentpercentminusx', 0, 0);
         
-            print "</select></td>";                
+            print "</td>";                
             //print '<td></td>';
 
                 print '</tr>';
@@ -248,9 +253,8 @@ if($action == "export_salaire"){
                 //Partie controle JS
                 print '<script>
                     var tout_cocher = document.getElementById("tout_cocher");
-                    var tableau = ["date_entree", "fonction", "banque", "compte", "nb_jour_tr", "nb_heure_tr","pourcentage", "categorie","situation_matrimoniale","salaire_base","sursalaire",
-                    "anciennete","primes","indemnites","salaire_brut","salaire_brut_imposable","salaire_brut_cotisable","inps_employe","inps_employeur", "amo_employe", "amo_employeur",
-                    "its","base_cfe","montant_cfe","base_tl","montant_tl","avance","net_payer","cout"];
+                    var tableau = ["departement", "date_entree", "fonction", "banque", "compte", "nb_jour_tr", "nb_heure_tr","pourcentage", "categorie","situation_matrimoniale","salaire_base","sursalaire", "heure_sup",
+                    "anciennete","primes","indemnites","salaire_brut","salaire_brut_imposable","salaire_brut_cotisable","inps", "amo", "its","base_cfe","montant_cfe","base_tl","montant_tl","avance","net_payer","cout"];
                     function toutCocher(){
                         //alert();
                         if(tout_cocher.innerText == "Tout cocher"){

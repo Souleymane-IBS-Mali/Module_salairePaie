@@ -29,6 +29,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		print "<hr>";
 		$tab_message = array();
 		$tab_message_statut = array();
+		$tab_aide = array();
 
 			//Objet Utilisateur
 			$sql_sal = "SELECT * FROM ".MAIN_DB_PREFIX."salarie WHERE rowid=".$fk_salarie;
@@ -48,32 +49,40 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					if($objSalBase->salaire_base != null){
 						$tab_message[] = "Salaire de Base";
 						$tab_message_statut[] = "OK";
+						$tab_aide[] = "Aucun problème";
 
 						$tab_message[] = "Catégorie";
 						$tab_message_statut[] = "OK";
+						$tab_aide[] = "Aucun problème";
 					}else
 						if(!$objSalBase->salaire_base){
 							$tab_message[] = "Catégorie";
 							$tab_message_statut[] = "Non OK";
+							$tab_aide[] = "Veuillez affecter une catégorie à ce salarié";
 
 							$tab_message[] = "Salaire de Base";
 							$tab_message_statut[] = "Non OK";
+							$tab_aide[] = "Ce salarié n'a pas de salaire de base verifiez sa catégorie";
 						}
 					}else{
 							$tab_message[] = "Catégorie";
 							$tab_message_statut[] = "Non OK";
+							$tab_aide[] = "Veuillez affecter une catégorie à ce salarié";
 
 							$tab_message[] = "Salaire de Base";
 							$tab_message_statut[] = "Non OK";
+							$tab_aide[] = "Ce salarié n'a pas de salaire de base verifiez sa catégorie";
 					}
 				
 				if($obj_salarie->sursalaire != null){
 					$tab_message[]= "Sursalaire";
 					$tab_message_statut[] = "OK";
+					$tab_aide[] = "Aucun problème";
 		
 				}else{
 					$tab_message[] = "Sursalaire";
 					$tab_message_statut[] = "Non OK";
+					$tab_aide[] = "Veuillez définir un sursalaire pour ce salarié";
 		
 				}
 
@@ -89,6 +98,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					$obj_contrat = $db->fetch_object($res_contrat);
 					$tab_message[] = "Contrat";
 					$tab_message_statut[] = "OK";
+					$tab_aide[] = "Aucun problème";
 
 				}else{
 					$sql_contrat = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_contrat WHERE fk_salarie=".$obj_salarie->rowid." AND active=1 AND fk_type_contrat = 2";
@@ -96,6 +106,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					if($db->num_rows($res_contrat) > 0){
 						$tab_message[] = "Contrat";
 						$tab_message_statut[] = "OK";
+						$tab_aide[] = "Aucun problème";
 
 					}else{
 						$sql_contrat = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_contrat WHERE fk_salarie=".$obj_salarie->rowid." AND active=1";
@@ -103,9 +114,11 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 						if($db->num_rows($res_contrat) > 0){
 							$tab_message[] = "Contrat Expiré";
 							$tab_message_statut[] = "Non OK";
+							$tab_aide[] = "le contrat de ce salarié a expiré. Veuillez renouveller son contrat";
 						}else{
 							$tab_message[] = "Contrat";
 							$tab_message_statut[] = "Non OK";
+							$tab_aide[] = "Ce salarié n'a pas de contrat";
 						}
 
 					}
@@ -118,50 +131,59 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 				if(!$obj_salarie->date_anciennete && !$obj_user->dateemployment){
 					$tab_message[]= "Date d'embauche pour calculer l'anciennété";
 					$tab_message_statut[] = "Non OK";
+					$tab_aide[] = "Veuillez définir une date d'entrée pour ce salarié";
 
 				}else{
 					$tab_message[]= "Date d'embauche pour calculer l'anciennété";
 					$tab_message_statut[] = "OK";
+					$tab_aide[] = "Aucun problème";
 
 				}
 
 				if(!$obj_user->job){
-					$tab_message[]= "Poste";
+					$tab_message[]= "Poste/Fonction";
 					$tab_message_statut[] = "Non OK";
+					$tab_aide[] = "Veuillez donner un poste à ce salarié";
 
 				}else{
-					$tab_message[] = "Poste";
+					$tab_message[] = "Poste/Fonction";
 					$tab_message_statut[] = "OK";
+					$tab_aide[] = "Aucun problème";
 
 				}
 
 				if($obj_salarie->situation_familiale){
 					$tab_message[] = "Statut Matrimoniale";
 					$tab_message_statut[] = "OK";
-
+					$tab_aide[] = "Aucun problème";
 					
 				}else{
 					$tab_message[] = "Statut Matrimoniale";
 					$tab_message_statut[] = "Non OK";
+					$tab_aide[] = "Veuillez définir si ce salarié est : Célibataire, Marié ou Divorcé";
 					
 				}
 				
 				if($obj_salarie->nombre_enfant != null){
 					$tab_message[] = "Nombre enfant";
 					$tab_message_statut[] = "OK";
+					$tab_aide[] = "Aucun problème";
 				}else{
 					$tab_message[] = "Nombre enfant";
 					$tab_message_statut[] = "Non OK";
+					$tab_aide[] = "Veuillez définir le nombre d'enfant de ce salarié";
 
 				}
 
 				if($obj_salarie->nombre_enfant_hand != null){
 					$tab_message[] = "Nombre enfant Handicapé";
 					$tab_message_statut[] = "OK";
+					$tab_aide[] = "Aucun problème";
 
 				}else{
 					$tab_message[] = "Nombre enfant Handicapé";
 					$tab_message_statut[] = "Non OK";
+					$tab_aide[] = "Veuillez définir le nombre d'enfant Handicapé de ce salarié";
 
 				}
 
@@ -176,8 +198,8 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					$class = "impair";
 				print '<tr class='.$class.'><td>';
 				if($tab_message_statut[$i] == "OK") 
-					print $tab_message[$i]."</td><td align='center'>".img_picto("","tick");
-				else print $tab_message[$i]."</td><td align='center'>".img_picto("","error");
+					print $tab_message[$i]."</td><td align='center'>".img_picto($tab_aide[$i],"tick");
+				else print $tab_message[$i]."</td><td align='center'>".img_picto($tab_aide[$i],"error");
 				print '</td></tr>';
 			}
 			print "</table>";

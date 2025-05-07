@@ -1,6 +1,7 @@
 <?php
 require '../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/lib/paiementsalaire.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 
 llxHeader("", "Paiement | Salaire");
 //Titre 
@@ -33,6 +34,9 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		$obj_soc = prepare_objet_entete($fk_salarie, $fk_user, $db, $id_societe, $id_convention);
 		entete_societe($obj_soc, 'societe');
 
+
+		$monform = new Form($db);
+
 		if($action == "associer"){
 			$fk_indemnite = GETPOST("fk_indemnite", "int");
 			$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_indemnite WHERE fk_salarie='".$fk_salarie."' AND fk_indemnite=".$fk_indemnite;
@@ -41,37 +45,38 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 			$sql = "INSERT INTO ".MAIN_DB_PREFIX."salarie_indemnite (fk_salarie, fk_indemnite, mois) VALUES ('".$fk_salarie."',".$fk_indemnite.", now())";
 			$result2 = $db->query($sql);
 			if($result)
-			$message = "Indemnité ajoutée a ce salarié";
+				$message = "Indemnité ajoutée a ce salarié";
 		}
+
+
 		if($action == "ajout_flotant"){
+			$fk_indemnite = GETPOST("fk_indemnite", "int");
+			$sql1 = "SELECT * FROM ".MAIN_DB_PREFIX."indemnite WHERE rowid=".$fk_indemnite." AND active=1";
+			$result1 = $db->query($sql1);
+			$obj1 = $db->fetch_object($result1);
+			$sql_fl = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_indemnite_flottante WHERE fk_salarie='".$fk_salarie."' AND fk_indemnite=".$fk_indemnite;
+			$result_fl = $db->query($sql_fl);
+			if($result_fl)
+				$obj_fl = $db->fetch_object($result_fl);
+		
+			print '<form name="add_flottante" method="POST" action="'.$_SERVER['PHP_SELF'].'?mainmenu=paiementsalaire&leftmenu=salarie&id_convention='.$id_convention.'&id_societe='.$id_societe.'&fk_salarie='.$fk_salarie.'&id='.$fk_user.'&fk_indemnite='.$fk_indemnite.'">';
+			print '<fieldset>';
+			print '<legend><h3>'.$obj1->libelle.'</h3></legend>';
+			print '<input type="hidden" name="token" value="'.newToken().'">';
+			print '<input type="hidden" name="action" value="save_flottante">';
 
-		$fk_indemnite = GETPOST("fk_indemnite", "int");
-		$sql1 = "SELECT * FROM ".MAIN_DB_PREFIX."indemnite WHERE rowid=".$fk_indemnite." AND active=1";
-		$result1 = $db->query($sql1);
-		$obj1 = $db->fetch_object($result1);
-		$sql_fl = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_indemnite_flottante WHERE fk_salarie='".$fk_salarie."' AND fk_indemnite=".$fk_indemnite;
-		$result_fl = $db->query($sql_fl);
-		if($result_fl)
-			$obj_fl = $db->fetch_object($result_fl);
-	
-		print '<form name="add_flottante" method="POST" action="'.$_SERVER['PHP_SELF'].'?mainmenu=paiementsalaire&leftmenu=salarie&id_convention='.$id_convention.'&id_societe='.$id_societe.'&fk_salarie='.$fk_salarie.'&id='.$fk_user.'&fk_indemnite='.$fk_indemnite.'">';
-		print '<fieldset>';
-		print '<legend><h3>'.$obj1->libelle.'</h3></legend>';
-		print '<input type="hidden" name="token" value="'.newToken().'">';
-		print '<input type="hidden" name="action" value="save_flottante">';
-
-		print '<table><tr><td>Type</td><td><div id="m1">Montan Fixe</div></td><td><div id="m2">Pourcentage %</div></td><td></td></tr>';
-		print '<tr><td><select name="type" id="type">
-		<option value="montant_fixe">Montant Fixe</option>
-		<option value="pourcentage">Pourcentage</option>';
-		print '<td><input type="text" name="montant_flottant" id="montant_fixe" value="'.GETPOST("montant_flottant", "int").'"></td>';
-		print '<td><input type="number" name="pourcentage" id="pourcentage" value="'.GETPOST("pourcentage", "float").'" min="1" max="100">';
-		print "<td><input type='submit' class='button' value='Ajouter' /></td></tr>";
-		//print "<a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=salarie&id_convention=".$id_convention."&fk_salarie=".$fk_salarie."&id=".$fk_user."&fk_indemnite=".$fk_indemnite."'><button class='button'>Annuler</button></a></td></tr>";
-		print '</table>';
-		print '</fieldset>';
-		print "</form>";
-		print '<br>';
+			print '<table><tr><td>Type</td><td><div id="m1">Montan Fixe</div></td><td><div id="m2">Pourcentage %</div></td><td></td></tr>';
+			print '<tr><td><select name="type" id="type">
+			<option value="montant_fixe">Montant Fixe</option>
+			<option value="pourcentage">Pourcentage</option>';
+			print '<td><input type="text" name="montant_flottant" id="montant_fixe" value="'.GETPOST("montant_flottant", "int").'"></td>';
+			print '<td><input type="number" name="pourcentage" id="pourcentage" value="'.GETPOST("pourcentage", "float").'" min="1" max="100">';
+			print "<td><input type='submit' class='button' value='Ajouter' /></td></tr>";
+			//print "<a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=salarie&id_convention=".$id_convention."&fk_salarie=".$fk_salarie."&id=".$fk_user."&fk_indemnite=".$fk_indemnite."'><button class='button'>Annuler</button></a></td></tr>";
+			print '</table>';
+			print '</fieldset>';
+			print "</form>";
+			print '<br>';
 	}
 	
 	if($action == "edit_flotant"){
@@ -148,33 +153,54 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 				
 				</script>";
 
+
+		//Confirmer la suppression
+	if($action == "supprimer_attention"){
+		$fk_indemnite = GETPOST("fk_indemnite", "int");
+		$url = $_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&fk_indemnite=".$fk_indemnite."&fk_salarie=".$fk_salarie."&id=".$fk_user;
+		$titre = "Voulez-vous vraiment supprimer cette prime";
+
+		  $formconfirm = $monform->formconfirm(
+			  $url, 
+			  $titre, 
+			  "", 
+			  'supprimer', 
+			  $array, 
+			  '', 
+			  1,
+			  180,
+			  '35%'
+		  );
+		  print $formconfirm;
+	}
 	
+	//Suppression après confirmation
 	if($action == "supprimer"){
 		$fk_indemnite = GETPOST("fk_indemnite", "int");
 
 
 		$result = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."indemnite WHERE rowid=".$fk_indemnite);
-			$obj_ind = $db->fetch_object($result);
+		$obj_ind = $db->fetch_object($result);
 
-			$sql_fl = "SELECT montant FROM ".MAIN_DB_PREFIX."salarie_indemnite_flottante WHERE fk_salarie='".$fk_salarie."' AND fk_indemnite=".$fk_indemnite;
-			$result_fl = $db->query($sql_fl);
-			$obj_ind_fl = $db->fetch_object($result_fl);
+		$sql_fl = "SELECT montant FROM ".MAIN_DB_PREFIX."salarie_indemnite_flottante WHERE fk_salarie='".$fk_salarie."' AND fk_indemnite=".$fk_indemnite;
+		$result_fl = $db->query($sql_fl);
+		$obj_ind_fl = $db->fetch_object($result_fl);
 
-			$result = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$fk_user);
-			$obj_sal = $db->fetch_object($result);
+		$result = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$fk_user);
+		$obj_sal = $db->fetch_object($result);
 
-			//sauvegarde des trace de l'action
-			$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
-			$obj = $db->fetch_object($db->query($sql_select));
+		//sauvegarde des trace de l'action
+		$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
+		$obj = $db->fetch_object($db->query($sql_select));
 
-			$action_effectue = "Désaffectation d'une indemnité flottante ".$obj_ind->libelle."(".$obj_ind_fl->montant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
-			$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
-			$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Désaffectation")';
-			$db->query($sql_log);
+		$action_effectue = "Désaffectation d'une indemnité flottante ".$obj_ind->libelle."(".$obj_ind_fl->montant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
+		$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
+		$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Désaffectation")';
+		$db->query($sql_log);
 
-			//suppression
-			$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_indemnite WHERE fk_salarie='".$fk_salarie."' AND fk_indemnite=".$fk_indemnite;
-			$result2 = $db->query($sql);
+		//suppression
+		$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_indemnite WHERE fk_salarie='".$fk_salarie."' AND fk_indemnite=".$fk_indemnite;
+		$result2 = $db->query($sql);
 	
 		$fk_indemnite = GETPOST("fk_indemnite", "int");
 		$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_indemnite_flottante WHERE fk_salarie='".$fk_salarie."' AND fk_indemnite=".$fk_indemnite;
@@ -183,50 +209,50 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 			
 	}
 	if($action  == "save_flottante"){
-			$fk_indemnite = GETPOST("fk_indemnite", "int");
-			$type = GETPOST("type", "alpha");
+		$fk_indemnite = GETPOST("fk_indemnite", "int");
+		$type = GETPOST("type", "alpha");
 
-			if($type=="montant_fixe" && GETPOST("montant_flottant", "int") == "")
-				$message = 'Le champs "MONTANT" est obligatoire<br>';
-			if($type=="pourcentage" && GETPOST("pourcentage", "int") == "")
-				$message = 'Le champs "POURCENTAGE" est obligatoire<br>';
-				
-			if(empty($message)){
-				$montant_flottant = GETPOST("montant_flottant", "int");
+		if($type=="montant_fixe" && GETPOST("montant_flottant", "int") == "")
+			$message = 'Le champs "MONTANT" est obligatoire<br>';
+		if($type=="pourcentage" && GETPOST("pourcentage", "int") == "")
+			$message = 'Le champs "POURCENTAGE" est obligatoire<br>';
+			
+		if(empty($message)){
+			$montant_flottant = GETPOST("montant_flottant", "int");
 
-					if($type=="pourcentage")
-						$montant_flottant = GETPOST("pourcentage", "int")."%";
-					$fk_indemnite = GETPOST("fk_indemnite", "int");
-					$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_indemnite_flottante WHERE fk_salarie=".$fk_salarie." AND fk_indemnite='".$fk_indemnite."'";
-					$result2 = $db->query($sql);
-					$sql = 'INSERT INTO '.MAIN_DB_PREFIX.'salarie_indemnite_flottante (fk_salarie, fk_indemnite, montant, date_debut) 
-					VALUES ('.$fk_salarie.',"'.$fk_indemnite.'","'.$montant_flottant.'",now())';
-					$result2 = $db->query($sql);
-					$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_indemnite WHERE fk_salarie='".$fk_salarie."' AND fk_indemnite=".$fk_indemnite;
-					$result2 = $db->query($sql);
+			if($type=="pourcentage")
+				$montant_flottant = GETPOST("pourcentage", "int")."%";
+				$fk_indemnite = GETPOST("fk_indemnite", "int");
+				$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_indemnite_flottante WHERE fk_salarie=".$fk_salarie." AND fk_indemnite='".$fk_indemnite."'";
+				$result2 = $db->query($sql);
+				$sql = 'INSERT INTO '.MAIN_DB_PREFIX.'salarie_indemnite_flottante (fk_salarie, fk_indemnite, montant, date_debut) 
+				VALUES ('.$fk_salarie.',"'.$fk_indemnite.'","'.$montant_flottant.'",now())';
+				$result2 = $db->query($sql);
+				$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_indemnite WHERE fk_salarie='".$fk_salarie."' AND fk_indemnite=".$fk_indemnite;
+				$result2 = $db->query($sql);
 	
-					$sql = "INSERT INTO ".MAIN_DB_PREFIX."salarie_indemnite (fk_salarie, fk_indemnite, mois) VALUES ('".$fk_salarie."',".$fk_indemnite.", now())";
-					$result = $db->query($sql);
+				$sql = "INSERT INTO ".MAIN_DB_PREFIX."salarie_indemnite (fk_salarie, fk_indemnite, mois) VALUES ('".$fk_salarie."',".$fk_indemnite.", now())";
+				$result = $db->query($sql);
 
-					if($result && $result2){
-						$message = "Indemnité Ajoutée uniquement au compte de ce salarié";
+				if($result && $result2){
+					$message = "Indemnité Ajoutée uniquement au compte de ce salarié";
 
-						$result = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."indemnite WHERE rowid=".$fk_indemnite);
-						$obj_ind = $db->fetch_object($result);
+					$result = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."indemnite WHERE rowid=".$fk_indemnite);
+					$obj_ind = $db->fetch_object($result);
 
-						$result = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$fk_user);
-						$obj_sal = $db->fetch_object($result);
+					$result = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$fk_user);
+					$obj_sal = $db->fetch_object($result);
 
-						//sauvegarde des trace de l'action
-						$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
-						$obj = $db->fetch_object($db->query($sql_select));
+					//sauvegarde des trace de l'action
+					$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
+					$obj = $db->fetch_object($db->query($sql_select));
 
-						$action_effectue = "Affectation d'une indemnité flottante ".$obj_ind->libelle."(".$montant_flottant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
-						$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
-						$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Affectation")';
-						$db->query($sql_log);
-					}else $message = "Un problème est survenu";
-				}
+					$action_effectue = "Affectation d'une indemnité flottante ".$obj_ind->libelle."(".$montant_flottant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
+					$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
+					$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Affectation")';
+					$db->query($sql_log);
+				}else $message = "Un problème est survenu";
+			}
 	
 	}
 	
@@ -244,8 +270,8 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 				$fk_indemnite = GETPOST("fk_indemnite", "int");
 				$montant_flottant = GETPOST("montant_flottant", "int");
 
-					if($type=="pourcentage")
-						$montant_flottant = GETPOST("pourcentage", "int")."%";
+				if($type=="pourcentage")
+					$montant_flottant = GETPOST("pourcentage", "int")."%";
 
 				$sql_fl = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_indemnite_flottante WHERE fk_salarie=".$fk_salarie." AND fk_indemnite='".$fk_indemnite."'";
 				$result_fl = $db->query($sql_fl);
@@ -322,7 +348,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 				}
 
 				//les indemnités obligatoires
-				$sql = "SELECT * FROM ".MAIN_DB_PREFIX."indemnite WHERE type_indemnite='obligatoire' AND active=1 AND ((fk_societe=0 AND fk_convention=0) OR (fk_societe=".$id_societe." OR fk_convention=".$id_convention."))";
+			$sql = "SELECT * FROM ".MAIN_DB_PREFIX."indemnite WHERE type_indemnite='obligatoire' AND active=1 AND ((fk_societe=0 AND fk_convention=0) OR (fk_societe=".$id_societe." OR fk_convention=".$id_convention."))";
 			$result = $db->query($sql);
 			if($result){
 				$i = 0;
@@ -372,7 +398,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 
 
 
-			$sql = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_indemnite WHERE fk_salarie='".$fk_salarie."'";
+			$sql = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_indemnite WHERE fk_salarie=".$fk_salarie;
 			$result = $db->query($sql);
 			if($result){
 				$i = 0;
@@ -395,12 +421,12 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 									print $obj1->libelle.'</td><td><input type="text" disabled size="7" name="montant_flottant" value="'.apres_virgule($db, $id_societe, $obj_fl->montant?:0).'" >';
 									
 									print "<a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=salarie&id_convention=".$id_convention."&id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=edit_flotant&fk_indemnite=".$obj->fk_indemnite."'>".img_edit()."</a></td>";
-									print "<td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=salarie&id_convention=".$id_convention."&id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer&id_convention=".$id_convention."&fk_indemnite=".$obj->fk_indemnite."'><button class='button'>Dissocier</button></a></td></tr>";
+									print "<td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=salarie&id_convention=".$id_convention."&id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer_attention&id_convention=".$id_convention."&fk_indemnite=".$obj->fk_indemnite."'><button class='button'>Dissocier</button></a></td></tr>";
 								
 							}else{
 								print "<tr><td>";
 								print ''.$obj1->libelle.'</td><td>'.$obj1->type_indemnite;
-								print "</td><td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=salarie&id_convention=".$id_convention."&id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer&id_convention=".$id_convention."&fk_indemnite=".$obj->fk_indemnite."'><button class='button'>Dissocier</button></a></td></tr>";
+								print "</td><td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=salarie&id_convention=".$id_convention."&id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id=".$fk_user."&action=supprimer_attention&id_convention=".$id_convention."&fk_indemnite=".$obj->fk_indemnite."'><button class='button'>Dissocier</button></a></td></tr>";
 						}
 					}
 					$i ++;

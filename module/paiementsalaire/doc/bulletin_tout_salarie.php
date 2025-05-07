@@ -182,12 +182,12 @@ if($id_societe){
 
 
     $pdf->SetLeftMargin(133);
-    $pdf->Cell(30,4, utf8_decode("Retenu"),0,0,'C');
+    $pdf->Cell(30,4, utf8_decode("Retenue(s)"),0,0,'C');
     $pdf->line(163,$y-1,163,$pdf->GetPageHeight()-60);
 
 
     $pdf->SetLeftMargin(163);
-    $pdf->MultiCell(34,4, utf8_decode("Gain"),0,'C');
+    $pdf->MultiCell(34,4, utf8_decode("Gain(s)"),0,'C');
 
     $pdf->line(12,$y_apres_entete +13,$pdf->GetPageWidth()-12,$y_apres_entete +13);
 
@@ -633,8 +633,8 @@ if($id_societe){
              $pdf->SetY($y);
              $pdf->Cell(49,4, utf8_decode("==Avances/Acomptes=="),0,0,'L');
 
-             $pdf->SetLeftMargin(163);
-             $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
+             $pdf->SetLeftMargin(133);
+             $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
            }
 
          }
@@ -682,7 +682,7 @@ if($id_societe){
       $y += 4;
       $pdf->SetY($y);
       $pdf->SetFillColor(245, 245, 245);
-      $pdf->Cell(28,4, utf8_decode("Retenu :"),0,0,'L','true');
+      $pdf->Cell(28,4, utf8_decode("Retenue(s) :"),0,0,'L','true');
       $pdf->SetLeftMargin(161);
       $pdf->MultiCell(31,4, utf8_decode(apres_virgule($db, $id_societe, $retenu, 2)),0,'R','true');
       //Salaire Net
@@ -1033,9 +1033,9 @@ function apres_virgule($db, $id_societe, $valeur, $decalage){
       $pdf->SetY($y);
       $pdf->MultiCell(60,4, utf8_decode("Niveau salarié : ".$bulletin_obj->type_salarie),0,'');
 
-      $y = $pdf->GetY()+1;
+      /*$y = $pdf->GetY()+1;
       $pdf->SetY($y);
-      $pdf->MultiCell(60,4, utf8_decode("Type de contrat : ".$bulletin_obj->contrat),0,'');
+      $pdf->MultiCell(60,4, utf8_decode("Type de contrat : ".$bulletin_obj->contrat),0,'');*/
 
 
       $y = $pdf->GetY()+1;

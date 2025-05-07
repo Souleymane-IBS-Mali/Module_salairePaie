@@ -419,9 +419,9 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
                   $sheet->setCellValue($nextcolonne."5", "TOTAL AVANCE");
                   $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
                   $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
-                  $colonne_courante = $nextcolonne;
+                  $colonne_courante = $nextcolonne;*/
 
-                  //Salaire net
+                  //net payé
                   $nextcolonne = getNextColumnName($colonne_courante);
                   $sheet->setCellValue($nextcolonne."5", "NET PAYE");
                   $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
@@ -433,7 +433,7 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
                   $sheet->setCellValue($nextcolonne."5", "COUT");
                   $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
                   $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
-                  //$colonne_courante = $nextcolonne;*/
+                  //$colonne_courante = $nextcolonne;
 
 //--------------------------------------------------------------------
             //Affichage des valeurs
@@ -720,7 +720,7 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
                               //Montant Avance                              
                               $nextcolonne = getNextColumnName($colonne_courante);
                               $sheet->setCellValue($nextcolonne.$numero_ligne, round($total_av));
-                              $colonne_courante = $nextcolonne;
+                              $colonne_courante = $nextcolonne;*/
 
                               //Net à payer
                               $nextcolonne = getNextColumnName($colonne_courante);
@@ -732,7 +732,6 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
                               $sheet->setCellValue($nextcolonne.$numero_ligne, round($cout));
                               $colonne_courante = $nextcolonne;
 
-*/
                               $numero_ligne ++;
                               $i ++;
                         }
@@ -772,9 +771,9 @@ $sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowi
 $obj = $db->fetch_object($db->query($sql_select));
 
 //On garde la trace de l'action
-$action_effectue = "Exportation des états de salaire de la société ".$nom_soc." du mois de ".$mois_tab[$mois - 1]." ".$annee." dans société Salaire";
+$action_effectue = "Exportation des compléments salaire de la société ".$nom_soc." du mois de ".$mois_tab[$mois - 1]." ".$annee." dans société Salaire";
 $sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
-$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Exportation")';
+$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Exportation complément salaire")';
 $db->query($sql_log);
 
 // Envoyer le fichier au navigateur

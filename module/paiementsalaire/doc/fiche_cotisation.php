@@ -170,10 +170,11 @@ function SetCharSpacing($cs) {
 
    $pdf->SetY($pdf->GetY()+3);
    $pdf->SetX($x + 1);
-   $pdf->Cell(5,3, utf8_decode("Du"),0,0,'L');
+   $pdf->Cell(30,3, utf8_decode("Du 01/".$mois."/".$annee),0,0,'L');
 
+   $au = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
    $pdf->SetX($x + 24);
-   $pdf->MultiCell(10,3, utf8_decode("au"),0,'L');
+   $pdf->MultiCell(30,3, utf8_decode("au ".$au."/".$mois."/".$annee),0,'L');
 
    $pdf->SetY($pdf->GetY()+8);
    $pdf->SetX($x + 1);
@@ -203,7 +204,7 @@ $pdf->SetFont('Arial','B',6);
    $y = $pdf->GetY()+23;
     $pdf->SetY($y);
     $pdf->Cell(60,17, "",1,0,'');
-    $sql_verif = "SELECT rowid, nom, prenom, matricule, salaire_brut_cotisable FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+    $sql_verif = "SELECT rowid, nom, prenom, matricule, salaire_brut_cotisable, inps, amo FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
     $res_verif = $db->query($sql_verif);
 
     $nb = 0;
@@ -548,11 +549,15 @@ if($nb>0){
 
               $pdf->SetFont('Arial','',7);
               $pdf->SetX(5);
-              $pdf->Cell(19,4, utf8_decode($rowid_bulletin[$i]->matricule?:""),0,0,'L');
+              $pdf->Cell(19,4, utf8_decode($rowid_bulletin[$i]->inps?:""),0,0,'L');
 
               $pdf->SetFont('Arial','',8);
               $pdf->SetX(24);
               $pdf->Cell(58,4, utf8_decode($rowid_bulletin[$i]->prenom." ".$rowid_bulletin[$i]->nom),0,0,'L');
+
+              $pdf->SetFont('Arial','',7);
+              $pdf->SetX(82);
+              $pdf->Cell(58,4, utf8_decode($rowid_bulletin[$i]->amo?:""),0,0,'L');
 
               $pdf->SetFont('Arial','',7);
               $pdf->SetX(102);
@@ -1631,6 +1636,24 @@ $pdf->SetFont('Arial','',9);
     
 
    $pdf->SetLineWidth(0.5);
+
+   //
+  //Enregistrement dans les log || Traçabilité
+  $mois_tab = array(" Janvier "," Février "," Mars "," Avril "," Mai "," Juin "," Juillet "," Août "," Septembre "," Octobre "," Novembre "," Décembre ");
+
+$soc_sql = "SELECT nom FROM ".MAIN_DB_PREFIX."societe WHERE rowid=".$id_societe;
+      $res_soc = $db->query($soc_sql);
+      if($res_soc)
+            $nom_soc = $db->fetch_object($res_soc)->nom;
+
+$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
+$obj = $db->fetch_object($db->query($sql_select));
+
+//On garde la trace de l'action
+$action_effectue = "Fiche I.N.P.S de la société ".$nom_soc." du mois de ".$mois_tab[$mois - 1]." ".$annee." dans société Salaire";
+$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
+$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Exportation")';
+$db->query($sql_log);
    
     // affichage à l'écran...
     $titre = "fiche cotisation-".$mois."-".$annee.".pdf";

@@ -61,7 +61,7 @@ if(!empty($info))
 	print '<mark><h3 id="avertissement" style="color:red;">'.$info.'</h3></mark>';
 
 //Titre 
-print load_fiche_titre($langs->trans("Bulletin de paye"), '', '');
+print load_fiche_titre($langs->trans("Bulletin de paie"), '', '');
 $fk_user = GETPOST("id","int");
 $id_societe = GETPOST("id_societe","int");
 $fk_salarie = GETPOST("fk_salarie", "int");
@@ -97,13 +97,12 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 				$id_bull = 1;
 		$mois_tab = array(" Janvier "," Février "," Mars "," Avril "," Mai "," Juin "," Juillet "," Août "," Septembre "," Octobre "," novembre "," Décembre ");
 
-				print "<h2 style='position: justifie'>Les bulletins de paye de l'année ".$annee_rechercher;
 				print "<div style='float: right; margin-right:'30px'>";
 				print '<form name="add" method="POST" action="'.$_SERVER['PHP_SELF'].'?mainmenu=paiementsalaire&leftmenu=salarie&id='.$fk_user.'&fk_salarie='.$fk_salarie.'&id_societe='.$id_societe.'&id_convention='.$id_convention.'">';
 				print '<input type="hidden" name="token" value="'.newToken().'">';
 				print '<input type="hidden" name="action" value="save_edit">';
 				$info = "Les années affichées sont les années auquelles ce salarié à au moins un bulletin";
-				print info_admin($langs->trans($info), 1)."<select name='annee_rechercher' id='annee_rechercher'><option value='0'></option>";
+				print info_admin($langs->trans($info), 1)."<select style='font-size: 24px; font-weight: bold;' name='annee_rechercher' id='annee_rechercher'><option value='0'></option>";
 				//affichage de la zone de recherche année
 				//les valeurs son uniquement les années au cours desquelles le salarié a au moins un bulletin
 					$sql_verif = "SELECT DISTINCT annee FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_salarie=".$fk_salarie;
@@ -130,9 +129,9 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 									print "<option value='".date("Y")."' selected>".date("Y")."</option>";
 								else print "<option value='".date("Y")."' >".date("Y")."</option>";
 						}
-						print '<input class="button" type="submit" value="RECHERCHER">';
+						print '<input class="button"  type="submit" value="Afficher">';
 						print'</form>';
-				print "</div></h2>";
+				print "</div>";
 
 		//partie d'affichage du tableau
 		print "</div>";
@@ -370,6 +369,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 						print "<a target='_blank' href='../doc/modele_avance/tous_bulletins_salarie.php?id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id_convention=".$id_convention."&annee=".$annee_rechercher."&action=voir' style='float: right;' class='button'>".$bouton."</a></h2>";
 
 				}
+			
 	}
 }
 

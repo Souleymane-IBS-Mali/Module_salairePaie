@@ -171,12 +171,12 @@ if($id_societe){
     $pdf->line(133,$y-1,133,$pdf->GetPageHeight()-60);
 
     $pdf->SetLeftMargin(133);
-    $pdf->Cell(30,4, utf8_decode("Retenu"),0,0,'C');
+    $pdf->Cell(30,4, utf8_decode("Retenue(s)"),0,0,'C');
     $pdf->line(163,$y-1,163,$pdf->GetPageHeight()-60);
 
 
     $pdf->SetLeftMargin(163);
-    $pdf->MultiCell(34,4, utf8_decode("Gain"),0,'C');
+    $pdf->MultiCell(34,4, utf8_decode("Gain(s)"),0,'C');
 
     $pdf->line(12,$y_apres_entete +13,$pdf->GetPageWidth()-12,$y_apres_entete +13);
 
@@ -219,7 +219,7 @@ if($id_societe){
 
       $pdf->SetLeftMargin(103);
       $pdf->SetX(103);
-      $pdf->Cell(30,4, utf8_decode(apres_virgule($obj_bulletin->salaire_base?:0, 2)),0,0,'R');
+      $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_base?:0, 2)),0,0,'R');
 
 
       //Salaire de base Majorés
@@ -230,7 +230,7 @@ if($id_societe){
       $pdf->Cell(50,4, utf8_decode("==Salaire de base Majorés=="),0,0,'L');
 
       $pdf->SetLeftMargin(163);
-      $pdf->Cell(35,4, utf8_decode(apres_virgule($obj_bulletin->salaire_base, 2)),0,0,'R');
+      $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_base, 2)),0,0,'R');
 
       $y = $pdf->GetY()+5;
       $pdf->line(12,$y ,$pdf->GetPageWidth()-12,$y);
@@ -252,13 +252,13 @@ if($id_societe){
       $pdf->Cell(20,4, utf8_decode($obj_bulletin_anc->taux."%"),0,0,'R');
 
       $pdf->SetLeftMargin(83);
-      $pdf->Cell(20,4, utf8_decode(apres_virgule($obj_bulletin->salaire_base, 2)),0,0,'R');
+      $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_base, 2)),0,0,'R');
 
       $salaire_brut_non_exonere = $obj_bulletin->salaire_brut_non_exonere;
 
       $somme_pr_ind += $obj_bulletin->salaire_base*$obj_bulletin_anc->taux/100;
       $pdf->SetLeftMargin(103);
-      $pdf->Cell(30,4, utf8_decode(apres_virgule($obj_bulletin->salaire_base*$obj_bulletin_anc->taux/100, 2)),0,0,'R');
+      $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_base*$obj_bulletin_anc->taux/100, 2)),0,0,'R');
 
       //les primes qui doivent être affichés sur le billetin
       $bulletin_pr_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_prime WHERE fk_bulletin=".$obj_bulletin->rowid;;
@@ -279,10 +279,10 @@ if($id_societe){
             $pdf->Cell(20,4, utf8_decode($obj_bulletin_pr->pourcentage."%"),0,0,'R');
 
             $pdf->SetLeftMargin(83);
-            $pdf->Cell(20,4, utf8_decode(apres_virgule($obj_bulletin_pr->montant*100/$obj_bulletin_pr->pourcentage, 2)),0,0,'R');
+            $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_pr->montant*100/$obj_bulletin_pr->pourcentage, 2)),0,0,'R');
 
             $pdf->SetLeftMargin(103);
-            $pdf->Cell(30,4, utf8_decode(apres_virgule($obj_bulletin_pr->montant, 2)),0,0,'R');
+            $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_pr->montant, 2)),0,0,'R');
 
             $somme_pr_ind += $obj_bulletin_pr->montant;
           }
@@ -290,7 +290,7 @@ if($id_societe){
         }
       }
 
-      //les indemnités qui doivent être affichées
+      //les primes exceptionnelles doivent être affichées
       $bulletin_pr_except_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_prime_exceptionnelle WHERE fk_bulletin=".$obj_bulletin->rowid;;
               $bulletin_pr_except_res = $db->query($bulletin_pr_except_sql);
               if($bulletin_pr_except_res){
@@ -306,18 +306,18 @@ if($id_societe){
                     $pdf->SetLeftMargin(13);
                     $y = $pdf->GetY() + 6;
                     $pdf->SetY($y);
-                    $pdf->Cell(30,4, utf8_decode($obj_pr_except->libelle),0,0,'L');
+                    $pdf->Cell(30,4, utf8_decode($obj_bulletin_pr->libelle),0,0,'L');
 
                     $pdf->SetLeftMargin(63);
-                    $pdf->Cell(20,4, utf8_decode($obj_pr_except->pourcentage."%"),0,0,'R');
+                    $pdf->Cell(20,4, utf8_decode($obj_bulletin_pr->pourcentage."%"),0,0,'R');
 
                     $pdf->SetLeftMargin(83);
-                    $pdf->Cell(20,4, utf8_decode(apres_virgule($obj_pr_except->montant, 2)),0,0,'R');
+                    $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_pr->montant, 2)),0,0,'R');
 
                     $pdf->SetLeftMargin(103);
-                    $pdf->Cell(30,4, utf8_decode(apres_virgule($obj_pr_except->montant, 2)),0,0,'R');
+                    $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, ($obj_bulletin_pr->montant*$obj_bulletin_pr->pourcentage)/100, 2)),0,0,'R');
 
-                    $somme_pr_ind += $obj_pr_except->montant;
+                    $somme_pr_ind += $obj_bulletin_pr->montant;
                   }
                     $j ++;
                 }
@@ -342,10 +342,10 @@ if($id_societe){
             $pdf->Cell(20,4, utf8_decode($obj_bulletin_ind->pourcentage."%"),0,0,'R');
 
             $pdf->SetLeftMargin(83);
-            $pdf->Cell(20,4, utf8_decode(apres_virgule($obj_bulletin_ind->montant*100/$obj_bulletin_ind->pourcentage, 2)),0,0,'R');
+            $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_ind->montant*100/($obj_bulletin_ind->pourcentage?:1), 2)),0,0,'R');
 
             $pdf->SetLeftMargin(103);
-            $pdf->Cell(30,4, utf8_decode(apres_virgule($obj_bulletin_ind->montant, 2)),0,0,'R');
+            $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_ind->montant, 2)),0,0,'R');
 
             $somme_pr_ind += $obj_bulletin_ind->montant;
           }
@@ -366,11 +366,11 @@ if($id_societe){
       $pdf->Cell(20,4, utf8_decode($p."%"),0,0,'R');
 
       $pdf->SetLeftMargin(83);
-      $pdf->Cell(20,4, utf8_decode(apres_virgule(($obj_bulletin->sursalaire*100/$p)?:0, 2)),0,0,'R');
+      $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, ($obj_bulletin->sursalaire*100/($p?:1))?:0, 2)),0,0,'R');
 
       $pdf->SetLeftMargin(103);
       $pdf->SetX(103);
-      $pdf->Cell(30,4, utf8_decode(apres_virgule($obj_bulletin->sursalaire?:0, 2)),0,0,'R');
+      $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->sursalaire?:0, 2)),0,0,'R');
 
       $pdf->SetTextColor(0, 0, 70);
       $pdf->SetLeftMargin(13);
@@ -379,7 +379,7 @@ if($id_societe){
       $pdf->Cell(49,4, utf8_decode("==Primes et Indemnités=="),0,0,'L');
 
       $pdf->SetLeftMargin(163);
-      $pdf->Cell(35,4, utf8_decode(apres_virgule($somme_pr_ind + ($obj_bulletin->sursalaire?:0), 2)),0,0,'R');
+      $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $somme_pr_ind + ($obj_bulletin->sursalaire?:0), 2)),0,0,'R');
 
       //affichage des heures sup
       $pdf->SetFont('Helvetica','',7);
@@ -409,10 +409,10 @@ if($id_societe){
         $pdf->Cell(20,4, utf8_decode($obj_bulletin_hs->taux."%"),0,0,'R');
 
         $pdf->SetX(83);
-        $pdf->Cell(20,4, utf8_decode(apres_virgule($obj_bulletin_hs->base, 2)),0,0,'R');
+        $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_hs->base, 2)),0,0,'R');
 
         $pdf->SetX(103);
-        $pdf->MultiCell(30,4, utf8_decode(apres_virgule($obj_bulletin_hs->montant, 2)),0,'R');
+        $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_hs->montant, 2)),0,'R');
 
         $valeur_heur_sup += $obj_bulletin_hs->montant;
         $j ++;
@@ -427,7 +427,7 @@ if($id_societe){
         $pdf->Cell(49,4, utf8_decode("==Heures Supplémentaires=="),0,0,'L');
 
         $pdf->SetLeftMargin(163);
-        $pdf->Cell(35,4, utf8_decode(apres_virgule($valeur_heur_sup, 2)),0,0,'R');
+        $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $valeur_heur_sup, 2)),0,0,'R');
       }
      }
      $pdf->SetFont('Helvetica','',9);
@@ -447,7 +447,7 @@ if($id_societe){
       $pdf->Cell(30,4, utf8_decode("--Charges Patro--"),0,0,'R');
 
       $pdf->SetLeftMargin(163);
-      $pdf->Cell(35,4, utf8_decode(apres_virgule($obj_bulletin->salaire_brut, 2)),0,0,'R');
+      $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut, 2)),0,0,'R');
 
       //les prestations à afficher par Organisme
       $id_organisme = array();
@@ -472,13 +472,13 @@ if($id_societe){
                       $pdf->Cell(20,4, utf8_decode($obj_bulletin_prest->pourcentage."%"),0,0,'R');
 
                       $pdf->SetX(83);
-                      $pdf->Cell(20,4, utf8_decode(apres_virgule($obj_bulletin->salaire_brut_cotisable, 2)),0,0,'R');
+                      $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_cotisable, 2)),0,0,'R');
 
                       $pdf->SetX(103);
-                      $pdf->Cell(30,4, utf8_decode(apres_virgule($obj_bulletin_prest->montant_employeur, 2)),0,0,'R');
+                      $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_prest->montant_employeur, 2)),0,0,'R');
 
                       $pdf->SetX(133);
-                      $pdf->MultiCell(30,4, utf8_decode(apres_virgule($obj_bulletin_prest->montant_employe, 2)),0,'R');
+                      $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_prest->montant_employe, 2)),0,'R');
                       $avance = true;
 
             $j ++;
@@ -512,13 +512,13 @@ if($id_societe){
               $pdf->Cell(20,4, utf8_decode($obj_bulletin_prest->taux_employe."%"),0,0,'R');
 
               $pdf->SetX(83);
-              $pdf->Cell(20,4, utf8_decode(apres_virgule($obj_bulletin->salaire_brut_cotisable, 2)),0,0,'R');
+              $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_cotisable, 2)),0,0,'R');
 
               $pdf->SetX(103);
-              $pdf->Cell(30,4, utf8_decode(apres_virgule($obj_bulletin_prest->montant_employeur, 2)),0,0,'R');
+              $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_prest->montant_employeur, 2)),0,0,'R');
 
               $pdf->SetX(133);
-              $pdf->MultiCell(30,4, utf8_decode(apres_virgule($obj_bulletin_prest->montant_employe, 2)),0,'R');
+              $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_prest->montant_employe, 2)),0,'R');
               $retenu += $obj_bulletin_prest->montant_employe;
 
 
@@ -531,7 +531,7 @@ if($id_societe){
 
       $salaire_brut = $obj_bulletin->salaire_brut;
       /*$pdf->SetLeftMargin(163);
-      $pdf->Cell(35,4, utf8_decode(apres_virgule($salaire_brut, 2)),0,0,'R');*/
+      $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $salaire_brut, 2)),0,0,'R');*/
 
       $retenu_its = 0;
       $bulletin_taxe_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_taxe WHERE fk_bulletin=".$obj_bulletin->rowid;
@@ -551,10 +551,10 @@ if($id_societe){
               $pdf->Cell(20,4, utf8_decode($obj_bulletin_taxe->taux."%"),0,0,'R');
 
               $pdf->SetX(83);
-              $pdf->Cell(20,4, utf8_decode(apres_virgule($obj_bulletin->salaire_brut_imposable, 2)),0,0,'R');
+              $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_imposable, 2)),0,0,'R');
 
               $pdf->SetX(133);
-              $pdf->MultiCell(30,4, utf8_decode(apres_virgule($obj_bulletin_taxe->montant, 2)),0,'R');
+              $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_taxe->montant, 2)),0,'R');
               $retenu += $obj_bulletin_taxe->montant;
               $retenu_its += $obj_bulletin_taxe->montant;
 
@@ -573,7 +573,7 @@ if($id_societe){
 
           $salaire_net = $obj_bulletin->net_payer;
           $pdf->SetLeftMargin(163);
-          $pdf->Cell(35,4, utf8_decode(apres_virgule($salaire_net, 2)),0,0,'R');
+          $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $salaire_net, 2)),0,0,'R');
 
           $pdf->SetTextColor(0, 0, 0);
 
@@ -599,7 +599,7 @@ if($id_societe){
              $pdf->Cell(49,4, utf8_decode($obj_bulletin_avance->libelle),0,0,'L');
 
              $pdf->SetX(103);
-             $pdf->MultiCell(30,4, utf8_decode(apres_virgule($obj_bulletin_avance->montant, 2)),0,'R');
+             $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_avance->montant, 2)),0,'R');
 
              $somme_avance += $obj_bulletin_avance->montant;
              $j ++;
@@ -614,8 +614,8 @@ if($id_societe){
              $pdf->SetY($y);
              $pdf->Cell(49,4, utf8_decode("==Avances/Acomptes=="),0,0,'L');
 
-             $pdf->SetLeftMargin(163);
-             $pdf->Cell(35,4, utf8_decode(apres_virgule($somme_avance, 2)),0,0,'R');
+             $pdf->SetLeftMargin(133);
+             $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
            }
 
          }
@@ -654,16 +654,16 @@ if($id_societe){
       $pdf->Cell(30,4, utf8_decode("Salaire Brut :"),0,0,'L','true');
 
       $pdf->SetLeftMargin(163);
-      $pdf->MultiCell(35,4, utf8_decode(apres_virgule($salaire_net+$retenu, 2)),0,'R','true');
+      $pdf->MultiCell(35,4, utf8_decode(apres_virgule($db, $id_societe, $salaire_net+$retenu, 2)),0,'R','true');
 
       //retenu
       $pdf->SetLeftMargin(133);
       $y += 4;
       $pdf->SetY($y);
       $pdf->SetFillColor(245, 245, 245);
-      $pdf->Cell(30,4, utf8_decode("Retenu :"),0,0,'L','true');
+      $pdf->Cell(30,4, utf8_decode("Retenue(s) :"),0,0,'L','true');
       $pdf->SetLeftMargin(163);
-      $pdf->MultiCell(35,4, utf8_decode(apres_virgule($retenu, 2)),0,'R','true');
+      $pdf->MultiCell(35,4, utf8_decode(apres_virgule($db, $id_societe, $retenu, 2)),0,'R','true');
       //Salaire Net
       $pdf->SetLeftMargin(133);
       $y += 4;
@@ -672,7 +672,7 @@ if($id_societe){
       $pdf->Cell(30,4, utf8_decode("Salaire Net :"),0,0,'L','true');
 
       $pdf->SetLeftMargin(163);
-      $pdf->MultiCell(35,4, utf8_decode(apres_virgule($salaire_net, 2)),0,'R','true');
+      $pdf->MultiCell(35,4, utf8_decode(apres_virgule($db, $id_societe, $salaire_net, 2)),0,'R','true');
       //Avance
       $pdf->SetLeftMargin(133);
       $y += 4;
@@ -681,7 +681,7 @@ if($id_societe){
       $pdf->Cell(30,4, utf8_decode("Avance :"),0,0,'L','true');
 
       $pdf->SetLeftMargin(163);
-      $pdf->MultiCell(35,4, utf8_decode(apres_virgule(($somme_avance?:0), 2)),0,'R','true');
+      $pdf->MultiCell(35,4, utf8_decode(apres_virgule($db, $id_societe, ($somme_avance?:0), 2)),0,'R','true');
 
       //net à payer
       $pdf->SetLeftMargin(133);
@@ -691,7 +691,7 @@ if($id_societe){
       $pdf->Cell(30,4, utf8_decode("Net à payer :"),0,0,'L','true');
 
       $pdf->SetLeftMargin(163);
-      $pdf->MultiCell(35,4, utf8_decode(apres_virgule($salaire_net-($somme_avance?:0), 2)),0,'R','true');
+      $pdf->MultiCell(35,4, utf8_decode(apres_virgule($db, $id_societe, $salaire_net-($somme_avance?:0), 2)),0,'R','true');
 
     //*********************************************************************** */
     $directory = DOL_DOCUMENT_ROOT.'/paiementsalaire/config/cachet_societe/';
@@ -733,34 +733,18 @@ if($id_societe){
 
 
 
-  function apres_virgule($valeur, $decalage){
-    $val_retour = "";
-    $tab = explode('.',$valeur);
-    if(count($tab) > 1){
-      $chif = $tab[1];
-      $val_retour = $tab[0].".";
-
-      if((strlen($chif))>$decalage){
-        for ($i=0; $i < $decalage; $i++) {
-          $val_retour .= $chif[$i];
-        }
-      }else{
-        for ($i=0; $i < strlen($chif); $i++) {
-          $val_retour .= $chif[$i];
-        }
-        for ($i=0; $i < ($decalage - strlen($chif)); $i++) {
-          $val_retour .= "0";
-        }
-      }
-    }else{
-      $val_retour = $valeur.".";
-      for ($i=0; $i < $decalage; $i++) {
-        $val_retour .= "0";
-      }
+function apres_virgule($db, $id_societe, $valeur, $decalage){
+  $sep = ".";
+  $decalage = 2;
+  $reglage_bulletin = "SELECT separateur, decalage FROM ".MAIN_DB_PREFIX."reglage_bulletin WHERE fk_societe=".$id_societe;
+    $result_reglage_bulletin = $db->query($reglage_bulletin);
+    if($db->num_rows($result_reglage_bulletin) > 0){
+      $obj_reglage_bulletin = $db->fetch_object($result_reglage_bulletin);
+      $sep = $obj_reglage_bulletin->separateur;
+      $decalage = $obj_reglage_bulletin->decalage;
     }
-
-    return $val_retour;
-  }
+  return number_format($valeur, $decalage, $sep, ' ');
+}
 
   $db->close();
 
@@ -913,6 +897,7 @@ if($id_societe){
 		$pdf->MultiCell(1,1,"",0,'C');
 
 		$pdf->SetLeftMargin(13);
+    $pdf->SetX(13);
 		$pdf->MultiCell(60,4, utf8_decode("Matricule : ".$bulletin_obj->matricule),0,'');
 
 
@@ -1023,10 +1008,10 @@ if($id_societe){
 		$pdf->SetY($y);
 		$pdf->MultiCell(60,4, utf8_decode("Niveau salarié : ".$bulletin_obj->type_salarie),0,'');
 
-		$y = $pdf->GetY()+1;
+		/*$y = $pdf->GetY()+1;
 		$pdf->SetY($y);
 		$pdf->MultiCell(60,4, utf8_decode("Type de contrat : ".$bulletin_obj->contrat),0,'');
-
+*/
 
 		$y = $pdf->GetY()+1;
 		$pdf->SetY($y);

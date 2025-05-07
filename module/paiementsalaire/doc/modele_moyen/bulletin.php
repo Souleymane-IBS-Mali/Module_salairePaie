@@ -9,7 +9,7 @@ require("../fpdf/fpdf.php");
 $id_societe = GETPOST("id_societe","int");
 $fk_user = GETPOST("id_salarie","int");
 
-$action = GETPOST("action", "aplha");
+$action = GETPOST("action", "alpha");
 
 if($action == "telecharger")
  $mode = "D";
@@ -50,7 +50,12 @@ $obj_salarie = $db->fetch_object($res);
 	$societe_Result = $db->query($societe_Sql);
 	$societe_Salarie = $db->fetch_object($societe_Result);
 
-  global $id_societe, $obj_salarie, $obj_user, $societe_Salarie, $y, $mois, $annee, $id_accord_etab, $id_convention;
+  $sql_soc = "SELECT societe_mere FROM ".MAIN_DB_PREFIX."salairepaie_societe WHERE fk_societe=".$id_societe;
+                $result_soc = $db->query($sql_soc);
+                if($result_soc)
+                  $info_soc = $db->fetch_object($result_soc);
+
+  global $id_societe, $obj_salarie, $obj_user, $societe_Salarie, $y, $mois, $annee, $id_accord_etab, $id_convention, $info_soc;
   $sal_categ = 0;
 }else{
   $user_Sql = "SELECT * FROM ".MAIN_DB_PREFIX."user where rowid=".$fk_user;
@@ -61,8 +66,21 @@ $obj_salarie = $db->fetch_object($res);
 	$societe_Result = $db->query($societe_Sql);
 	$societe_Salarie = $db->fetch_object($societe_Result);
 
-  global $fk_salarie, $fk_user, $y, $mois, $annee, $id_accord_etab, $societe_Salarie;
+  $sql_soc = "SELECT societe_mere FROM ".MAIN_DB_PREFIX."salairepaie_societe WHERE fk_societe=".$id_societe;
+  $result_soc = $db->query($sql_soc);
+  if($result_soc)
+    $info_soc = $db->fetch_object($result_soc);
+
+    $user_Sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."user where rowid=".$obj_salarie->fk_user;
+    $user_Result = $db->query($user_Sql);
+    $id_salarie = $db->fetch_object($user_Result)->rowid;
+
+  $sql_select = "SELECT avant_cloture, apres_cloture FROM ".MAIN_DB_PREFIX."statut_cachet WHERE fk_societe=".$id_societe;
+	$cachet_statut = $db->fetch_object($db->query($sql_select));
+
+  global $fk_salarie, $fk_user, $y, $mois, $annee, $id_accord_etab, $societe_Salarie, $info_soc, $id_salarie, $cachet_statut;
 }
+
 // Création de la class PDF
 if($action == "no_save"){
   $annee = date("Y");
@@ -154,12 +172,12 @@ if($action == "no_save"){
 
 
     $pdf->SetLeftMargin(133);
-    $pdf->Cell(30,4, utf8_decode("Retenu"),0,0,'C');
+    $pdf->Cell(30,4, utf8_decode("Retenue(s)"),0,0,'C');
     $pdf->line(163,$y-1,163,$pdf->GetPageHeight()-60);
 
 
     $pdf->SetLeftMargin(163);
-    $pdf->MultiCell(34,4, utf8_decode("Gain"),0,'C');
+    $pdf->MultiCell(34,4, utf8_decode("Gain(s)"),0,'C');
 
     $pdf->line(12,$y_apres_entete +13,$pdf->GetPageWidth()-12,$y_apres_entete +13);
 
@@ -863,8 +881,8 @@ if($action == "no_save"){
             $pdf->line(12,$y-1 ,$pdf->GetPageWidth()-12,$y-1);
             $pdf->Cell(49,4, utf8_decode("Avances/Acomptes"),0,0,'L');
 
-            $pdf->SetLeftMargin(163);
-            $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
+            $pdf->SetLeftMargin(133);
+            $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
           }
 
           $y = $pdf->GetY()+5;
@@ -900,7 +918,7 @@ if($action == "no_save"){
       $y += 4;
       $pdf->SetY($y);
       $pdf->SetFillColor(255, 255, 255);
-      $pdf->Cell(30,4, utf8_decode("Retenu :"),0,0,'L','true');
+      $pdf->Cell(30,4, utf8_decode("Retenue(s) :"),0,0,'L','true');
       $pdf->SetLeftMargin(163);
       $pdf->MultiCell(35,4, utf8_decode(apres_virgule($db, $id_societe, round($retenu), 2)),0,'R','true');
 
@@ -1029,12 +1047,12 @@ if($action == "no_save"){
 
 
     $pdf->SetLeftMargin(133);
-    $pdf->Cell(30,4, utf8_decode("Retenu"),0,0,'C');
+    $pdf->Cell(30,4, utf8_decode("Retenue(s)"),0,0,'C');
     $pdf->line(163,$y-1,163,$pdf->GetPageHeight()-60);
 
 
     $pdf->SetLeftMargin(163);
-    $pdf->MultiCell(34,4, utf8_decode("Gain"),0,'C');
+    $pdf->MultiCell(34,4, utf8_decode("Gain(s)"),0,'C');
 
     $pdf->line(12,$y_apres_entete +13,$pdf->GetPageWidth()-12,$y_apres_entete +13);
 
@@ -1492,8 +1510,8 @@ if($action == "no_save"){
              $pdf->line(12,$y-1 ,$pdf->GetPageWidth()-12,$y-1);
              $pdf->Cell(49,4, utf8_decode("Avances/Acomptes"),0,0,'L');
 
-             $pdf->SetLeftMargin(163);
-             $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
+             $pdf->SetLeftMargin(133);
+             $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
            }
 
          }
@@ -1546,7 +1564,7 @@ if($action == "no_save"){
       $y += 4;
       $pdf->SetY($y);
       $pdf->SetFillColor(245, 245, 245);
-      $pdf->Cell(28,4, utf8_decode("Retenu :"),0,0,'L',true);
+      $pdf->Cell(28,4, utf8_decode("Retenue(s) :"),0,0,'L',true);
       $pdf->SetLeftMargin(61);
       $pdf->MultiCell(31,4, utf8_decode(apres_virgule($db, $id_societe, $retenu, 2)),0,'R',true);
       //Avance
@@ -1572,14 +1590,34 @@ if($action == "no_save"){
       $pdf->MultiCell(31,4, utf8_decode(apres_virgule($db, $id_societe, ($salaire_net - $somme_avance)?:0, 2)),0,'R',true);
 
       //*********************************************************************** */
+      $directory = DOL_DOCUMENT_ROOT.'/paiementsalaire/config/cachet_societe/';
+			if(is_readable($directory.$id_societe.'.png')){
+				$file = $id_societe.'.png';
+				$filePath = $directory.$file;
+			}elseif(is_readable($directory.$id_societe.'.jpg')){
+				$file = $id_societe.'.jpg';
+				$filePath = $directory.$file;
+			}elseif(is_readable($directory.$id_societe.'.jpeg')){
+				$file = $id_societe.'.jpeg';
+				$filePath = $directory.$file;
+			}
+      //On met le cachet sur le cadre à droite si le mois est cloturé et s'il y a un cachet
       //les cadres
+      //à gauche
       $pdf->SetLeftMargin(13);
       $pdf->SetY($y+7);
-      $pdf->MultiCell(59,14, "",1,'');
+      $pdf->MultiCell(59,13, "",1,'');
 
+      //à droite
       $pdf->SetLeftMargin(133);
       $pdf->SetY($y+7);
-      $pdf->MultiCell(59,14, "",1,'');
+      $pdf->MultiCell(59,13, "",1,'');
+
+      if(is_readable($filePath) && $obj_bulletin->cloture == "oui" && $cachet_statut->apres_cloture == 1){
+        $pdf->Image($filePath,150,$y+7, 40,19);
+      }elseif(is_readable($filePath) && $obj_bulletin->cloture == "non" && $cachet_statut->avant_cloture == 1){
+        $pdf->Image($filePath,150,$y+7, 40,19);
+      }
 
     }
     $doc = $obj_bulletin->nom.'_'.$obj_bulletin->prenom.'_'.$mois.'_'.$annee;
