@@ -11,6 +11,8 @@ print load_fiche_titre($langs->trans("Simulation du Salaire Net"), '', '');
 		$id_societe = GETPOST('id_societe','int');
 		$id_convention = GETPOST('id_convention','int');
 		$id_salaire_base = GETPOST("categories","alpha") ? : 0;
+		$action = GETPOST("action","alpha") ? : "";
+
 
 		
 		$head = paiementsalaireSocieteHead($id_societe, $id_convention);
@@ -23,9 +25,182 @@ $obj_soc->name = $obj_soc->nom;
 $obj_soc->element = "societe";			
 $obj_soc->conv = $id_convention;
 
+$message = '';
 societe_preview_next($db, $id_societe, $obj_soc);
 entete_societe($obj_soc, 'societe');
 if($user->rights->paiementsalaire->societe->write){
+
+	$monform = new Form($db);
+	//Confirmer la suppression
+	if($action == "tout_effacer"){
+		$url = $_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention;
+		$titre = "Voulez-vous vraiment tout éffacer";
+
+		  $formconfirm = $monform->formconfirm(
+			  $url, 
+			  $titre, 
+			  "", 
+			  'tout_effacer_oui', 
+			  $array, 
+			  '', 
+			  1,
+			  180,
+			  '35%'
+		  );
+		  print $formconfirm;
+	}
+
+	if($action == "tout_effacer_oui"){
+		$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."simulation";
+		if($db->query($sql_del))
+			$message = "Toutes les simulations éffacées avec succès";
+		else $message = $db->error();
+	}
+
+	//Confirmer la suppression
+	if($action == "supprimer"){
+		$id = GETPOST("id_simulation", "int");
+		$url = $_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&id_simulation=".$id;
+		$titre = "Voulez-vous vraiment cet enregistrement ?";
+
+		  $formconfirm = $monform->formconfirm(
+			  $url, 
+			  $titre, 
+			  "", 
+			  'supprimer_oui', 
+			  $array, 
+			  '', 
+			  1,
+			  180,
+			  '35%'
+		  );
+		  print $formconfirm;
+	}
+
+	if($action == "supprimer_oui"){
+		$id = GETPOST("id_simulation", "int");
+
+		$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."simulation WHERE rowid=".$id;
+		if($db->query($sql_del))
+			$message = "Simulation supprimer avec succès";
+		else $message = $db->error();
+	}
+
+
+	//Enregistrement de la simulation
+	if($action == "enregistrer_simulation"){
+		$libelle = GETPOST("nom_simulation", 'alpha');
+
+		$id_categ = GETPOST("categorie", "int");
+		$id_echel = GETPOST("echelon", "int");
+		$anc = GETPOST("anciennete", "alpha");
+		$statu_f = GETPOST("statut_f", "alpha");
+		$salaire_base = GETPOST("salaire_base", "alpha");
+		$nb_enfant = GETPOST("nb_enfant", "int");
+		$nb_enfant_hand = GETPOST("nombre_enfant_hand", "int");
+
+		$code_categ = "";
+		$echelon = "";
+		$catSql = "SELECT code_categorie FROM ".MAIN_DB_PREFIX."dcategories WHERE rowid=".$id_categ;
+		$result = $db->query($catSql);
+		$num = $db->num_rows($result);
+		if (0 < $num){
+			$code_categ = $db->fetch_object($result)->code_categorie;
+			$echelon_SQL = "SELECT libelle FROM ".MAIN_DB_PREFIX."echelon WHERE rowid=".$id_echel;
+			$echelon_result = $db->query($echelon_SQL);
+			$num_echelon = $db->num_rows($echelon_result);
+			if($num_echelon > 0){
+				$echelon = $db->fetch_object($echelon_result)->libelle;
+			}
+		}
+
+		$sursalaire = GETPOST("sursalaire");
+		$salaire_net = GETPOST("salaire_net", "alpha");
+		$salaire_brut = GETPOST("salaire_brut", "alpha");
+		$salaire_brut_cotisable = GETPOST("salaire_brut_cotisable", "alpha");
+		$salaire_brut_imposable = GETPOST("salaire_brut_imposable", "alpha");
+		$cout_total = GETPOST("cout", "alpha");
+		$its = GETPOST("its", "alpha");
+		$primesindemnites = GETPOST("primesindemnites");
+
+		
+		$global_cotis = salarie_prestation_simulation($db, $fk_salarie, $salaire_brut_cotisable?:0, $id_convention);
+		$cotis = $global_cotis[1];
+		$taux_p = $global_cotis[0];
+		$index = 0;
+		foreach ($cotis as $key => $value) {
+			$type_prest = "SELECT * FROM ".MAIN_DB_PREFIX."type_prestation WHERE rowid=".$key;
+			$result_type_prest = $db->query($type_prest);
+			$obj_prest_type = $db->fetch_object($result_type_prest);
+			if($obj_prest_type){
+				//print $retenu_prest_empl."<br>";
+				$code_employeur = $obj_prest_type->rowid.'employeur';
+				$code_employe = $obj_prest_type->rowid.'employe';
+				if($index == 0){
+					$atmp_patro = GETPOST($code_employeur, "int");                            
+					$atmp_salarie = GETPOST($code_employe, "int");                           
+				}elseif($index == 1){
+					$prestation_familiale_patro = GETPOST($code_employeur, "int");            
+					$prestation_familiale_salarie = GETPOST($code_employe, "int");
+				}elseif($index == 2){
+					$retraite_patro = GETPOST($code_employeur, "int");                       
+					$retraite_salarie = GETPOST($code_employe, "int");
+				}elseif($index == 3){
+					$invalidite_allocation_survivant_patro = GETPOST($code_employeur, "int"); 
+					$invalidite_allocation_survivant_salarie = GETPOST($code_employe, "int");
+				}elseif($index == 4){
+					$anpe_patro = GETPOST($code_employeur, "int");                            
+					$anpe_salarie = GETPOST($code_employe, "int");
+				}elseif($index == 5){
+					$amo_patro = GETPOST($code_employeur, "int");                             
+					$amo_salarie = GETPOST($code_employe, "int"); 
+				}
+				
+				$index ++;
+			}
+		}
+
+		if(empty($libelle)) {
+			$message = 'Le champ "NOM SIMULATION" est obligatoire';
+		}
+
+		if(empty($salaire_net)) {
+			$message .= 'Le champ "SALAIRE NET" est obligatoire';
+		}
+		if(empty($salaire_brut)) {
+			$message .= 'Le champ "SALAIRE BRUT" est obligatoire';
+		}
+		if(empty($sursalaire)) {
+			$message .= 'Le champ "SURSALAIRE" est obligatoire';
+		}
+		if(empty($cout_total)) {
+			$message .= 'Le champ "COUT TOTAL" est obligatoire';
+		}
+		/*if(empty($its)) {
+			$message .= 'Le champ "ITS" est obligatoire';
+		}
+		if(empty($libelle)) {
+			$message .= 'Le champ "NOM SIMULATION" est obligatoire';
+		}
+		if(empty($libelle)) {
+			$message .= 'Le champ "NOM SIMULATION" est obligatoire';
+		}*/
+			
+		if(empty($message)){
+			$sql_insert = "INSERT INTO ".MAIN_DB_PREFIX."simulation (libelle, situation_familiale, nombre_enfant, nombre_enfant_hand, categorie, echelon, fonction,";
+			$sql_insert .= " salaire_base, sursalaire, anciennete, salaire_brut, salaire_brut_cotisable, salaire_brut_imposable, net_payer, fk_societe, nom_societe, nom_convention,";
+			$sql_insert .= " atmp_patro, atmp_salarie, prestation_familiale_patro, prestation_familiale_salarie, reatraite_patro, retraite_salarie, invalidite_allocation_survivant_patro,";
+			$sql_insert .= " invalidite_allocation_survivant_salarie, anpe_patro, anpe_salarie, amo_patro, amo_salarie, its, cout, primesindemnites)";
+			$sql_insert .= " VALUES('".$libelle."','".$statu_f."',".$nb_enfant.",".$nb_enfant_hand.",'".$code_categ."','".$echelon."','A venir', '".$salaire_base."','".$sursalaire."','".$anc."','".$salaire_brut."','".$salaire_brut_cotisable."', '".$salaire_brut_imposable."', '".$salaire_net."', '".$id_societe."', '".$obj_soc->nom."', '".$id_convention."',
+							'".$atmp_patro."', '".$atmp_salarie."', '".$prestation_familiale_patro."', '".$prestation_familiale_salarie."', '".$retraite_patro."', '".$retraite_salarie."', '".$invalidite_allocation_survivant_patro."',
+							'".$invalidite_allocation_survivant_salarie."', '".$anpe_patro."', '".$anpe_salarie."', '".$amo_patro."', '".$amo_salarie."', '".$its."', '".$cout_total."', '".$primesindemnites."')";
+			if($db->query($sql_insert)){
+				//print $sql_insert;
+				$message = "Simulation enregistrée avec succès";
+				//header("Location: ".$_SERVER["PHP_SELF"].'?id_societe='.$id_societe.'&id_convention='.$id_convention);
+			}else print $db->error();
+		}
+	}
 	print "<div style='display:flex; flex:2; flex-direction:row;'>";
 		print "<div style='flex:1;margin-right: 20px;'>";
 		if(((GETPOST("salaire_brut", "int") == 0 || GETPOST("salaire_brut", "int") < 0) && $id_salaire_base !=0 && $type_simulation == "salaire_brut"))
@@ -34,7 +209,7 @@ if($user->rights->paiementsalaire->societe->write){
 			print "<mark><strong>Le champ 'COUT TOTAL' est obligatoire</strong></mark><br>";
 		elseif(((GETPOST("salaire_net", "int") == 0 || GETPOST("salaire_net", "int") < 0) && $id_salaire_base !=0 && $type_simulation == "salaire_net"))
 			print "<mark><strong>Le champ 'SALAIRE NET' est obligatoire</strong></mark><br>";
-		print '<form id="add_form" method="POST" action="'.$_SERVER['PHP_SELF'].'?mainmenu=paiementsalaire&leftmenu=salarie&id_societe='.$id_societe.'&id_convention='.$id_convention.'&id='.$id_salarie.'&matricule='.$matricule_salarie.'">';
+		print '<form id="add_form" method="POST" action="'.$_SERVER['PHP_SELF'].'?mainmenu=paiementsalaire&leftmenu=salarie&id_societe='.$id_societe.'&id_convention='.$id_convention.'&id='.$id_salarie.'">';
 		print '<input type="hidden" name="token" value="'.newToken().'">';
 		print '<input type="hidden" name="action" value="">';	
 		print '<table class="tagtable liste" style="margin-bottom: 0px;">';
@@ -50,7 +225,6 @@ if($user->rights->paiementsalaire->societe->write){
 		$aff = true;
 		if($result){
 			$i = 0;
-			print $catSql;
 			$num = $db->num_rows($result);
 			while ($i < $num){
 				$obj1 = $db->fetch_object($result);
@@ -172,7 +346,9 @@ if($user->rights->paiementsalaire->societe->write){
 
 		print '<tr class="impair">';
 		print '<td style="padding: 10px; width: 200px;">Salaire de Base</td>';
-		print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="salaire_base" name="salaire_base" value="'.$salaire_base.'" ></td>';
+		print '<td style="padding: 10px; width: 210px;"><input type="hidden" id="salaire_base" name="salaire_base" value="'.$salaire_base.'" >
+		<input type="text" id="salaire_b" disabled name="salaire_b" value="'.$salaire_base.'" ></td>';
+		
 		
 		print '</tr>';
 
@@ -235,12 +411,12 @@ if($user->rights->paiementsalaire->societe->write){
 
 		print '<tr class="impair" >';
 		print '<td style="padding: 10px; width: 200px;">Nombre enfant à charge</td>';
-		print '<td style="padding: 10px; width: 200px;"><input id="nb_enfant" value="'.(GETPOST("nb_enfant", "int")?:"0").'" name="nb_enfant" type="number" min="0" max="10" size="5"></td>';
+		print '<td style="padding: 10px; width: 200px;"><input type="number" id="nb_enfant" name="nb_enfant" min="0" max="10" size="5" required></td>';
 		print '</tr>';
 
 		print '<tr class="impair" >';
 		print '<td style="padding: 10px; width: 200px;">Nombre enfant Handicapé</td>';
-		print '<td style="padding: 10px; width: 200px;"><input id="nombre_enfant_hand" value="'.(GETPOST("nombre_enfant_hand", "int")?:"0").'" name="nombre_enfant_hand" type="number" min="0" max="10" size="5" ></td>';
+		print '<td style="padding: 10px; width: 200px;"><input type="number" id="nombre_enfant_hand" name="nombre_enfant_hand" min="0" max="10" size="5" required></td>';
 		print '</tr>';
 		//--------------------------------------------------------------------------------------------
 		$salaire_brut_imposable += $salaire_base;
@@ -254,6 +430,7 @@ if($user->rights->paiementsalaire->societe->write){
 		$retenu = 0;
 
 
+		$tab_prime_ind = array();
 		$pr_array = salarie_prime_simulation($db, 0, $salaire_base, $tab[0],0, $id_convention);
 		foreach ($pr_array as $key => $value) {
 		if(!empty($key) && !empty($value)){
@@ -277,10 +454,11 @@ if($user->rights->paiementsalaire->societe->write){
 					if($pr->soumis_impot=="Oui")
 					$salaire_brut_imposable += $value;
 
-					$salaire_brut += $value;
 
 				}
+					$salaire_brut += $value;
 
+					$tab_prime_ind[] = $pr->libelle."(".$value.")";
 				//print "<br> Nom = ".$pr->libelle." afficher sur bulletin=".$pr->affiche_bulletin."=>".$value;
 			}
 		}
@@ -296,8 +474,25 @@ if($user->rights->paiementsalaire->societe->write){
 			$prime_res = $db->query($sql);
 			if($prime_res){
 				$pr = $db->fetch_object($prime_res);
+				if($pr->exonere == "oui"){
+					if($pr->soumis_cotisation=="Oui")
+						$salaire_brut_cotisable += $value;
 
+					if($pr->soumis_impot=="Oui")
+					$salaire_brut_imposable += $value;
+
+				}else{
+					if($pr->soumis_cotisation=="Oui")
+						$salaire_brut_cotisable += $value;
+
+					if($pr->soumis_impot=="Oui")
+					$salaire_brut_imposable += $value;
+
+					$salaire_brut += $value;
+
+				}
 				$salaire_brut += $value;
+				$tab_prime_ind[] = $pr->libelle."(".$value.")";
 
 				//print "<br> Nom = ".$pr->libelle." afficher sur bulletin=".$pr->affiche_bulletin."=>".$value;
 			}
@@ -324,13 +519,15 @@ if($user->rights->paiementsalaire->societe->write){
 						if(!empty($ind->porcentage_soumis_impot))
 							$salaire_brut_imposable += ($value*$ind->porcentage_soumis_impot)/100;
 				//print "<br> Nom = ".$ind->libelle." afficher sur bulletin=".$ind->affiche_bulletin."=>".$value;
+				$tab_prime_ind[] = $ind->libelle."(".$value.")";
+
 			}
 
 		}
 		}
 
 
-		$ind_array = indemnite_flottante($db, $obj_salarie->fk_salarie);
+		/*$ind_array = indemnite_flottante($db, $obj_salarie->fk_salarie);
 		foreach ($ind_array as $key => $value) {
 		if(!empty($key) && !empty($value)){
 			$sql = "SELECT * FROM ".MAIN_DB_PREFIX."indemnite WHERE rowid=".$key;
@@ -347,10 +544,12 @@ if($user->rights->paiementsalaire->societe->write){
 						$salaire_brut_imposable += ($value*$ind->porcentage_soumis_impot)/100;
 
 				$salaire_brut += $value;
+				$tab_prime_ind[] = $pr->libelle."(".$value.")";
+
 				//print "<br> Nom = ".$ind->libelle." afficher sur bulletin=".$ind->affiche_bulletin."=>".$value;
 			}
 		}
-		}
+		}*/
 	//Primes et indemnites simulation
 	if(!empty(GETPOST("array_prime_indemnite"))){
 		$all_pr_ind = explode(";", GETPOST("array_prime_indemnite"));
@@ -358,16 +557,24 @@ if($user->rights->paiementsalaire->societe->write){
 			$prime_ind = explode("_", $all_pr_ind[$i]);
 			if(!empty($all_pr_ind[$i])){
 				$salaire_brut += $prime_ind[0];
+
+				$constr = "Prime_sim".$i."(".$prime_ind[0].") ";
+
 				if($prime_ind[1] == 1){
 					$salaire_brut_imposable += $prime_ind[0];
+					$constr .= "imposable ";
 					//print $prime_ind[0]."-i--".$prime_ind[1]."---".$prime_ind[2]."<br>";
 
-				}
+				}else $constr .= "non imposable ";
+
 				if($prime_ind[2] == 1){
 					$salaire_brut_cotisable += $prime_ind[0];
+					$constr .= "cotisable ";
 					//print $prime_ind[0]."--c-".$prime_ind[1]."---".$prime_ind[2]."<br>";
 
-				}
+				}else $constr .= "non cotisable ";
+				$tab_prime_ind[] = $constr;
+
 			}
 		}
 	}
@@ -459,7 +666,59 @@ if($user->rights->paiementsalaire->societe->write){
 			);
 
 		</script>';
+
+		//s'il n'y a pas de resultat de simulation à afficher on affiche les simulation enregistrer
+	if(empty(GETPOST("type_simulation", "alpha")) || $action == "enregistrer_simulation"){
+		print "<div id='partie_cache' style='flex:1; border:solid black 2px; margin-left:30px; width:50%'>";
+		print "<H2 align='center'> Les simulations enregistrées</H2>";
+		print "<table class='tagtable liste' style='width 100%'>";
+		print '<tr class="liste_titre"><td style="padding: 10px; width: 200px;"><label>Libellé</label></td>';
+		print '<td >Date</td>';					
+		print '<td>Opération</td></tr>';
+		
+		//Formulaire de coche
+		print '<form id="add_simulation" method="POST" action="../doc/export_simulation.php?mainmenu=paiementsalaire&leftmenu=salarie&id_societe='.$id_societe.'&id_convention='.$id_convention.'">';
+		print '<input type="hidden" name="token" value="'.newToken().'">';
+		print '<input type="hidden" name="action" value="cocher">';
+		$sql_select = "SELECT rowid, libelle, date_creation FROM ".MAIN_DB_PREFIX."simulation ORDER BY rowid DESC";
+		$res_select = $db->query($sql_select);
+		$nb = $db->num_rows($res_select);
+		$a = 0;
+		while ($a < $nb && $a < 10) {
+			$obj_select = $db->fetch_object($res_select);
+			$cle = "simulation".$obj_select->rowid;
+			print '<tr class="impair"><td style="padding: 10px; width: 200px;"><label>'.($a + 1).'°) '.$obj_select->libelle.'</label></td>';
+			print '<td >'.$obj_select->date_creation.'</td>';					
+			print '<td align=center><input type="checkbox" name="'.$cle.'">&nbsp;&nbsp;<a href="'.$_SERVER['PHP_SELF'].'?mainmenu=paiementsalaire&leftmenu=salarie&id_societe='.$id_societe.'&id_convention='.$id_convention.'&id_simulation='.$obj_select->rowid.'&action=supprimer" >'.img_picto("Supprimer", "delete").'</a></td></tr>';
+
+			$a ++;
+		}
+
+		if($nb <= 0 )
+			print '<tr class="impair"><td align=center colspan=3 style="padding: 10px; width: 200px;"><label>Aucune simulation trouvée</label></td></tr>';		
+		
+			//les boutons
+		print '<div align="right"><input class="button" type="submit" value="Cocher & Exporter" >';
+		print "</form>";
+		print '&nbsp;<a class="button" href="../doc/export_simulation.php?mainmenu=paiementsalaire&leftmenu=salarie&id_societe='.$id_societe.'&id_convention='.$id_convention.'&action=tout_exporter" >Tout exporter</a>';
+		if($nb > 0)
+			print '&nbsp;<a class="button" href="'.$_SERVER['PHP_SELF'].'?mainmenu=paiementsalaire&leftmenu=salarie&id_societe='.$id_societe.'&id_convention='.$id_convention.'&action=tout_effacer" >Tout éffacer</a>';
+		print '</div>';
+		print "</table>";
+
+		print "</div>";
+
+	}else{
+
 		print "<div id='partie_cache' style='flex:1'>";
+
+		//Affichage des primes indemnités utilités dans la simulation
+		$m = "Les primes et indemnités utilisées : ";
+		for ($i=0; $i < count($tab_prime_ind); $i++) { 
+			$m .= ($i +1).") ".$tab_prime_ind[$i]." | ";
+		}
+		print info_admin($m, 1)."<br>";
+
 		$mon_salaire_brut = $salaire_brut;
 		$mon_brut_cotis = 0;
 		$mon_brut_imp = 0;
@@ -467,10 +726,23 @@ if($user->rights->paiementsalaire->societe->write){
 		$fin = false;
 
 		$sursalaire = 0;
+	print '<form id="add_simulation" method="POST" action="'.$_SERVER['PHP_SELF'].'?mainmenu=paiementsalaire&leftmenu=salarie&id_societe='.$id_societe.'&id_convention='.$id_convention.'">';
+	print '<input type="hidden" name="token" value="'.newToken().'">';
+	print '<input type="hidden" name="action" value="enregistrer_simulation">';
+ 	print '<input type="hidden" id="salaire_base" name="salaire_base" value="'.$salaire_base.'" >';
+	print '<input type="hidden" id="type_simulation" name="type_simulation" value="'.$type_simulation.'">';
+	print '<input type="hidden" id="categorie" name="categorie" value="'.$categ.'">';
+	print '<input type="hidden" id="echelon" name="echelon" value="'.$echelon.'">';
+	print '<input type="hidden" id="anciennete" name="anciennete" value="'.$val_aciennete.'">';
+	print '<input type="hidden" id="statut_f" name="statut_f" value="'.GETPOST("statut_f", "alpha").'">';
+	print '<input type="hidden" id="nb_enfant" name="nb_enfant" value="'.GETPOST("nb_enfant", "int").'">';
+	print '<input type="hidden" id="nombre_enfant_hand" name="nombre_enfant_hand" value="'.GETPOST("nombre_enfant_hand", "int").'">';
+	print '<input type="hidden" id="primesindemnites" name="primesindemnites" value="'.$m.'">';
 
-	if($type_simulation == 'salaire_brut'){
+	if($type_simulation == 'salaire_brut' && empty(GETPOST("nom_simulation", "alpha"))){
 		$mon_salaire_brut  = GETPOST("salaire_brut", "int");
 		if(!empty(GETPOST("salaire_brut", "int"))){
+
 			$sursalaire = $mon_salaire_brut - $salaire_brut;
 			$inps = 0;
 			$retenu = 0;
@@ -480,7 +752,7 @@ if($user->rights->paiementsalaire->societe->write){
 				print "<table class='tagtable liste'>";
 				$brut = "salaire brut calculé + sursalaire = ".$salaire_brut." + ".$sursalaire." = ".$mon_salaire_brut;
 				print '<tr class="impair"><td style="padding: 10px; width: 200px;"><label>Salaire brut'.info_admin("Le salaire brut obtenu après le calcul du salaire de ce salarié, ".$brut,1).'</label></td>';
-				print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="salaire_net" name="salaire_net" value="'.($salaire_brut).'"></td></tr>';					
+				print '<td style="padding: 10px; width: 210px;"><input type="text" id="salaire_b" name="salaire_b" value="'.($salaire_brut).'"></td></tr>';					
 				$index = 0;
 					$global_cotis = salarie_prestation_simulation($db, $fk_salarie, $salaire_brut_cotisable, $id_convention);
 					$cotis = $global_cotis[1];
@@ -496,9 +768,9 @@ if($user->rights->paiementsalaire->societe->write){
 								//print $retenu_prest_empl."<br>";
 		
 								print '<tr class="impair"><td style="padding: 10px; width: 200px;">'.$obj_prest_type->code.'</td>';
-								print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="its" name="its" value="'.$retenu_prest_patro.'"></td></tr>';
-								print '<tr class="impair"><td style="padding: 10px; width: 200px;">'.$obj_prest_type->code.' employé</td>';
-								print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="its" name="its" value="'.$retenu_prest_empl.'*"></td></tr>';
+								print '<td style="padding: 10px; width: 210px;"><input type="text" id"'.$obj_prest_type->rowid.'employeur" name="'.$obj_prest_type->rowid.'employeur" value="'.$retenu_prest_patro.'"></td></tr>';
+								print '<tr class="impair"><td style="padding: 10px; width: 200px;">'.$obj_prest_type->code.'employé</td>';
+								print '<td style="padding: 10px; width: 210px;"><input type="text" id="'.$obj_prest_type->rowid.'employeur" name="'.$obj_prest_type->rowid.'employe" value="'.$retenu_prest_empl.'"></td></tr>';
 		
 								print "</tr>";	
 								if($obj_prest_type->rowid != 6)
@@ -511,27 +783,39 @@ if($user->rights->paiementsalaire->societe->write){
 					}	
 		
 					$salaire_brut_imposable -= $inps;
-					$its = $its = its_salarie($db, $fk_salarie, $mon_brut_imp, GETPOST("statut_f", "alpha"), GETPOST("nb_enfant", "int"), GETPOST("nombre_enfant_hand", "int"));;
+					$mon_brut_imp = $salaire_brut_imposable;
+					$its = $its = its_salarie($db, $fk_salarie, $mon_brut_imp, GETPOST("statut_f", "alpha"), GETPOST("nb_enfant", "int")?:0, GETPOST("nombre_enfant_hand", "int")?:0);;
 					$retenu += $its[2];
 					$mon_net = $mon_salaire_brut - $retenu;
+					print '<input type="hidden" id="salaire_brut" name="salaire_brut" value="'.($salaire_brut+$sursalaire).'">';
+					print '<input type="hidden" id="salaire_brut_cotisable" name="salaire_brut_cotisable" value="'.($salaire_brut_cotisable).'">';
+					print '<input type="hidden" id="salaire_brut_imposable" name="salaire_brut_imposable" value="'.($salaire_brut_imposable).'">';
+
 				print '<tr class="impair"><td style="padding: 10px; width: 200px;">I.T.S(mensuel)</td>';
-				print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="its" name="its" value="'.round($its[2]).'"></td></tr>';
+				print '<td style="padding: 10px; width: 210px;"><input type="text" id="its" name="its" value="'.round($its[2]).'"></td></tr>';
 				print "<tr class='impair'>";
 						
 				print '<td style="padding: 10px; width: 200px;">Sursalaire</td>';
 				print '<td style="padding: 10px; width: 210px;"><input type="text" id="sursalaire" value="'.($sursalaire?:0).'" name="sursalaire" ></td>';
 				print '</tr>';
 				print '<tr class="impair"><td style="padding: 10px; width: 200px;"><label>Salaire net</label></td>';
-				print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="salaire_net" name="salaire_net" value="'.round($mon_net).'"></td></tr>';					
+				print '<td style="padding: 10px; width: 210px;"><input type="text" id="salaire_net" name="salaire_net" value="'.round($mon_net).'"></td></tr>';					
 				print '<tr class="impair"><td style="padding: 10px; width: 200px;"><label>Coût total</label></td>';
-				print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="salaire_net" name="salaire_net" value="'.($cout).'"></td></tr>';					
+				print '<td style="padding: 10px; width: 210px;"><input type="text" id="cout" name="cout" value="'.($cout).'"></td></tr>';
+	
+				print '<tr class="impair"><td style="padding: 10px; width: 200px;"><b>Nom de la simulation</b></td>';
+				print '<td style="padding: 10px; width: 210px;"><input style="border-color:blue" autofocus type="text" required id="nom_simulation" name="nom_simulation" value=""></td></tr>';
+
+				print '<tr><td colspan=2 style="padding: 10px; width: 200px; text-align:right"><input style="margin-top:10px;" type="submit" class="button" value="Enregistrer" ></td></tr>';
+				
 				print "</table>";
 		
 				}
 		
-	}elseif($type_simulation == 'salaire_net'){
+	}elseif($type_simulation == 'salaire_net' && empty(GETPOST("nom_simulation", "alpha"))){
 
 		$net  = GETPOST("salaire_net", "int");
+
 		while ($fin == false && $net){
 			$mon_salaire_brut += $sursalaire;
 			$mon_brut_cotis = $salaire_brut_cotisable + ($mon_salaire_brut - $salaire_brut);
@@ -594,7 +878,7 @@ if($user->rights->paiementsalaire->societe->write){
 			$cout = $mon_salaire_brut;
 			print "<table class='tagtable liste'>";
 			print '<tr class="impair"><td style="padding: 10px; width: 200px;"><label>Salaire brut</label></td>';
-			print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="salaire_brut" name="salaire_brut" value="'.($salaire_brut).'"></td></tr>';					
+			print '<td style="padding: 10px; width: 210px;"><input type="text" id="salaire_brut" name="salaire_brut" value="'.($salaire_brut).'"></td></tr>';					
 			$index = 0;
 				$global_cotis = salarie_prestation_simulation($db, $obj_salarie->fk_salarie, $salaire_brut_cotisable, $id_convention);
 				$cotis = $global_cotis[1];
@@ -611,9 +895,9 @@ if($user->rights->paiementsalaire->societe->write){
 
 
 							print '<tr class="impair"><td style="padding: 10px; width: 200px;">'.$obj_prest_type->code.'</td>';
-							print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="its" name="its" value="'.$retenu_prest_patro.'"></td></tr>';
+							print '<td style="padding: 10px; width: 210px;"><input type="text" id="'.$obj_prest_type->rowid.'employeur" name="'.$obj_prest_type->rowid.'employeur" value="'.$retenu_prest_patro.'"></td></tr>';
 							print '<tr class="impair"><td style="padding: 10px; width: 200px;">'.$obj_prest_type->code.' employé</td>';
-							print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="its" name="its" value="'.$retenu_prest_empl.'*"></td></tr>';
+							print '<td style="padding: 10px; width: 210px;"><input type="text" id="'.$obj_prest_type->rowid.'employe" name="'.$obj_prest_type->rowid.'employe" value="'.$retenu_prest_empl.'"></td></tr>';
 
 							print "</tr>";	
 						}
@@ -622,15 +906,25 @@ if($user->rights->paiementsalaire->societe->write){
 
 
 				$its = its_salarie($db, $fk_salarie, $mon_brut_imp, GETPOST("statut_f", "alpha"), GETPOST("nb_enfant", "int"), GETPOST("nombre_enfant_hand", "int"));
+				
+				print '<input type="hidden" id="salaire_net" name="salaire_net" value="'.($net).'">';
+				print '<input type="hidden" id="salaire_brut_cotisable" name="salaire_brut_cotisable" value="'.($salaire_brut_cotisable).'">';
+				print '<input type="hidden" id="salaire_brut_imposable" name="salaire_brut_imposable" value="'.($salaire_brut_imposable).'">';
+
 				print '<tr class="impair"><td style="padding: 10px; width: 200px;">I.T.S(mensuel)</td>';
-			print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="its" name="its" value="'.round($its[2]).'"></td></tr>';
+			print '<td style="padding: 10px; width: 210px;"><input type="text" id="its" name="its" value="'.round($its[2]).'"></td></tr>';
 			print "<tr class='impair'>";
 			print '<td style="padding: 10px; width: 200px;">Sursalaire</td>';
 			print '<td style="padding: 10px; width: 210px;"><input type="text" id="sursalaire" value="'.($sursalaire?:0).'" name="sursalaire" ></td>';
 			print '</tr>';
 			print '<tr class="impair"><td style="padding: 10px; width: 200px;"><label>Coût total</label></td>';
-			print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="salaire_net" name="salaire_net" value="'.($cout).'"></td></tr>';					
+			print '<td style="padding: 10px; width: 210px;"><input type="text" id="cout" name="cout" value="'.($cout).'"></td></tr>';
 			
+			print '<tr class="impair"><td style="padding: 10px; width: 200px;"><b>Nom de la simulation</b></td>';
+			print '<td style="padding: 10px; width: 210px;"><input style="border-color:blue" autofocus type="text" required id="nom_simulation" name="nom_simulation" value=""></td></tr>';
+			print '<tr><td colspan=2 style="padding: 10px; width: 200px; text-align:right"><input style="margin-top:10px;" type="submit" class="button" value="Enregistrer" ></td></tr>';
+			//print '<input type="hidden" name="salaire_net" value="'.$net.'">';
+
 			print "</table>";
 
 		}
@@ -638,7 +932,8 @@ if($user->rights->paiementsalaire->societe->write){
 		
 
 		
-	}else{
+	}elseif(empty(GETPOST("nom_simulation", "alpha"))){
+
 			$cout_total  = GETPOST("cout", "int");
 
 			while ($fin == false && $cout_total){
@@ -705,10 +1000,9 @@ if($user->rights->paiementsalaire->societe->write){
 				$sursalaire = $mon_salaire_brut -  $salaire_brut;
 				$mon_cout = $salaire_brut + ($mon_salaire_brut -  $salaire_brut);
 
-
 				print "<table class='tagtable liste'>";
 				print '<tr class="impair"><td style="padding: 10px; width: 200px;"><label>Salaire brut</label></td>';
-				print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="salaire_brut" name="salaire_brut" value="'.($mon_salaire_brut).'"></td></tr>';					
+				print '<td style="padding: 10px; width: 210px;"><input type="text" id="salaire_brut" name="salaire_brut" value="'.($mon_salaire_brut).'"></td></tr>';					
 				$index = 0;
 					$global_cotis = salarie_prestation_simulation($db, $fk_salarie, $salaire_brut_cotisable, $id_convention);
 					$cotis = $global_cotis[1];
@@ -724,9 +1018,9 @@ if($user->rights->paiementsalaire->societe->write){
 								//print $taux_p[$index]."--".$retenu_prest_patro."<br>";
 
 								print '<tr class="impair"><td style="padding: 10px; width: 200px;">'.$obj_prest_type->code.'</td>';
-								print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="its" name="its" value="'.$retenu_prest_patro.'"></td></tr>';
+								print '<td style="padding: 10px; width: 210px;"><input type="text" id="'.$obj_prest_type->rowid.'employeur" name="'.$obj_prest_type->rowid.'employeur" value="'.$retenu_prest_patro.'"></td></tr>';
 								print '<tr class="impair"><td style="padding: 10px; width: 200px;">'.$obj_prest_type->code.' employé</td>';
-								print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="its" name="its" value="'.$retenu_prest_empl.'*"></td></tr>';
+								print '<td style="padding: 10px; width: 210px;"><input type="text" id="'.$obj_prest_type->rowid.'employe" name="'.$obj_prest_type->rowid.'employe" value="'.$retenu_prest_empl.'"></td></tr>';
 
 								print "</tr>";
 								$index ++;
@@ -735,24 +1029,40 @@ if($user->rights->paiementsalaire->societe->write){
 					}	
 
 
-					$its = $its = its_salarie($db, $fk_salarie, $mon_brut_imp, GETPOST("statut_f", "alpha"), GETPOST("nb_enfant", "int"), GETPOST("nombre_enfant_hand", "int"));;
+					$its = $its = its_salarie($db, $fk_salarie, $mon_brut_imp, GETPOST("statut_f", "alpha"), GETPOST("nb_enfant", "int"), GETPOST("nombre_enfant_hand", "int"));
+
+					print '<input type="hidden" id="cout" name="cout" value="'.($cout_total).'">';
+					print '<input type="hidden" id="salaire_brut_cotisable" name="salaire_brut_cotisable" value="'.($salaire_brut_cotisable).'">';
+					print '<input type="hidden" id="salaire_brut_imposable" name="salaire_brut_imposable" value="'.($salaire_brut_imposable).'">';
+
 				print '<tr class="impair"><td style="padding: 10px; width: 200px;">I.T.S(mensuel)</td>';
-				print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="its" name="its" value="'.round($its[2]).'"></td></tr>';
+				print '<td style="padding: 10px; width: 210px;"><input type="text" id="its" name="its" value="'.round($its[2]).'"></td></tr>';
 				print "<tr class='impair'>";	
 				print '<td style="padding: 10px; width: 200px;">Sursalaire</td>';
 				print '<td style="padding: 10px; width: 210px;"><input type="text" id="sursalaire" value="'.($sursalaire?:0).'" name="sursalaire" ></td>';
 				print '</tr>';
 				print '<tr class="impair"><td style="padding: 10px; width: 200px;"><label>Salaire net</label></td>';
-				print '<td style="padding: 10px; width: 210px;"><input type="text" disabled id="salaire_net" name="salaire_net" value="'.($mon_net).'"></td></tr>';					
+				print '<td style="padding: 10px; width: 210px;"><input type="text" id="salaire_net" name="salaire_net" value="'.($mon_net).'"></td></tr>';					
+				
+				print '<tr class="impair"><td style="padding: 10px; width: 200px;"><b>Nom de la simulation</b></td>';
+				print '<td style="padding: 10px; width: 210px;"><input style="border-color:blue" autofocus type="text" required id="nom_simulation" name="nom_simulation" value=""></td></tr>';
 
-				print '</form>';
+				print '<tr><td colspan=2 style="padding: 10px; width: 200px; text-align:right"><input style="margin-top:10px;" type="submit" class="button" value="Enregistrer" ></td></tr>';
+
 				print "</table>";
 	}
 	}
+}
 	print "</div>";
 		print "</div>";
-}else 	print "<h2> Permission manquante </h2>";
+			print "</form>";
 
+}else 	print "<h2> Permission manquante </h2>";
+if($message != ""){
+		print "<script>
+		$.jnotify('".$message."', {delay : 5000, fadeSpeed: 500});
+		</script>";
+	}
 	
 		
 print '<script type="text/javascript">

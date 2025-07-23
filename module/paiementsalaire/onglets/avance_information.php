@@ -81,7 +81,7 @@ if(empty($fk_salarie) || empty($id_avance)){
 		print "<tr class='fieldrequired'><td style='width: 200px; padding-top: 15px;'>Montant</td><td style='width: 200px; padding-top: 15px;'>".apres_virgule($db, $id_societe, $obj_avance->montant_total)."</td></tr>";
 		print "<tr class='fieldrequired'><td style='width: 200px; padding-top: 15px;'>Payé</td><td style='width: 200px; padding-top: 15px;'>".apres_virgule($db, $id_societe, $obj_avance->montant_paye)."</td>";
 		print "<tr class='fieldrequired'><td style='width: 200px; padding-top: 15px;'>A payer dans</td><td style='width: 200px; padding-top: 15px;'>".$obj_avance->nombre_mois." mois</td>";
-		print "<tr class='fieldrequired'><td style='width: 200px; padding-top: 15px;'>Montant/Mois</td><td style='width: 200px; padding-top: 15px;'>".$obj_avance->montant_par_mois."</td>";
+		print "<tr class='fieldrequired'><td style='width: 200px; padding-top: 15px;'>Montant/Mois</td><td style='width: 200px; padding-top: 15px;'>".apres_virgule($db, $id_societe, $obj_avance->montant_par_mois)."</td>";
 		print "<tr class='fieldrequired'><td style='width: 200px; padding-top: 15px;'>Début paiement</td><td style='width: 200px; padding-top: 15px;'>".$mois_tab[$obj_avance->mois_debut_paiement-1]." ".$obj_avance->annee_debut_paiement."</td>";
 		print "<tr class='fieldrequired'><td style='width: 200px; padding-top: 15px;'>Date affectation</td><td style='width: 200px; padding-top: 15px;'>".$obj_avance->date_affectation."</td>";
 		print "<tr class='fieldrequired'><td style='width: 200px; padding-top: 15px;'>Note</td><td style='width: 200px; padding-top: 15px;'>".$obj_avance->note."</td>";

@@ -720,7 +720,7 @@ global $db, $obj_soc;
 
 							$pays_Sql = "SELECT * FROM ".MAIN_DB_PREFIX."c_country where rowid=".($obj_salarie->fk_country?:0);
 							$pays_Result = $db->query($pays_Sql);
-							$pays = "N/A";
+							$pays = "Mali";
 							if(!empty($obj_user->fk_country))
 								$pays = $db->fetch_object($pays_Result)->label;
 
@@ -741,7 +741,7 @@ global $db, $obj_soc;
 							if(!empty($obj_salarie->address))
 							$addresse = $obj_salarie->address;
 
-							$ville = "N/A";
+							$ville = "Bamako";
 							if(!empty($obj_salarie->town))
 								$ville = $obj_salarie->town;
 
@@ -770,6 +770,42 @@ global $db, $obj_soc;
 							$restype_contrat = $db->query($sql_type_contrat);
 							$contrat = $db->fetch_object($restype_contrat)->libelle;
 
+							//Suppression des lettres ci-dessous dans le numéro inps
+							$mots = array("INPS:", "INPS", "INPS :", "INPS ", "INP:", "INP", "INP :", "INP ");
+							$inps = $obj_salarie->inps;
+							for ($j=0; $j < count($mots); $j++) { 
+								$texte = $inps;
+								//suppression des lettres "inps : "
+								$mot = $mots[$j];
+
+								// Vérifie si le mot existe (insensible à la casse)
+								if (stripos($texte, $mot) !== false) {
+									// Supprime toutes les occurrences du mot (insensible à la casse)
+									$texteNettoye = preg_replace("/\b$mot\b/i", '', $texte);
+
+									// Nettoyage des espaces en double
+									$inps = preg_replace('/\s+/', ' ', trim($texteNettoye));
+								}
+							}
+
+							//Suppression des lettres ci-dessous dans le numéro AMO
+							$mots = array("AMO:", "AMO", "AMO :", "AMO ");
+							$amo = $obj_salarie->amo;
+							for ($j=0; $j < count($mots); $j++) { 
+								$texte = $amo;
+								//suppression des lettres "inps : "
+								$mot = $mots[$j];
+
+								// Vérifie si le mot existe (insensible à la casse)
+								if (stripos($texte, $mot) !== false) {
+									// Supprime toutes les occurrences du mot (insensible à la casse)
+									$texteNettoye = preg_replace("/\b$mot\b/i", '', $texte);
+
+									// Nettoyage des espaces en double
+									$amo = preg_replace('/\s+/', ' ', trim($texteNettoye));
+								}
+							}
+
 							$sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin (nom, prenom, fk_salarie, matricule, situation_familiale, nombre_enfant, nombre_enfant_hand, calcul_salaire, categorie
 							, echelon, contrat, diplome, type_salarie, fonction, date_embauche, sexe, pays, ville, addresse, tel, email, annee, mois, salaire_base, sursalaire, salaire_brut, salaire_brut_cotisable,
 							salaire_brut_imposable, net_payer, fk_societe, nom_societe, logo_societe, nom_convention,inps,amo,banque,compte,pourcentage)
@@ -777,7 +813,7 @@ global $db, $obj_soc;
 							"'.$categ.'","'.$echelon.'","'.$contrat.'","'.$diplome.'","'.$type_salarie.'","'.($obj_salarie->job?:"N/A").'","'.($date_embauche).'",
 							"'.$sexe.'","'.$pays.'","'.$ville.'","'.$addresse.'","'.($obj_salarie->personal_mobile?:($tel?:$fax)).'","'.$email.'",
 							'.$annee.','.$mois.',"'.round($salaire_base, 2).'","'.$sursalaire.'","'.$salaire_brut.'","'.$salaire_brut_cotisable.'","'.$salaire_brut_imposable.'","'.round($net_payer).'",'.$id_societe.',"'.$obj_soc->nom.'","'.$obj_soc->logo.'",
-							"'.$obj_conv->nom.'","'.$obj_salarie->inps.'","'.$obj_salarie->amo.'","'.$type_bank.'","'.$obj_salarie->compte.'",'.$base_pourcentage.')';
+							"'.$obj_conv->nom.'","'.$inps.'","'.$amo.'","'.$type_bank.'","'.$obj_salarie->compte.'",'.$base_pourcentage.')';
 
 							$res_bulletin = $db->query($sql_bulletin);
 							if(!$res_bulletin){

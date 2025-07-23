@@ -97,8 +97,8 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->co
 				$message .= 'Le champ "DATE SIGNATURE" est obligatoire<br>';
 			if(empty($date_emb))
 				$message .= 'Le champ "DATE EMBAUCHE" est obligatoire<br>';
-			if($type == "1" && empty($date_fin))
-				$message .= 'Le champ "DATE FIN" est obligatoire pour le type CDD<br>';
+			if($type != 2 && empty($date_fin))
+				$message .= 'Le champ "DATE FIN" est obligatoire pour ce type de contrat<br>';
 
 			if($type == "2")
 				unset($date_fin);

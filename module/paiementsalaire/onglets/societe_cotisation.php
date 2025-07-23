@@ -106,6 +106,16 @@ print "<table class='tagtable liste'>";
 	print "</tr></thead>";
 
 		for ($i=0; $i < count($mois_tab); $i++) { 
+
+			//Verifions s'il y a un bonus(compléments) pour ce mois
+			$bonus = "";
+			$sql_id_bulletin_bonus = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
+			$res_id_bulletin_bonus  = $db->query($sql_id_bulletin_bonus);
+			$num_bonus = $db->num_rows($res_id_bulletin_bonus);
+			if($num_bonus >0 )
+				$bonus = info_admin("Un complément salaire est lié à ce mois", 1);
+
+
 			print "<tr class='impair'>";
 			$nb_j = (int) date("d");
 				$sql_verif = "SELECT rowid, cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
@@ -116,9 +126,10 @@ print "<table class='tagtable liste'>";
 				if(!empty($obj_verif->cloture)){
 					if($obj_verif->cloture == 'non')
 						print "<td><b>".$mois_tab[$i]." ".info_admin('Veuillez cloturer ce mois pour Voir ou Télécharger',1)."</b></td>";
-					else print "<td><b>".$mois_tab[$i]."</b></td>";
+					else print "<td><b>".$mois_tab[$i]." ".$bonus."</b></td>";
 					print "<td>".$nb_salarie."</td>";
 							
+					//Bulletin
 							for ($j=0; $j < count($array_id_cotis); $j++) {
 								$sql_id_bulletin = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
 								$res_id_bulletin  = $db->query($sql_id_bulletin);
@@ -130,13 +141,26 @@ print "<table class='tagtable liste'>";
 									$sql_som_cotisation = "SELECT SUM(montant_employe) as montant_employe, SUM(montant_employeur) as montant_employeur FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_cotisation=".$array_id_cotis[$j]." AND fk_bulletin=".$obj_id_bulletin->rowid;
 									$res_som_cotisation  = $db->query($sql_som_cotisation);
 									if($res_som_cotisation){
-										
-
-													$obj_som_cotisation = $db->fetch_object($res_som_cotisation);
-													$somme_cotisation += $obj_som_cotisation->montant_employe + $obj_som_cotisation->montant_employeur;
-													$a ++;
+										$obj_som_cotisation = $db->fetch_object($res_som_cotisation);
+										$somme_cotisation += $obj_som_cotisation->montant_employe + $obj_som_cotisation->montant_employeur;
+										$a ++;
 										
 									}
+									$k ++;
+								}
+
+								//Bulletin bonus complement salaire
+									$k = 0;
+									while ($k < $num_bonus){
+										$obj_id_bulletin_bonus = $db->fetch_object($res_id_bulletin_bonus);
+										$sql_som_cotisation_bonus = "SELECT SUM(montant_employe) as montant_employe, SUM(montant_employeur) as montant_employeur FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_cotisation=".$array_id_cotis[$j]." AND fk_bulletin=".$obj_id_bulletin->rowid;
+										$res_som_cotisation_bonus  = $db->query($sql_som_cotisation_bonus);
+										if($res_som_cotisation_bonus){
+											$obj_som_cotisation_bonus = $db->fetch_object($res_som_cotisation_bonus);
+											$somme_cotisation += $obj_som_cotisation_bonus->montant_employe + $obj_som_cotisation_bonus->montant_employeur;
+											$a ++;
+											
+										}
 										$k ++;
 								}
 

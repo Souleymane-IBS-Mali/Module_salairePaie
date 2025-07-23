@@ -10,8 +10,9 @@ require("../fpdf/fpdf.php");
 // Connexion à la BDD (à personnaliser)
 $id_societe = GETPOST("id_societe","int");
 $id_convention = GETPOST("id_convention","int");
+$fk_salarie = GETPOST("fk_salarie","int");
 
-$action = GETPOST("action", "aplha");
+$action = GETPOST("action", "alpha");
 
 if($action == "telecharger")
  $mode = "D";
@@ -22,31 +23,32 @@ $id_convention = GETPOST("id_convention", "int");
 
 
 if($id_societe){
+  $mois_tab = array(" janvier "," février "," mars "," avril "," mai "," juin "," juillet "," août "," septembre "," octobre "," novembre "," décembre ");
+
+  $sql_soc = "SELECT societe_mere FROM ".MAIN_DB_PREFIX."salairepaie_societe WHERE fk_societe=".$id_societe;
+		$result_soc = $db->query($sql_soc);
+		if($result_soc)
+			$info_soc = $db->fetch_object($result_soc);
+
   $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_salarie=".$fk_salarie." AND annee=".$annee;
     $res_bulletin = $db->query($bulletin_sql);
         if($res_bulletin){
           $num_all = $db->num_rows($res_bulletin);
           if ($num_all > 0){
             //Objet Utilisateur
-            $obj_bulletin = $db->fetch_object($res_bulletin);
-            $mois = $obj_bulletin->mois;
-
 
             $sql_sal = "SELECT * FROM ".MAIN_DB_PREFIX."salarie WHERE rowid=".$fk_salarie;
             $res_sal = $db->query($sql_sal);
             if($res_sal){
               $obj_salarie = $db->fetch_object($res_sal);
 
-                $user_Sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."user where rowid=".$obj_salarie->fk_user;
-                $user_Result = $db->query($user_Sql);
-                $id_salarie = $db->fetch_object($user_Result)->rowid;
+              $user_Sql = "SELECT * FROM ".MAIN_DB_PREFIX."user where rowid=".$obj_salarie->fk_user;
+              $user_Result = $db->query($user_Sql);
+              $id_salarie = $db->fetch_object($user_Result);
 
-
-
-
-
-    global $fk_salarie, $id_salarie, $y, $mois, $annee, $id_accord_etab;
-              }
+              $societe_Sql = "SELECT * FROM ".MAIN_DB_PREFIX."societe where rowid=".$id_societe;
+              $societe_Result = $db->query($societe_Sql);
+              $societe_Salarie = $db->fetch_object($societe_Result);
 
 
 
@@ -82,7 +84,7 @@ if($id_societe){
     function Footer() {
 
       // Positionnement à 1,5 cm du bas
-          $this->SetY(-15);
+      $this->SetY(-4);
 
       // Police Arial italique 8
       $this->SetFont('Helvetica','B',7);
@@ -90,625 +92,967 @@ if($id_societe){
       //$this->Cell(0,10,'Page '.$this->PageNo().'/{nb}',0,0,'C');
      // $this->line(12,$this->GetY(),$this->GetPageWidth()-12,$this->GetY());
 
-      return pdf_ibspagefoot($this, 13, 15);
+      return pdf_ibspagefoot_avance($this, 13, 4);
 
     }
         // On active la classe une fois pour toutes les pages suivantes
     // Format portrait (>P) ou paysage (>L), en mm (ou en points > pts), A4 (ou A5, etc.)
     function SetPage($num) {
       $this->page = $num;
-  }
+    }
   }
 
-   $pdf = new PDF('P','mm','A4');
-    // Nouvelle page A4 (incluant ici logo, titre et pied de page)
-    $pdf->AddPage();
-    // Polices par défaut : Helvetica taille 9
-    $pdf->SetFont('Helvetica','',9);
-    // Couleur par défaut : noir
+  $pdf = new PDF('P','mm','A4');
+// Nouvelle page A4 (incluant ici logo, titre et pied de page)
+            //$pdf->AddPage();
+            // Polices par défaut : Helvetica taille 9
+            $pdf->SetFont('Helvetica','',9);
+            // Couleur par défaut : noir
+            $pdf->SetTextColor(0);
+            // Compteur de pages {nb}
+            $pdf->AliasNbPages();
+        
+    
+          $suivant = 0;
+          while ($suivant < ($num_all)){
+            $obj_bulletin = $db->fetch_object($res_bulletin);
+            $mois = $obj_bulletin->mois;
+            
+            $pdf->SetLineWidth(0.2);
+            $pdf->SetDrawColor(50, 50, 50);
+            $pdf->SetLeftMargin(4);
+            $pdf->SetTopMargin(4);
+            $pdf->SetRightMargin(4);
+        
+            //Grand cadre
+            $pdf->SetFillColor(254, 254, 254);
+            $x = 4;
+            $y = 4;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->MultiCell($pdf->GetPageWidth()-8, $pdf->GetPageHeight()-8, "",1,0,true);
+        
+            $pdf->SetLineWidth(0.1);
+        
+            //Premier rectangle "Bulletin de paie
+            $pdf->SetFillColor(173, 206, 230);
+            $pdf->SetTextColor(0);
+            $pdf->SetFont('Helvetica','B',7);
+            $x = 4.5;
+            $y = 4;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->MultiCell($pdf->GetPageWidth()-9,5, "BULLETIN DE PAIE",0,"C",true);
+        
+            //Logo
+    global $mysoc,$conf;
+    $debut = DOL_DOCUMENT_ROOT;
+		$tab = explode("/",$debut);
+		$logodir = $conf->mycompany->dir_output;
+		$logo_server = $logodir.'/logos/'.$mysoc->logo;
+		if($info_soc->societe_mere == 0){
+			$logo_1 = $tab[0].'/'.$tab[1].'/'.$tab[2].'/'.$tab[3].($tab[4]?'/'.$tab[4]:'').'/documents/societe/'.$obj_bulletin->fk_societe.'/logos/'.$obj_bulletin->logo_societe;
+        	$logo_2 = $tab[0].'/'.$tab[1].'/dolibarr_documents/societe/'.$obj_bulletin->fk_societe.'/logos/'.($obj_bulletin->logo_societe?$obj_bulletin->logo_societe:"vide.png");
+
+			if(is_readable($logo_2)){
+				///home/dolites/public_html
+				$pdf->Image($logo_2,4.5,13, 50,25);
+			}else if(is_readable($logo_1)){
+				$pdf->Image($logo_1,4.5,13, 50,25);
+	
+			}else{
+	
+        //print $logo_1.'***'.$logo_2;
+
+				$pdf->SetFont('Helvetica','B',16);
+				$pdf->SetY(13);
+				$pdf->SetX(4.5);
+				$pdf->MultiCell(50,25,utf8_decode("Logo"),0,'C');
+			}
+
+		}else{
+				$logodir = $conf->mycompany->dir_output;
+				if (!empty($conf->mycompany->multidir_output[$object->entity])) {
+					$logodir = $conf->mycompany->multidir_output[$object->entity];
+				}
+				if (empty($conf->global->MAIN_PDF_USE_LARGE_LOGO)) {
+					$logo = $logodir.'/logos/thumbs/'.$mysoc->logo_small;
+				} else {
+					$logo = $logodir.'/logos/'.$mysoc->logo;
+				}
+			
+			if(is_readable($logo)){
+				///home/dolites/public_html
+				$pdf->Image($logo,4.5,13, 50,25);
+			}else{
+	
+				
+				$pdf->SetFont('Helvetica','B',16);
+				$pdf->SetY(13);
+				$pdf->SetX(4.5);
+				$pdf->MultiCell(50,25,utf8_decode("Logo"),0,'C');
+			}
+		}
+
+    $x = 4.5;
+    $y = 13;
+    $pdf->SetY($y);
+    $pdf->SetX($x);
+    $pdf->MultiCell(50, 25, "",0,0,false);
+
+    //Information de la société
+    //Premier rectangle "Bulletin de paie
+    $x = 125;
+    //Nom
     $pdf->SetTextColor(0);
-    // Compteur de pages {nb}
-    $pdf->AliasNbPages();
-    // Nouvelle page A4 (incluant ici logo, titre et pied de page)
-          $i = 0;
-          $num_all = $db->num_rows($res_bulletin);
-          while ($i < ($num_all)){
-            if($i != 0){
-              $obj_bulletin = $db->fetch_object($res_bulletin);
-              $mois = $obj_bulletin->mois;
-              global $mois;
-            }
-            //Objet Utilisateur
-
-                if($i > 0){
-                  $pdf->AddPage();
-                  $pdf->AliasNbPages();
-
-
-                }
-    $sal_categ = 0;
-
-
-   //--------------------------------------------------------------------------------------------
-    $retenu = 0;
-    $somme_pr_ind = 0;
-
-    //****************************************************************************** */
-    $pdf->SetDrawColor(200, 200, 200);
-    $y_apres_entete = 73;
-    //Entête du tableau et traçage des Ligne verticales
-    $pdf->line(12,$y_apres_entete +7,12,$pdf->GetPageHeight()-60);
-    $pdf->line($pdf->GetPageWidth()-12,$y_apres_entete +7,$pdf->GetPageWidth()-12,$pdf->GetPageHeight()-60);
-
-    $pdf->SetLeftMargin(12);
-    $pdf->line(12,$y_apres_entete +7,$pdf->GetPageWidth()-12,$y_apres_entete +7);
-
-    $pdf->SetLeftMargin(13);
-    $y = $y_apres_entete +8;
+    $pdf->SetFont('Helvetica','B',7);
+    $y = 20;
     $pdf->SetY($y);
-    $pdf->Cell(50,4, utf8_decode("Constituant du salaire"),0,0,'C');
-    $pdf->line(63,$y-1,63,$pdf->GetPageHeight()-60);
+    $pdf->SetX($x);
+    $pdf->MultiCell(120,5, utf8_decode(mb_strtoupper($obj_bulletin->nom_societe)),0,"L",false);
 
-    $pdf->SetLeftMargin(63);
-    $pdf->Cell(20,4, utf8_decode("Taux"),0,0,'C');
-    $pdf->line(83,$y-1,83,$pdf->GetPageHeight()-60);
+    //Adresse
+    if($societe_Salarie->adress){
+      $y += 5;
+      $pdf->SetY($y);
+      $pdf->SetX($x);
+      $pdf->MultiCell(120,5, utf8_decode(mb_strtoupper($societe_Salarie->adress)),0,"L",false);
+    }
+
+    //Tel
+    $tel = $societe_Salarie->fax;
+    if($tel){
+      if($societe_Salarie->phone)
+        $tel .= " | ".$societe_Salarie->phone;
+    }else if($societe_Salarie->phone)
+          $tel = $societe_Salarie->phone;
+
+    
+    if($tel){
+      $y += 5;
+      $pdf->SetY($y);
+      $pdf->SetX($x);
+      $pdf->MultiCell(120,5, utf8_decode($tel),0,"L",false);
+    }
+
+    //Email
+    if($societe_Salarie->email){
+      $y += 5;
+      $pdf->SetY($y);
+      $pdf->SetX($x);
+      $pdf->MultiCell(120,5, utf8_decode($societe_Salarie->email),0,"L",false);
+    }
 
 
-    $pdf->SetLeftMargin(83);
-    $pdf->Cell(20,4, utf8_decode("Base"),0,0,'C');
-    $pdf->line(103,$y-1,103,$pdf->GetPageHeight()-60);
+    //Information du salarié partie 1
+    //$pdf->SetFont('Helvetica','B',9);
+    $pdf->SetTextColor(0);
 
-
-    $pdf->SetLeftMargin(103);
-    $pdf->Cell(30,4, utf8_decode("Montant"),0,0,'C');
-    $pdf->line(133,$y-1,133,$pdf->GetPageHeight()-60);
-
-
-    $pdf->SetLeftMargin(133);
-    $pdf->Cell(30,4, utf8_decode("Retenu"),0,0,'C');
-    $pdf->line(163,$y-1,163,$pdf->GetPageHeight()-60);
-
-
-    $pdf->SetLeftMargin(163);
-    $pdf->MultiCell(34,4, utf8_decode("Gain"),0,'C');
-
-    $pdf->line(12,$y_apres_entete +13,$pdf->GetPageWidth()-12,$y_apres_entete +13);
-
-    //jours travaillés
-    $pdf->SetTextColor(0, 0, 0);
-    $pdf->SetLeftMargin(13);
-    $y = $pdf->GetY() + 2;
+    $x = 4;
+    $y = 43;
+    $y_mat = $y;
     $pdf->SetY($y);
-    $pdf->Cell(30,4, utf8_decode("Jours travaillés"),0,0,'L');
+    $pdf->SetX($x);
+    $pdf->MultiCell(120,5, utf8_decode("MATRICULE : " .mb_strtoupper($obj_bulletin->matricule)),0,"L",false);
 
-    //nombre de de jour du mois
-    $mois = $obj_bulletin->mois;
-    $annee = $obj_bulletin->annee;
-    $salSql = "SELECT jour FROM ".MAIN_DB_PREFIX."salarie_nombre_jour_travaille where annee=".$annee." AND mois=".$mois." AND fk_salarie=".$obj_salarie->rowid;
+    //Emploi
+    $y += 4;
+    $pdf->SetY($y);
+    $pdf->SetX($x);
+    $pdf->MultiCell(120,5, utf8_decode("EMPLOI  : " .mb_strtoupper($obj_bulletin->fonction)),0,"L",false);
+
+    //Statut
+    $statut = "Actif";
+    if(empty($obj_bulletin->calcul_salaire) || $obj_bulletin->calcul_salaire == "non" || $obj_bulletin->calcul_salaire == "Non")
+      $statut = "Non actif";
+    $y += 4;
+    $pdf->SetY($y);
+    $pdf->SetX($x);
+    $pdf->MultiCell(120,5, utf8_decode("STATUT : " .mb_strtoupper($statut)),0,"L",false);
+
+    //Ancienneté
+    $date = null;
+    if($obj_user->dateemployment)
+      $date = $obj_user->dateemployment;
+
+    if($obj_salarie->date_anciennete)
+      $date = $obj_salarie->date_anciennete;
+
+      $date_debut = new DateTime($date); 
+      $date_fin = new DateTime($annee."-".$mois."-01"); //date du bulletin
+      
+      $interval = $date_debut->diff($date_fin);
+      
+    $anciennete = "Nouveau";
+    if($interval->y != 0)
+      $anciennete = $interval->y." an(s)";
+    if($interval->m != 0 && $interval->y != 0)
+      $anciennete .= " et ".$interval->m." mois";
+    elseif($interval->m != 0)
+      $anciennete = $interval->m." mois";
+
+    $y += 4;
+    $pdf->SetY($y);
+    $pdf->SetX($x);
+    $pdf->MultiCell(120,5, utf8_decode("ANCIENNETE : " .mb_strtoupper($anciennete)),0,"L",false);
+
+  //Horaire
+    $salSql = "SELECT jour FROM ".MAIN_DB_PREFIX."salarie_nombre_jour_travaille where annee=".$annee." AND mois=".$mois." AND fk_salarie=".$obj_bulletin->fk_salarie;
     $result = $db->query($salSql);
     $nb_jours = $db->fetch_object($result)->jour;
-    //$nb_jours = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
-    $pdf->SetLeftMargin(63);
-    $pdf->Cell(20,4, utf8_decode($nb_jours),0,0,'R');
-
-    //heures normales
-    $pdf->SetLeftMargin(13);
-    $y = $pdf->GetY() +6;
+    //$nb_jours = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);:
+    $y += 4;
     $pdf->SetY($y);
-    $pdf->Cell(30,4, utf8_decode("Heures normales"),0,0,'L');
+    $pdf->SetX($x);
+    $pdf->MultiCell(120,5, utf8_decode("-JOURS TRAVAILLÉS: " .$nb_jours),0,"L",false);
 
     $pdf->SetLeftMargin(63);
     $nb_total_jour = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
     $heur_normal = 173.33;
     if($nb_jours != $nb_total_jour)
       $heur_normal = round(($nb_jours*$heur_normal)/$nb_total_jour, 2);
-    $pdf->Cell(20,4, utf8_decode($heur_normal),0,0,'R');
-    //Salaire de base normale
-    $pdf->SetLeftMargin(13);
-    $pdf->SetX(13);
-    $y = $pdf->GetY() +6;
+
+    $y += 4;
+    $y_limit = $pdf->GetY();
     $pdf->SetY($y);
-    $pdf->Cell(35,4, utf8_decode("Salaire de base normale"),0,0,'L');
+    $pdf->SetX($x);
+    $pdf->MultiCell(120,5, utf8_decode("HORAIRE MENSUEL: " .$heur_normal. " H"),0,"L",false);
+    //Information du salarié partie 2
+    $x = 125;
+    $y = 10;
+    $pdf->SetY($y);
+    $pdf->SetX($x);
+    $pdf->MultiCell(120,5, utf8_decode(mb_strtoupper($mois_tab[$mois-1]." ".$annee)),0,"L",false);
 
+    //salarie
+    $sexe = "MR";
+    if($obj_bulletin->sexe == "feminin" || $obj_bulletin->sexe == "Feminin" || $obj_bulletin->sexe == "féminin" || $obj_bulletin->sexe == "Féminin")
+      $sexe = "MME";
+    if($sexe == "MME" && ($obj_bulletin->situation_familiale == "Célibataire" || $obj_bulletin->situation_familiale == "Celibataire" || $obj_bulletin->situation_familiale == "celibataire" || $obj_bulletin->situation_familiale == "célibataire" 
+      || $obj_bulletin->situation_familiale == "divorce" || $obj_bulletin->situation_familiale == "divorcé" || $obj_bulletin->situation_familiale == "Divorcé" || $obj_bulletin->situation_familiale == "Divorce"))
+      $sexe = "MLLE";
+    
+    $y = $y_mat;
+    $pdf->SetY($y);
+    $pdf->SetX($x);
+    $pdf->MultiCell(120,5, utf8_decode(mb_strtoupper($sexe." ".$obj_bulletin->nom." ".$obj_bulletin->prenom)),0,"L",false);
 
-      $pdf->SetLeftMargin(103);
-      $pdf->SetX(103);
-      $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_base?:0, 2)),0,0,'R');
+    //Adresse
+    $y += 4;
+    $pdf->SetY($y);
+    $pdf->SetX($x);
+    $pdf->MultiCell(120,5, utf8_decode(mb_strtoupper($obj_bulletin->adresse." ".$obj_bulletin->ville)),0,"L",false);
 
+    //Téléphone
+    $y += 4;
+    $pdf->SetY($y);
+    $pdf->SetX($x);
+    $pdf->MultiCell(120,5, utf8_decode(mb_strtoupper($obj_bulletin->tel)),0,"L",false);
 
-      //Salaire de base Majorés
-      $pdf->SetTextColor(0, 0, 70);
-      $pdf->SetLeftMargin(13);
-      $y = $pdf->GetY() +6;
-      $pdf->SetY($y);
-      $pdf->line(12,$y-1 ,$pdf->GetPageWidth()-12,$y-1);
-      $pdf->Cell(50,4, utf8_decode("Salaire de base Majorés"),0,0,'L');
+    $categ = $obj_bulletin->categorie."".($obj_bulletin->echelon?"==>".$obj_bulletin->echelon:"");
+    $y += 4;
+    $pdf->SetY($y);
+    $pdf->SetX($x);
+    $pdf->MultiCell(120,5, utf8_decode(mb_strtoupper($categ)),0,"L",false);
 
-      $pdf->SetLeftMargin(163);
-      $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_base, 2)),0,0,'R');
+    $enfant = "";
+    if($obj_bulletin->nombre_enfant != 0 || $obj_bulletin->nombre_enfant_hand != 0)
+      $enfant .= ($obj_bulletin->nombre_enfant + $obj_bulletin->nombre_enfant_hand)." enfant(s)";
 
-      $y = $pdf->GetY()+5;
-      $pdf->line(12,$y ,$pdf->GetPageWidth()-12,$y);
-      //Les Primes et Indemnités
-      $somme_pr_ind  = 0;
-      //Primes
-      $pdf->SetTextColor(0, 0, 0);
+    $y += 4;
+    $pdf->SetY($y);
+    $pdf->SetX($x);
+    $pdf->MultiCell(120,5, utf8_decode(mb_strtoupper($obj_bulletin->situation_familiale." ".$enfant)),0,"L",false);
 
-      $bulletin_anc_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_anciennete WHERE fk_bulletin=".$obj_bulletin->rowid;
-      $res_bulletin_anc = $db->query($bulletin_anc_sql);
-      $obj_bulletin_anc = $db->fetch_object($res_bulletin_anc);
+    //Deuxième rectangle
+    $pdf->SetFillColor(173, 206, 230);
+    $pdf->SetTextColor(0);
+    $pdf->SetFont('Helvetica','B',7);
+    $x = 4.5;
+    $y_rec = $y_limit + 4;
+    
+    $y = $y_limit + 4;
+    $pdf->SetY($y);
+    $pdf->SetX($x);
+    $pdf->Cell(($pdf->GetPageWidth()-8)/2-0.5,5, utf8_decode("ELEMENTS DE REMUNERATION"),0, "", "L",true);
 
-      $pdf->SetLeftMargin(13);
-      $y = $pdf->GetY() + 6;
-      $pdf->SetY($y);
-      $pdf->Cell(30,4, utf8_decode($obj_bulletin_anc->libelle),0,0,'L');
+    $y = $y_limit + 4;
+    $y_limit = $pdf->GetY();
+    $pdf->SetY($y);
+    //$pdf->SetDrawColor(255, 255, 255);
+    $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+    $pdf->SetX($x);
+    $pdf->Cell(25,5, "Base",0, "", "C",true);
 
-      $pdf->SetLeftMargin(63);
-      $pdf->Cell(20,4, utf8_decode($obj_bulletin_anc->taux."%"),0,0,'R');
+    $x += 25.25;
+    $pdf->SetX($x);
+    $pdf->Cell(25,5, "Taux",0, "", "C",true);
 
-      $pdf->SetLeftMargin(83);
-      $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_base, 2)),0,0,'R');
-
-      $salaire_brut_non_exonere = $obj_bulletin->salaire_brut_non_exonere;
-
-      $somme_pr_ind += $obj_bulletin->salaire_base*$obj_bulletin_anc->taux/100;
-      $pdf->SetLeftMargin(103);
-      $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_base*$obj_bulletin_anc->taux/100, 2)),0,0,'R');
-
-      //les primes qui doivent être affichés sur le billetin
-      $bulletin_pr_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_prime WHERE fk_bulletin=".$obj_bulletin->rowid;;
-      $bulletin_pr_res = $db->query($bulletin_pr_sql);
-      if($bulletin_pr_res){
-        $j = 0;
-        $num = $db->num_rows($bulletin_pr_res);
-        while ($j < $num){
-          $obj_bulletin_pr = $db->fetch_object($bulletin_pr_res);
-          if ($obj_bulletin_pr->affiche_bulletin)
-          {
-            $pdf->SetLeftMargin(13);
-            $y = $pdf->GetY() + 6;
+    $x += 25.25;
+    $pdf->SetX($x);
+    $pdf->Cell(49.5,5, "Montant",0, "", "C",true);
+        
+        
+        //Salaire de base
+            $x = 4;
+            $pdf->SetTextColor(0);
+            $pdf->SetFont('Helvetica','B',7);
+            $y += 5;
             $pdf->SetY($y);
-            $pdf->Cell(30,4, utf8_decode($obj_bulletin_pr->libelle),0,0,'L');
-
-            $pdf->SetLeftMargin(63);
-            $pdf->Cell(20,4, utf8_decode($obj_bulletin_pr->pourcentage."%"),0,0,'R');
-
-            $pdf->SetLeftMargin(83);
-            $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_pr->montant*100/$obj_bulletin_pr->pourcentage, 2)),0,0,'R');
-
-            $pdf->SetLeftMargin(103);
-            $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_pr->montant, 2)),0,0,'R');
-
-            $somme_pr_ind += $obj_bulletin_pr->montant;
-          }
-            $j ++;
-        }
-      }
-
-      //les indemnités qui doivent être affichées
-      $bulletin_pr_except_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_prime_exceptionnelle WHERE fk_bulletin=".$obj_bulletin->rowid;;
-              $bulletin_pr_except_res = $db->query($bulletin_pr_except_sql);
-              if($bulletin_pr_except_res){
-                $j = 0;
-                $num = $db->num_rows($bulletin_pr_except_res);
-                while ($j < $num){
-                  $obj_bulletin_pr = $db->fetch_object($bulletin_pr_except_res);
-                  if ($obj_bulletin_pr->affiche_bulletin == 'oui')
+            $pdf->SetX($x);
+            $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode(mb_strtoupper("Salaire de Base")),0, "", "L",false);
+        
+            $pdf->SetTextColor(0);
+        
+            $pdf->SetY($y);
+            $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+            $pdf->SetX($x);
+            $pdf->Cell(25,5, apres_virgule($db, $id_societe, $obj_bulletin->salaire_base, 2),0, "", "C",false);
+        
+            $x += 25.25;
+            $pdf->SetX($x);
+            $pdf->Cell(25,5, ($obj_bulletin->pourcentage*100)."%",0, "", "C",false);
+        
+            $x += 25.25;
+            $pdf->SetX($x);
+            $pdf->Cell(50.5,5, apres_virgule($db, $id_societe, $obj_bulletin->salaire_base*$obj_bulletin->pourcentage, 2),0, "", "C",false);
+            
+            //Anciennete
+            $bulletin_anc_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_anciennete WHERE fk_bulletin=".$obj_bulletin->rowid;
+              $res_bulletin_anc = $db->query($bulletin_anc_sql);
+              $obj_bulletin_anc = $db->fetch_object($res_bulletin_anc);
+        
+            $x = 4;
+            $y += 5;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode(mb_strtoupper($obj_bulletin_anc->libelle)),0, "", "L",false);
+        
+            $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+            $pdf->SetX($x);
+            $pdf->Cell(25,5, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_base, 2)),0, "", "C",false);
+        
+            $x += 25.25;
+            $pdf->SetX($x);
+            $pdf->Cell(25,5, utf8_decode($obj_bulletin_anc->taux."%"),0, "", "C",false);
+        
+            $x += 25.25;
+            $pdf->SetX($x);
+            $pdf->Cell(50.5,5, apres_virgule($db, $id_societe, $obj_bulletin->salaire_base*$obj_bulletin_anc->taux/100, 2),0, "", "C",false);
+        
+              $somme_pr_ind += $obj_bulletin->salaire_base*$obj_bulletin_anc->taux/100;
+        
+            //les primes qui doivent être affichés sur le billetin
+            $bulletin_pr_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_prime WHERE fk_bulletin=".$obj_bulletin->rowid;;
+            $bulletin_pr_res = $db->query($bulletin_pr_sql);
+            if($bulletin_pr_res){
+              $i = 0;
+              $num = $db->num_rows($bulletin_pr_res);
+              while ($i < $num){
+                $obj_bulletin_pr = $db->fetch_object($bulletin_pr_res);
+                if ($obj_bulletin_pr->affiche_bulletin)
+                {
+                  $pr_sql = "SELECT * FROM ".MAIN_DB_PREFIX."primes WHERE rowid=".$obj_bulletin_pr->fk_prime;
+                  $pr_result = $db->query($pr_sql);
+                  $obj_pr = $db->fetch_object($pr_result);
+        
+                  $x = 4;
+                  $y += 5;
+                  $pdf->SetY($y);
+                  $pdf->SetX($x);
+                  $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode(mb_strtoupper($obj_bulletin_pr->libelle)),0, "", "L",false);
+        
+                  $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(25,5, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_pr->montant, 2)),0, "", "C",false);
+        
+                  $x += 25.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(25,5, utf8_decode($obj_bulletin_pr->pourcentage."%"),0, "", "C",false);
+        
+                  $x += 25.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(50.5,5, apres_virgule($db, $id_societe, $obj_bulletin_pr->montant*100/$obj_bulletin_pr->pourcentage, 2),0, "", "C",false);
+        
+                  $somme_pr_ind += $obj_bulletin_pr->montant;
+                }
+                  $i ++;
+              }
+            }
+        
+        
+            //Primes Exceptionnelles
+            $bulletin_pr_except_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_prime_exceptionnelle WHERE fk_bulletin=".$obj_bulletin->rowid;
+            $bulletin_pr_except_res = $db->query($bulletin_pr_except_sql);
+            if($bulletin_pr_except_res){
+              $j = 0;
+              $num = $db->num_rows($bulletin_pr_except_res);
+              while ($j < $num){
+                $obj_bulletin_pr = $db->fetch_object($bulletin_pr_except_res);
+                if ($obj_bulletin_pr->affiche_bulletin == 'oui' || $obj_bulletin_pr->affiche_bulletin == 'Oui')
+                {
+        
+                  $x = 4;
+                  $y += 5;
+                  $pdf->SetY($y);
+                  $pdf->SetX($x);
+                  $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode(mb_strtoupper($obj_bulletin_pr->libelle)),0, "", "L",false);
+        
+                  $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(25,5, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_pr->montant, 2)),0, "", "C",false);
+        
+                  $x += 25.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(25,5, utf8_decode($obj_bulletin_pr->pourcentage."%"),0, "", "C",false);
+        
+                  $x += 25.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(50.5,5, apres_virgule($db, $id_societe, $obj_bulletin_pr->montant*100/$obj_bulletin_pr->pourcentage, 2),0, "", "C",false);
+        
+                  $somme_pr_ind += $obj_bulletin_pr->montant;
+                }
+                  $j ++;
+              }
+            }
+        
+        
+            //Indemnités
+            $bulletin_ind_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_indemnite WHERE fk_bulletin=".$obj_bulletin->rowid;
+              $bulletin_ind_res = $db->query($bulletin_ind_sql);
+              if($bulletin_ind_res){
+                $i = 0;
+                $num = $db->num_rows($bulletin_ind_res);
+                while ($i < $num){
+                  $obj_bulletin_ind = $db->fetch_object($bulletin_ind_res);
+                  if ($obj_bulletin_ind->affiche_bulletin = "Oui")
                   {
-                    $pr_except_sql = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_prime_exceptionnelle WHERE rowid=".$obj_bulletin_pr->fk_prime;
-                    $pr_except_result = $db->query($pr_except_sql);
-                    $obj_pr_except = $db->fetch_object($pr_except_result);
-                    $pdf->SetLeftMargin(13);
-                    $y = $pdf->GetY() + 6;
-                    $pdf->SetY($y);
-                    $pdf->Cell(30,4, utf8_decode($obj_pr_except->libelle),0,0,'L');
-
-                    $pdf->SetLeftMargin(63);
-                    $pdf->Cell(20,4, utf8_decode($obj_pr_except->pourcentage."%"),0,0,'R');
-
-                    $pdf->SetLeftMargin(83);
-                    $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_pr_except->montant, 2)),0,0,'R');
-
-                    $pdf->SetLeftMargin(103);
-                    $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_pr_except->montant, 2)),0,0,'R');
-
-                    $somme_pr_ind += $obj_pr_except->montant;
+        
+                    $x = 4;
+                  $y += 5;
+                  $pdf->SetY($y);
+                  $pdf->SetX($x);
+                  $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode(mb_strtoupper($obj_bulletin_ind->libelle)),0, "", "L",false);
+        
+                  $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(25,5, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_ind->montant, 2)),0, "", "C",false);
+        
+                  $x += 25.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(25,5, utf8_decode($obj_bulletin_ind->pourcentage."%"),0, "", "C",false);
+        
+                  $x += 25.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(50.5,5, apres_virgule($db, $id_societe, $obj_bulletin_ind->montant*100/$obj_bulletin_ind->pourcentage, 2),0, "", "C",false);
+        
+                    $somme_pr_ind += $obj_bulletin_ind->montant;
                   }
-                    $j ++;
+                    $i ++;
+                }
+        
+              }
+        
+        
+              //Sursalaire
+              $y += 5;
+              $x = 4;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode(mb_strtoupper("SURSALAIRE")),0, "", "L",false);
+        
+            $pdf->SetY($y);
+            $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+            $pdf->SetX($x);
+            $pdf->Cell(25,5, apres_virgule($db, $id_societe, $obj_bulletin->sursalaire, 2),0, "", "C",false);
+        
+            $x += 25.25;
+            $pdf->SetX($x);
+            $pdf->Cell(25,5, ($obj_bulletin->pourcentage*100)."%",0, "", "C",false);
+        
+            $x += 25.25;
+            $pdf->SetX($x);
+            $pdf->Cell(50.5,5, apres_virgule($db, $id_societe, $obj_bulletin->sursalaire*$obj_bulletin->pourcentage, 2),0, "", "C",false);
+        
+            $valeur_heur_sup = 0;
+               $base = 0;
+               $bulletin_hs_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_heure_sup WHERE fk_bulletin=".$obj_bulletin->rowid;
+              $bulletin_hs_res = $db->query($bulletin_hs_sql);
+              if($bulletin_hs_res){
+                $m = 0;
+                $num = $db->num_rows($bulletin_hs_res);
+                while ($m < $num){
+                  $obj_bulletin_hs = $db->fetch_object($bulletin_hs_res);
+        
+                  $x = 4;
+                  $y += 5;
+                  $pdf->SetY($y);
+                  $pdf->SetX($x);
+                  $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode(mb_strtoupper($obj_bulletin_hs->nombre_heure_sup.'HS '.$obj_bulletin_hs->libelle)),0, "", "L",false);
+        
+                  $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(25,5, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_hs->base, 2)),0, "", "C",false);
+        
+                  $x += 25.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(25,5, utf8_decode($obj_bulletin_hs->taux."%"),0, "", "C",false);
+        
+                  $x += 25.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(50.5,5, apres_virgule($db, $id_societe, $obj_bulletin_hs->montant, 2),0, "", "C",false);
+        
+                  $valeur_heur_sup += $obj_bulletin_hs->montant;
+                  $m ++;
+                  //print $obj_bulletin_hs->montant."<br>";
                 }
               }
+        
+            $x = 4;
+            $y = $pdf->GetY() + 5;
+            $pdf->SetY($y_rec);
+            $pdf->SetX($x);
+            $pdf->Cell($pdf->GetPageWidth()-8, $y - $y_rec, "",1, "", "C",false);
+        
+          
+        /*
+            $y += 5;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode("Congés payés"),0, "", "L",false);
+        
+            $y += 5;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, "Primes",0, "", "L",false);
+        */
+            
+        
+        
+            //Montant brut
+            $pdf->SetTextColor(0);
+            $x = 4;
+            $y += 1;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, "MONTANT BRUT", "TB", "", "L",false);
 
-              //les indemnités qui doivent être affichées sur le bulletin
-      $bulletin_ind_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_indemnite WHERE fk_bulletin=".$obj_bulletin->rowid;
-      $bulletin_ind_res = $db->query($bulletin_ind_sql);
-      if($bulletin_ind_res){
-        $j = 0;
-        $num = $db->num_rows($bulletin_ind_res);
-        while ($j < $num){
-          $obj_bulletin_ind = $db->fetch_object($bulletin_ind_res);
-          if ($obj_bulletin_ind->affiche_bulletin = "Oui")
-          {
-            $pdf->SetLeftMargin(13);
+            //Valeur:
+            $pdf->SetTextColor(0);
+            $x += ($pdf->GetPageWidth()-8)/2;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut, 2)), "TB", "", "C",false);
+
+           //Cotisations sociales Obligatoires
+    $pdf->SetTextColor(0);
+    $x = 4.5;
+    $y = $pdf->GetY() + 6;
+    $pdf->SetY($y);
+    $pdf->SetX($x);
+    $pdf->Cell(($pdf->GetPageWidth()-8)/2-0.5,7, "COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES",0, "", "L",true);
+
+    //$pdf->SetDrawColor(255, 255, 255);
+    $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+    $pdf->SetX($x);
+    $pdf->Cell(25,7, "Base",0, "", "C",true);
+
+    $x += 25.25;
+      $x_empl = $x;
+    $pdf->SetX($x);
+    $pdf->Cell(37.5,4, utf8_decode(mb_strtoupper("Employé")),0, "", "C",true);
+
+    $x += 37.75;
+    $pdf->SetX($x);
+    $pdf->Cell(37,4, "EMPLOYEUR",0, "", "C",true);
+
+    //Taux et montant de l'employer
+    $x = $x_empl;
+    $y += 4;
+    $pdf->SetY($y);
+        $pdf->SetX($x);
+    $pdf->Cell(16,3, "Taux",0, "", "C",true);
+
+    $x += 16.5;
+    $pdf->SetX($x);
+    $pdf->Cell(21,3, "Montant",0, "", "C",true);
+
+    //Taux et montant de l'employeur
+    $x = $x_empl + 37.75 ;
+    $pdf->SetX($x);
+    $pdf->Cell(16,3, "Taux",0, "", "C",true);
+
+    $x += 16.5;
+    $pdf->SetX($x);
+    $pdf->Cell(20.5,3, "Montant",0, "", "C",true);
+
+
+    //les prestations dont on doit afficher les détails
+    $pdf->SetTextColor(0);
+    $patro = 0;
+    $bulletin_prest_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$obj_bulletin->rowid;
+    $bulletin_prest_res = $db->query($bulletin_prest_sql);
+    if($bulletin_prest_res){
+      $i = 0;
+      $num = $db->num_rows($bulletin_prest_res);
+      while ($i < $num){
+        $obj_bulletin_prest = $db->fetch_object($bulletin_prest_res);
+        $sql_prestation = "SELECT fk_organisme FROM ".MAIN_DB_PREFIX."type_prestation WHERE nature='obligatoire'";
+        $result_prestation = $db->query($sql_prestation);
+        $prestation = $db->fetch_object($result_bareme);
+          
+        $x = 4;
+        $y = $pdf->GetY() + 5;
+        $pdf->SetY($y);
+        $pdf->SetX($x);
+        $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode(mb_strtoupper($obj_bulletin_prest->libelle)),0, "", "L",false);
+
+        //$pdf->SetDrawColor(255, 255, 255);
+        $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+        $pdf->SetX($x);
+        $pdf->Cell(25,5, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_cotisable, 2)),0, "", "R",false);
+
+
+        //Taux et montant de l'employer
+    $x = $x_empl;
+    $pdf->SetX($x);
+    $pdf->Cell(16,3, utf8_decode($obj_bulletin_prest->taux_employe."%"),0, "", "R",false);
+
+    $x += 16.5;
+    $pdf->SetX($x);
+    $pdf->Cell(21,3, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_prest->montant_employe, 2)),0, "", "R",false);
+
+    //Taux et montant de l'employeur
+    $x = $x_empl + 37.75 ;
+    $pdf->SetX($x);
+    $pdf->Cell(16,3, utf8_decode($obj_bulletin_prest->taux_employeur."%"),0, "", "R",false);
+
+    $x += 16.5;
+    $pdf->SetX($x);
+    $pdf->Cell(20.5,3, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_prest->montant_employeur, 2)),0, "", "R",false);
+
+
+        /*$x += 25.25;
+        $pdf->SetX($x);
+        $pdf->Cell(25,5, utf8_decode($obj_bulletin_prest->taux_employe."%"),0, "", "R",false);
+
+        $x += 25.25;
+        $pdf->SetX($x);
+        $pdf->Cell(25,5, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_prest->montant_employe, 2)),0, "", "R",false);
+
+        $x += 25.25;
+        $pdf->SetX($x);
+        $pdf->Cell(25,5, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_prest->montant_employeur, 2)),0, "", "R",false);*/
+        $retenu += $obj_bulletin_prest->montant_employe;
+        $patro += $obj_bulletin_prest->montant_employeur;
+
+
+          $i ++;
+      }
+
+    }
+        
+            //Total des cotisations
+            $pdf->SetTextColor(0);
+            $x = 4;
+            $y += 5;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, "TOTAL DES COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES", "TB", "", "L",false);
+
+            //Valeur:
+            $x += ($pdf->GetPageWidth()-8)/2 ;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(63,5,  utf8_decode("-".apres_virgule($db, $id_societe, $retenu, 2)), "TB", "", "R",false);
+
+            $x += 63;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(38,5,  utf8_decode(apres_virgule($db, $id_societe, $patro, 2)), "TB", "", "R",false);
+
+            /*//Cotisations sociales Facultatives
+            $pdf->SetTextColor(255, 255, 255);
+            $x = 4;
             $y = $pdf->GetY() + 6;
             $pdf->SetY($y);
-            $pdf->Cell(30,4, utf8_decode($obj_bulletin_ind->libelle),0,0,'L');
+            $pdf->SetX($x);
+            $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, "COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES",0, "", "L",true);
 
-            $pdf->SetLeftMargin(63);
-            $pdf->Cell(20,4, utf8_decode($obj_bulletin_ind->pourcentage."%"),0,0,'R');
+            //$pdf->SetDrawColor(255, 255, 255);
+            $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+            $pdf->SetX($x);
+            $pdf->Cell(25,5, "Base",0, "", "C",true);
 
-            $pdf->SetLeftMargin(83);
-            $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_ind->montant*100/$obj_bulletin_ind->pourcentage, 2)),0,0,'R');
+            $x += 25.25;
+            $pdf->SetX($x);
+            $pdf->Cell(25,5, "Taux",0, "", "C",true);
 
-            $pdf->SetLeftMargin(103);
-            $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_ind->montant, 2)),0,0,'R');
+            $x += 25.25;
+            $pdf->SetX($x);
+            $pdf->Cell(25,5, utf8_decode(mb_strtoupper("Employé")),0, "", "C",true);
 
-            $somme_pr_ind += $obj_bulletin_ind->montant;
-          }
-            $j ++;
-        }
+            $x += 25.25;
+            $pdf->SetX($x);
+            $pdf->Cell(25,5, "EMPLOYEUR",0, "", "C",true);*/
 
-      }
 
-      $pdf->SetLeftMargin(13);
-      $pdf->SetX(13);
-      $y = $pdf->GetY() +6;
-      $pdf->SetY($y);
-      $pdf->Cell(30,4, utf8_decode("Sursalaire"),0,0,'L');
+            $retenu_its = 0;
+              $bulletin_taxe_sql = "SELECT montant FROM ".MAIN_DB_PREFIX."bulletin_taxe WHERE fk_bulletin=".$obj_bulletin->rowid;
+              $bulletin_taxe_res = $db->query($bulletin_taxe_sql);
+              if($bulletin_taxe_res){
+                $i = 0;
+                $num = $db->num_rows($bulletin_taxe_res);
+                while ($i < $num){
+                  $obj_bulletin_taxe = $db->fetch_object($bulletin_taxe_res);
+                      $retenu_its += $obj_bulletin_taxe->montant;
 
-	  if($obj_bulletin->pourcentage*100 == 100)
-        $p = 100;
-      else $p = round($obj_bulletin->pourcentage*100, 2);
+                    $i ++;
+                }
 
-      $pdf->SetLeftMargin(63);
-      $pdf->Cell(20,4, utf8_decode($p."%"),0,0,'R');
+              }
 
-      $pdf->SetLeftMargin(83);
-      $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, ($obj_bulletin->sursalaire*100/$p)?:0, 2)),0,0,'R');
 
-      $pdf->SetLeftMargin(103);
-      $pdf->SetX(103);
-      $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->sursalaire?:0, 2)),0,0,'R');
+            //Montant net AVANT ITS
+            $pdf->SetTextColor(0);
+            $x = 4;
+            $y += 6;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, "MONTANT NET AVANT IMPOT SUR LE REVENU", "TB", "", "L",false);
 
-      $pdf->SetTextColor(0, 0, 70);
-      $pdf->SetLeftMargin(13);
-      $y = $pdf->GetY() +6;
-      $pdf->SetY($y);
-      $pdf->line(12,$y-1 ,$pdf->GetPageWidth()-12,$y-1);
-      $pdf->Cell(49,4, utf8_decode("Primes et Indemnités"),0,0,'L');
+            //Valeur:
+            $x += ($pdf->GetPageWidth()-8)/2 + 0.25;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(62.75,5,  utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->net_payer + $retenu_its, 2)), "TBR", "", "R",false);
 
-      $pdf->SetLeftMargin(163);
-      $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $somme_pr_ind + ($obj_bulletin->sursalaire?:0), 2)),0,0,'R');
 
-      //affichage des heures sup
-      $pdf->SetFont('Helvetica','',7);
-      $pdf->SetTextColor(0, 0, 0);
-      $valeur_heur_sup = 0;
-      $base = 0;
-      $bulletin_hs_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_heure_sup WHERE fk_bulletin=".$obj_bulletin->rowid;
-     $bulletin_hs_res = $db->query($bulletin_hs_sql);
-     if($bulletin_hs_res){
-       $j = 0;
-       $num = $db->num_rows($bulletin_hs_res);
-       if($num > 0){
-        $y = $pdf->GetY()+5;
-        $pdf->line(12,$y ,$pdf->GetPageWidth()-12,$y);
-      }
-      while ($j < $num){
-        $obj_bulletin_hs = $db->fetch_object($bulletin_hs_res);
 
-        if($j == 0)
-          $y = $pdf->GetY() +4;
-        else $y += 4;
-      $pdf->SetLeftMargin(13);
-        $pdf->SetY($y);
-        $pdf->Cell(49,4, utf8_decode($obj_bulletin_hs->nombre_heure_sup.' '.$obj_bulletin_hs->libelle),0,0,'L');
-
-        $pdf->SetLeftMargin(63);
-        $pdf->Cell(20,4, utf8_decode($obj_bulletin_hs->taux."%"),0,0,'R');
-
-        $pdf->SetX(83);
-        $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_hs->base, 2)),0,0,'R');
-
-        $pdf->SetX(103);
-        $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_hs->montant, 2)),0,'R');
-
-        $valeur_heur_sup += $obj_bulletin_hs->montant;
-        $j ++;
-        //print $obj_bulletin_hs->montant."<br>";
-      }
-      if($num > 0){
-        $pdf->SetFont('Helvetica','',9);
-        $pdf->SetTextColor(0, 0, 70);
-        $pdf->SetLeftMargin(13);
-        $y = $pdf->GetY() +2;
-        $pdf->SetY($y);
-        $pdf->line(12,$y-1 ,$pdf->GetPageWidth()-12,$y-1);
-        $pdf->Cell(49,4, utf8_decode("Heures Supplémentaires"),0,0,'L');
-
-        $pdf->SetLeftMargin(163);
-        $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $valeur_heur_sup, 2)),0,0,'R');
-      }
-     }
-     $pdf->SetFont('Helvetica','',9);
-
-      $y = $pdf->GetY()+5;
-      $pdf->line(12,$y ,$pdf->GetPageWidth()-12,$y);
-
-      //Salaire brut
-
-      $pdf->SetTextColor(0, 0, 70);
-      $pdf->SetLeftMargin(13);
-      $y = $pdf->GetY() +6;
-      $pdf->SetY($y);
-      $pdf->line(12,$y-1 ,$pdf->GetPageWidth()-12,$y-1);
-      $pdf->Cell(49,4, utf8_decode("Salaire Brut"),0,0,'L');
-
-      $pdf->SetX(103);
-      $pdf->Cell(30,4, utf8_decode("--Charges Patro--"),0,0,'R');
-
-      $pdf->SetLeftMargin(163);
-      $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut, 2)),0,0,'R');
-
-      //les prestations à afficher par Organisme
-      $id_organisme = array();
-      $bulletin_prest_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_organisme WHERE fk_bulletin=".$obj_bulletin->rowid;
-      $bulletin_prest_res = $db->query($bulletin_prest_sql);
-      $avance = false;
-      if($bulletin_prest_res){
-        $j = 0;
-        $num = $db->num_rows($bulletin_prest_res);
-        while ($j < $num){
-          $obj_bulletin_prest = $db->fetch_object($bulletin_prest_res);
-          $id_organisme[] = $obj_bulletin_prest->fk_organisme;
-
-          if($j == 0)
-            $y = $pdf->GetY() + 6;
-          else $y += 6;
-                      $pdf->SetLeftMargin(13);
-                      $pdf->SetY($y);
-                      $pdf->Cell(49,4, utf8_decode($obj_bulletin_prest->nom_organisme),0,0,'L');
-
-                      $pdf->SetLeftMargin(63);
-                      $pdf->Cell(20,4, utf8_decode($obj_bulletin_prest->pourcentage."%"),0,0,'R');
-
-                      $pdf->SetX(83);
-                      $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_cotisable, 2)),0,0,'R');
-
-                      $pdf->SetX(103);
-                      $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_prest->montant_employeur, 2)),0,0,'R');
-
-                      $pdf->SetX(133);
-                      $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_prest->montant_employe, 2)),0,'R');
-                      $avance = true;
-
-            $j ++;
-        }
-
-      }
-
-      $bulletin_prest_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$obj_bulletin->rowid;
-      $bulletin_prest_res = $db->query($bulletin_prest_sql);
-      if($bulletin_prest_res){
-        $j = 0;
-        $num = $db->num_rows($bulletin_prest_res);
-        while ($j < $num){
-          $obj_bulletin_prest = $db->fetch_object($bulletin_prest_res);
-          $sql_prestation = "SELECT fk_organisme FROM ".MAIN_DB_PREFIX."type_prestation WHERE nature='obligatoire'";
-          $result_prestation = $db->query($sql_prestation);
-          $prestation = $db->fetch_object($result_bareme);
-
-          if(!in_array($prestation->fk_organisme, $id_organisme))
-            if($obj_bulletin_prest->affiche_bulletin == "Oui"){
-              if($j == 0){
-                if($avance)
-                  $y = $pdf->GetY() + 2;
-                else $y = $pdf->GetY() + 6;
-              }else $y += 6;
-              $pdf->SetLeftMargin(13);
+          //Impot sur le revenu
+          $pdf->SetTextColor(0);
+              $x = 4.5;
+              $y = $pdf->GetY() + 6;
               $pdf->SetY($y);
-              $pdf->Cell(49,4, utf8_decode($obj_bulletin_prest->libelle),0,0,'L');
+              $pdf->SetX($x);
+              $pdf->Cell(($pdf->GetPageWidth()-8)/2,7, "IMPOT SUR LE REVENU",0, "", "L",true);
 
-              $pdf->SetLeftMargin(63);
-              $pdf->Cell(20,4, utf8_decode($obj_bulletin_prest->taux_employe."%"),0,0,'R');
+              //$pdf->SetDrawColor(255, 255, 255);
+              $x = ($pdf->GetPageWidth()-8)/2 + 4.75;
+              $pdf->SetX($x);
+              $pdf->Cell(25,7, "Base",0, "", "C",true);
 
-              $pdf->SetX(83);
-              $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_cotisable, 2)),0,0,'R');
+              $x += 25.25;
+              $x_empl = $x;
+              $pdf->SetX($x);
+              $pdf->Cell(37.5,4, utf8_decode(mb_strtoupper("Employé")),0, "", "C",true);
 
-              $pdf->SetX(103);
-              $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_prest->montant_employeur, 2)),0,0,'R');
-
-              $pdf->SetX(133);
-              $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_prest->montant_employe, 2)),0,'R');
-              $retenu += $obj_bulletin_prest->montant_employe;
-
-
-          }
-            $j ++;
-        }
-
-      }
-
-
-      $salaire_brut = $obj_bulletin->salaire_brut;
-      /*$pdf->SetLeftMargin(163);
-      $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $salaire_brut, 2)),0,0,'R');*/
-
-      $retenu_its = 0;
-      $bulletin_taxe_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_taxe WHERE fk_bulletin=".$obj_bulletin->rowid;
-      $bulletin_taxe_res = $db->query($bulletin_taxe_sql);
-      if($bulletin_taxe_res){
-        $j = 0;
-        $num = $db->num_rows($bulletin_taxe_res);
-        while ($j < $num){
-          $obj_bulletin_taxe = $db->fetch_object($bulletin_taxe_res);
-            if($obj_bulletin_taxe->affiche_bulletin == "Oui"){
-              $y = $pdf->GetY() +2;
-              $pdf->SetLeftMargin(13);
+              $y += 4;
               $pdf->SetY($y);
-              $pdf->Cell(49,4, utf8_decode($obj_bulletin_taxe->libelle),0,0,'L');
+              $pdf->SetX($x_empl);
+              $pdf->Cell(16,3, "Taux",0, "", "C",true);
 
-              $pdf->SetX(63);
-              $pdf->Cell(20,4, utf8_decode($obj_bulletin_taxe->taux."%"),0,0,'R');
+              $x = $x_empl + 16.5;
+              $pdf->SetX($x);
+              $pdf->Cell(21,3, "Montant",0, "", "C",true);
 
-              $pdf->SetX(83);
-              $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_imposable, 2)),0,0,'R');
 
-              $pdf->SetX(133);
-              $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_taxe->montant, 2)),0,'R');
-              $retenu += $obj_bulletin_taxe->montant;
-              $retenu_its += $obj_bulletin_taxe->montant;
+              $pdf->SetTextColor(0);
+              $bulletin_taxe_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_taxe WHERE fk_bulletin=".$obj_bulletin->rowid;
+              $bulletin_taxe_res = $db->query($bulletin_taxe_sql);
+              if($bulletin_taxe_res){
+                $i = 0;
+                $num = $db->num_rows($bulletin_taxe_res);
+                while ($i < $num){
+                  $obj_bulletin_taxe = $db->fetch_object($bulletin_taxe_res);
 
+                      $x = 4;
+                  $y = $pdf->GetY() + 5;
+                  $pdf->SetY($y);
+                  $pdf->SetX($x);
+                  $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode(mb_strtoupper($obj_bulletin_taxe->libelle)),0, "", "L",false);
+
+                  //$pdf->SetDrawColor(255, 255, 255);
+                  $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(25,5, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_imposable, 2)),0, "", "R",false);
+
+                  $x += 25.25;
+                  $pdf->SetX($x);
+                  $pdf->Cell(16,5, utf8_decode($obj_bulletin_taxe->taux."%"),0, "", "R",false);
+
+                  $x += 16.5;
+                  $pdf->SetX($x);
+                  $pdf->Cell(21,5, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_taxe->montant, 2)),0, "", "R",false);
+
+                    $i ++;
+                }
+
+              }
+
+            $pdf->SetTextColor(0);
+            $x = 4;
+            $y += 6;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, "TOTAL DES IMPOTS SUR LE REVENU", "B", "", "L",false);
+
+            //Valeur:
+            $x += ($pdf->GetPageWidth()-8)/2 + 0.25;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(62.5,5,  "-".utf8_decode(apres_virgule($db, $id_societe, $retenu_its, 2)), "B", "", "R",false);
+
+        //Remboursements et Avances/acompte
+            $bulletin_avance = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_avance WHERE fk_bulletin=".$obj_bulletin->rowid;
+          $bulletin_avance = $db->query($bulletin_avance);
+          if($bulletin_avance){
+              $num = $db->num_rows($bulletin_avance);
+              if($num > 0){
+
+              $pdf->SetTextColor(0);
+              $x = 4.5;
+              $y = $pdf->GetY() + 6;
+              $pdf->SetY($y);
+              $pdf->SetX($x);
+              $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, "REMBOURSEMENTS ET AVANCES/ACOMPTES",0, "", "L",true);
+
+              $x = ($pdf->GetPageWidth()-8)/2 + 4.75;
+              $pdf->SetX($x);
+              $pdf->Cell(25,5, "Base",0, "", "C",true);
+
+              $x += 25.25;
+                $x_empl = $x;
+              $pdf->SetX($x);
+              $pdf->Cell(37.5,5, utf8_decode(mb_strtoupper("Employé")),0, "", "C",true);
+
+              $x += 37.75;
+              $pdf->SetX($x);
+              $pdf->Cell(37,5, "EMPLOYEUR",0, "", "C",true);
+
+              //Avance/acompte
+              $pdf->SetTextColor(0);
+              $somme_avance = 0;
+              $i = 0;     
+              while ($i < $num){
+                $obj_bulletin_avance = $db->fetch_object($bulletin_avance);
+
+
+                $x = 4;
+                  $y = $pdf->GetY() + 5;
+                  $pdf->SetY($y);
+                  $pdf->SetX($x);
+                  $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode(mb_strtoupper($obj_bulletin_avance->libelle)),0, "", "L",false);
+
+                  //$pdf->SetDrawColor(255, 255, 255);
+                  $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+                  /*$pdf->SetX($x);
+                  $pdf->Cell(25,5, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_cotisable, 2)),0, "", "R",false);*/
+
+                  $x += 25.25;
+                  /*$pdf->SetX($x);
+                  $pdf->Cell(25,5, utf8_decode($obj_bulletin_prest->taux_employe."%"),0, "", "R",false);*/
+
+                  $pdf->SetX($x);
+                  $pdf->Cell(37.5,5, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_avance->montant, 2)),0, "", "R",false);
+
+                  $x += 37.75;
+                  $pdf->SetX($x);
+                  $pdf->Cell(37,5, utf8_decode(apres_virgule($db, $id_societe, 0, 2)),0, "", "R",false);
+
+                $somme_avance += $obj_bulletin_avance->montant;
+                $i ++;
+                //print $obj_bulletin_hs->montant."<br>";
+              }
+            
+              //Total des Rembourssements ou avances/acomptes
+              $pdf->SetTextColor(0);
+              $x = 4;
+              $y += 6;
+              $pdf->SetY($y);
+              $pdf->SetX($x);
+              $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, "TOTAL DES REMBOURSEMENTS ET AVANCES/ACOMPTES", "TB", "", "L",false);
+
+              //Valeur:
+              $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+              $pdf->SetY($y);
+              $pdf->SetX($x);
+              $pdf->Cell(62.75,5,  utf8_decode("-".apres_virgule($db, $id_societe, $somme_avance, 2)), "TB", "", "R",false);
+
+              $x += 62.75;
+              $pdf->SetY($y);
+              $pdf->SetX($x);
+              $pdf->Cell(38,5,  utf8_decode(apres_virgule($db, $id_societe, 0, 2)), "TB", "", "R",false);
+            }
           }
-            $j ++;
+
+            //Net à payer
+            $x = 4;
+            $y += 6;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode(mb_strtoupper("MONTANT NET à PAYER")), "TB", "", "L",false);
+
+            //Valeur:
+            $x = ($pdf->GetPageWidth()-8)/2 + 4.25;
+            $pdf->SetY($y);
+            $pdf->SetX($x);
+            $pdf->Cell(62.75,5,  utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->net_payer - $somme_avance, 2)), "TBR", "", "R",false);
+          
+              //Cout total
+              $pdf->SetTextColor(0);
+              $x = 4;
+              $y += 6;
+              $pdf->SetY($y);
+              $pdf->SetX($x);
+              $pdf->Cell(($pdf->GetPageWidth()-8)/2,5, utf8_decode(mb_strtoupper("Cout Total du Salaire")), "TB", "", "L",false);
+          
+              //Valeur:
+              $x += ($pdf->GetPageWidth()-8)/2 + 0.25;
+              $pdf->SetY($y);
+              $pdf->SetX($x);
+              $pdf->Cell(($pdf->GetPageWidth()-8)/2-0.5,5,  utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->net_payer + $retenu_its + $patro, 2)), "TB", "", "R",false);
+          
+          
+              //Les informations de Banque
+              $pdf->SetTextColor(0);
+              $x = 6;
+              $y += 8;
+              $pdf->SetY($y);
+              $pdf->SetX($x);
+              $pdf->Cell(50,5, utf8_decode(mb_strtoupper("Mode de paiement : Par virement")),"", "", "L",false);
+          
+              $y += 6;
+              $pdf->SetY($y);
+              $pdf->SetX($x);
+              $pdf->Cell(50,5, utf8_decode(mb_strtoupper("Type : ".$obj_bulletin->banque)),"", "", "L",false);
+          
+              $y += 6;
+              $pdf->SetY($y);
+              $pdf->SetX($x);
+              $pdf->Cell(70,5, utf8_decode(mb_strtoupper("Numéro de compte : ".$obj_bulletin->compte)),"", "", "L",false);
+          
+          
+              $pdf->SetFillColor(173, 206, 230);
+              $pdf->SetTextColor(0);
+              //Les zones de signature
+              //employé
+              $x = 25;
+              $y = $pdf->GetPageHeight() - 30;
+              $pdf->SetY($y);
+          
+              $pdf->SetX($x);
+              $pdf->Cell(25,5, utf8_decode(mb_strtoupper("Employé")), "B", "", "C",true);
+          
+              //Employeur
+              $x = $pdf->GetPageWidth() - 50;
+              $y = $pdf->GetPageHeight() - 30;
+              $pdf->SetY($y);
+              $pdf->SetX($x);
+              $pdf->Cell(25,5, utf8_decode(mb_strtoupper("Employeur")), "B", "", "C",true);
+          $suivant ++;
+          }
         }
-
-      }
-
-          //Salaire net
-          $pdf->SetTextColor(0, 0, 70);
-          $pdf->SetLeftMargin(13);
-          $y = $pdf->GetY() +3;
-          $pdf->SetY($y);
-          $pdf->line(12,$y-1 ,$pdf->GetPageWidth()-12,$y-1);
-          $pdf->Cell(49,4, utf8_decode("Salaire Net"),0,0,'L');
-
-          $salaire_net = $obj_bulletin->net_payer;
-          $pdf->SetLeftMargin(163);
-          $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $salaire_net, 2)),0,0,'R');
-
-          $pdf->SetTextColor(0, 0, 0);
-
-          //Avance/acompte
-          $somme_avance = 0;
-          $bulletin_avance = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_avance WHERE fk_bulletin=".$obj_bulletin->rowid;
-         $bulletin_avance = $db->query($bulletin_avance);
-         if($bulletin_avance){
-           $j = 0;
-           $num = $db->num_rows($bulletin_avance);
-           if($num > 0){
-             $y = $pdf->GetY()+5;
-             $pdf->line(12,$y ,$pdf->GetPageWidth()-12,$y);
-           }
-           while ($j < $num){
-             $obj_bulletin_avance = $db->fetch_object($bulletin_avance);
-
-             if($j == 0)
-               $y = $pdf->GetY() +6;
-             else $y += 4;
-             $pdf->SetLeftMargin(13);
-             $pdf->SetY($y);
-             $pdf->Cell(49,4, utf8_decode($obj_bulletin_avance->libelle),0,0,'L');
-
-             $pdf->SetX(103);
-             $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_avance->montant, 2)),0,'R');
-
-             $somme_avance += $obj_bulletin_avance->montant;
-             $j ++;
-             //print $obj_bulletin_hs->montant."<br>";
-           }
-
-           if($num > 0){
-             $pdf->SetFont('Helvetica','',9);
-             $pdf->SetTextColor(0, 0, 70);
-             $pdf->SetLeftMargin(13);
-             $y = $pdf->GetY() +2;
-             $pdf->SetY($y);
-             $pdf->line(12,$y-1 ,$pdf->GetPageWidth()-12,$y-1);
-             $pdf->Cell(49,4, utf8_decode("Avances/Acomptes"),0,0,'L');
-
-             $pdf->SetLeftMargin(163);
-             $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $somme_avance, 2)),0,0,'R');
-           }
-
-         }
-
-          $y = $pdf->GetY()+5;
-          $pdf->line(12,$y ,$pdf->GetPageWidth()-12,$y);
-
-      $y = $y_apres_entete +14;
-
-      $pdf->line(12,$pdf->GetPageHeight()-60 ,$pdf->GetPageWidth()-12,$pdf->GetPageHeight()-60);
-
-      //informations en-dessous du tableau
-      //à gauche
-      $pdf->SetFont('Helvetica','',8);
-      $y = $pdf->GetPageHeight()-58;
-      $pdf->SetLeftMargin(15);
-      $pdf->SetY($y);
-      $pdf->SetFillColor(240, 240, 240);
-      $pdf->MultiCell(65,4, utf8_decode("Virement : ".$obj_bulletin->banque),0,'L');
-
-      $y += 4;
-      $pdf->SetY($y);
-      $pdf->SetFillColor(245, 245, 245);
-      $pdf->MultiCell(65,4, utf8_decode("N° :".$obj_bulletin->compte),0,'L');
-
-      $y += 4;
-      $pdf->SetY($y);
-      $pdf->SetFillColor(245, 245, 245);
-      $pdf->MultiCell(65,4, utf8_decode("I.N.P.S : ".$obj_bulletin->inps),0,'L');
-
-      $y += 4;
-      $pdf->SetY($y);
-      $pdf->SetFillColor(245, 245, 245);
-      $pdf->MultiCell(65,4, utf8_decode("AMO : ".$obj_bulletin->amo),0,'L');
-
-      //à droite
-      //salaire net
-      $pdf->SetFont('Helvetica','',8);
-
-      $y = $pdf->GetPageHeight()-56;
-      $pdf->SetLeftMargin(133);
-      $pdf->SetY($y);
-      $pdf->SetFillColor(255, 255, 255);
-      $pdf->Cell(28,4, utf8_decode("Salaire Net :"),0,0,'L',true);
-
-      $pdf->SetLeftMargin(161);
-      $pdf->MultiCell(31,4, utf8_decode(apres_virgule($db, $id_societe, $salaire_net+$retenu, 2)),0,'R',true);
-
-      //retenu
-      $pdf->SetLeftMargin(133);
-      $y += 4;
-      $pdf->SetY($y);
-      $pdf->SetFillColor(245, 245, 245);
-      $pdf->Cell(28,4, utf8_decode("Retenu :"),0,0,'L',true);
-      $pdf->SetLeftMargin(61);
-      $pdf->MultiCell(31,4, utf8_decode(apres_virgule($db, $id_societe, $retenu, 2)),0,'R',true);
-      //Avance
-      $pdf->SetLeftMargin(133);
-      $y += 4;
-      $pdf->SetY($y);
-      $pdf->SetFillColor(245, 245, 245);
-      $pdf->Cell(28,4, utf8_decode("Avance/acompte :"),0,0,'L',true);
-
-    //Avance
-      $pdf->SetLeftMargin(161);
-      $pdf->MultiCell(31,4, utf8_decode(apres_virgule($db, $id_societe, ($somme_avance?:0), 2)),0,'R',true);
-
-      //net à payer
-      $pdf->SetLeftMargin(133);
-      $y += 4;
-      $pdf->SetY($y);
-      $pdf->SetFillColor(245, 245, 245);
-      //$pdf->SetTextColor(255, 255, 255);
-      $pdf->Cell(28,4, utf8_decode("Net à payer :"),0,0,'L',true);
-
-      $pdf->SetLeftMargin(161);
-      $pdf->MultiCell(31,4, utf8_decode(apres_virgule($db, $id_societe, ($salaire_net - $somme_avance)?:0, 2)),0,'R',true);
-
-      //*********************************************************************** */
-      //les cadres
-      $pdf->SetLeftMargin(13);
-      $pdf->SetY($y+7);
-      $pdf->MultiCell(59,14, "",1,'');
-
-      $pdf->SetLeftMargin(133);
-      $pdf->SetY($y+7);
-      $pdf->MultiCell(59,14, "",1,'');
-
-
-      $i ++;
-          }
 
       $doc = $obj_bulletin->nom.'_'.$obj_bulletin->prenom.'-'.$annee;
       $pdf->Output($doc, $mode);
@@ -717,6 +1061,16 @@ if($id_societe){
 }
 
 
+//Entête de bulletin du modele avance
+
+function pdf_pagehead_avance(&$pdf){
+
+}
+
+function pdf_ibspagefoot_avance(&$pdf, $marge_droite, $marge_basse)
+{
+
+}
 
 function apres_virgule($db, $id_societe, $valeur, $decalage){
   $sep = ".";
@@ -732,350 +1086,3 @@ function apres_virgule($db, $id_societe, $valeur, $decalage){
 }
 
   $db->close();
-
-
-  //entete des bulletins
-  function pdf_pagehead_avance(&$pdf, $onglet_salarie){
-
-    global $mysoc,$conf, $db, $fk_salarie, $id_salarie, $mois, $annee, $id_accord_etab;
-
-    $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_salarie=".$fk_salarie." AND annee=".$annee." AND mois=".$mois;
-      $rest_bulletin = $db->query($bulletin_sql);//= $db->query($covSql);
-      $bulletin_obj = $db->fetch_object($rest_bulletin);
-
-      $y = $pdf->GetY();
-      //$debut = DOL_DOCUMENT_ROOT;
-      $debut = $conf->mycompany->dir_output;
-      $tab = explode("/",$debut);
-      //$logo_server = $logodir.'/logos/'.$bulletin_obj->logo_societe;
-
-      $bulletin_soc = "SELECT * FROM ".MAIN_DB_PREFIX."societe WHERE rowid=".$bulletin_obj->fk_societe;
-      $rest_bulletin_soc = $db->query($bulletin_soc);//= $db->query($covSql);
-      $societe_Salarie = $db->fetch_object($rest_bulletin_soc);
-
-      $img = '../../config/logo_societe/'.$bulletin_obj->fk_societe;
-		if(file_exists($img.'.png')){
-			$img .= '.png';
-		}elseif(file_exists($img.'.jpg')){
-			$img .= '.jpg';
-		}else{
-			$img .= '.jpeg';
-		}
-
-		if(is_readable($img)){
-			$logo_server = $img;
-
-		}else{
-      $logo_server = $tab[0].'/'.$tab[1].'/'.$tab[2].'/'.$tab[3].'/documents/societe/'.$bulletin_obj->fk_societe.'/logos/'.$bulletin_obj->logo_societe;
-      $logo_local_pc = $tab[0].'/'.$tab[1].'/'.$tab[2].'/societe/'.$bulletin_obj->fk_societe.'/logos/'.($bulletin_obj->logo_societe?$bulletin_obj->logo_societe:"vide.png");
-    }
-      if(is_readable($logo_local_pc)){
-        $pdf->Image($logo_local_pc,30,3, 40,19);
-        $y = $pdf->GetY()+2;
-      }elseif(is_readable($logo_server)){
-        $pdf->Image($logo_server,30,3, 40,19);
-        $y = $pdf->GetY()+2;
-      }else{
-        $pdf->SetFont('Helvetica','B',16);
-        $pdf->SetY($y);
-        $pdf->SetX(30);
-        $pdf->MultiCell(40,6,utf8_decode("Logo"),0,'C');
-        $y += 2;
-
-      }
-
-	$y_salarie = $y;
-	$x = 12;
-
-	//espace pris par le logo
-	$y += 12;
-	//petit rectangle à gauche
-	$pdf->SetFillColor(246, 246, 246);
-	$pdf->SetLineWidth(0.1);
-	$pdf->SetDrawColor(50, 50, 50);
-	$pdf->SetY($y);
-   $pdf->SetX($x);
-   $pdf->MultiCell(90,42, "",0,0,true);
-
-   //Informations dans le rectangle
-   $y += 2;
-   $pdf->SetTextColor(0, 0, 0);
-   $pdf->SetFont('Helvetica','B',9);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$pdf->MultiCell(100,5,utf8_decode("Etablissement : ".$bulletin_obj->nom_societe),0,'L');
-
-   $y += 7;
-	$pdf->SetTextColor(0, 0, 0);
-   $pdf->SetFont('Helvetica','',9);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$pdf->MultiCell(100,5,utf8_decode($societe_Salarie->address),0,'L');
-		$pays_Sql = "SELECT label FROM ".MAIN_DB_PREFIX."c_country where rowid=".$societe_Salarie->fk_pays;
-		$pays_Result = $db->query($pays_Sql);
-		if(!empty($obj_user->fk_country))
-			$pays = $db->fetch_object($pays_Result)->label;
-
-   $y += 5;
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$pdf->MultiCell(89,5,utf8_decode($societe_Salarie->town." ".$pays),0,'L');
-
-	if($societe_Salarie->siren){
-		$y += 5;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->MultiCell(89,5,utf8_decode($societe_Salarie->siren),0,'L');
-	}
-
-	$tel = $societe_Salarie->phone;
-	if(empty($tel))
-		$tel = $societe_Salarie->fax;
-	else $tel .= " / ".$societe_Salarie->fax;
-
-	if($tel){
-		$y += 5;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->Cell(89,5,utf8_decode("Tel : ".$tel),0,'L');
-	}
-
-	if($societe_Salarie->email){
-		$y += 5;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->Cell(89,5,utf8_decode("Email : ".$societe_Salarie->email),0,'L');
-	}
-	if($societe_Salarie->url){
-		$y += 5;
-		$pdf->SetTextColor(0, 0, 0);
-		$pdf->SetY($y);
-		$pdf->SetX($x);
-		$pdf->Cell(89,5,utf8_decode("Web : ".$societe_Salarie->url),0,'L');
-	}
-
-
-   $convention = $bulletin_obj->nom_convention;
-   $y += 8;
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$pdf->MultiCell(100,3,utf8_decode("Conv. Coll. : ".$convention),0,'L');
-
-	//information à gauche en bas du petit rectangle
-   $y = 67;
-   $pdf->SetFont('Helvetica','B',9);
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$du = "01-".$mois."-".$annee;
-	$au = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
-	$pdf->MultiCell(100,3,utf8_decode("Période du :   ".$du."   au ".$au."-".$mois."-".$annee),0,'L');
-
-
-   $y += 4;
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetY($y);
-	$pdf->SetX($x);
-	$pdf->MultiCell(100,3,utf8_decode("Payé le : ".$au."-".$mois."-".$annee." par Virement"),0,'L');
-
-   $y += 4;
-   if(!empty($bulletin_obj->banque)){
-    $pdf->SetTextColor(0, 0, 0);
-    $pdf->SetY($y);
-    $pdf->SetX($x);
-    $pdf->MultiCell(100,3,utf8_decode($bulletin_obj->banque." : ".$bulletin_obj->compte),0,'L');
-   }
-	//Les information sur le salarié
-	$x = 100 + 3;
-	$pdf->SetY($y_salarie-4);
-	$pdf->SetX($x);
-	$pdf->SetTextColor(0, 0, 70);
-	$pdf->SetFont('Helvetica','B',18);
-
-	$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12-5,5,utf8_decode("Bulletin De Paie"),0,'C');
-
-	$x = 100 + 7;
-  $y_salarie = $pdf->getY() + 12;
-	$pdf->SetY($y_salarie);
-	$pdf->SetX($x);
-	$pdf->SetTextColor(0, 0, 70);
-	$pdf->SetFont('Helvetica','B',14);
-	$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($bulletin_obj->prenom." ".$bulletin_obj->nom),0,'L');
-
-	$x = 100 + 7;
-	$y_salarie += 6;
-	$pdf->SetY($y_salarie);
-	$pdf->SetX($x);
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetFont('Helvetica','B',9);
-	$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 -12 - 8,3,utf8_decode($bulletin_obj->addresse),0,'L');
-
-
-	$y_salarie += 5;
-	$pdf->SetY($y_salarie);
-	$pdf->SetX($x);
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetFont('Helvetica','B',9);
-	$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 -12 - 8,3,utf8_decode($bulletin_obj->ville." ".$bulletin_obj->pays),0,'L');
-
-//ecart entre information
-$y_salarie += 6;
-
-
-$x = 100 + 7;
-$pdf->SetTextColor(0, 0, 0);
-$pdf->SetFont('Helvetica','',10);
-$y_salarie += 5;
-   $pdf->SetY($y_salarie);
-   $pdf->SetX($x);
-$pdf->Cell(35 - 5,3,utf8_decode("Matricule "),0,0,'L');
-$pdf->SetTextColor(0, 0, 70);
-$pdf->SetFont('Helvetica','B',10);
-$pdf->SetX($x + 45);
-$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($bulletin_obj->matricule),0,1,'L');
-
-$pdf->SetTextColor(0, 0, 0);
-$pdf->SetFont('Helvetica','',10);
-$y_salarie += 6;
-$pdf->SetY($y_salarie);
-$pdf->SetX($x);
-$pdf->Cell(35 - 5,3,utf8_decode("Catégorie "),0,0,'L');
-$categ = $bulletin_obj->categorie."".($bulletin_obj->echelon?"==>".$bulletin_obj->echelon:"");
-
-$pdf->SetTextColor(0, 0, 70);
-$pdf->SetFont('Helvetica','B',10);
-$pdf->SetX($x + 45);
-$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($categ),0,1,'L');
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetFont('Helvetica','',10);
-	$y_salarie += 6;
-	   $pdf->SetY($y_salarie);
-	   $pdf->SetX($x);
-	$pdf->Cell(35 - 5,3,utf8_decode("Fonction "),0,0,'L');
-	$fonction = $obj_user->job;
-	$pdf->SetTextColor(0, 0, 70);
-	$pdf->SetFont('Helvetica','B',10);
-	$pdf->SetX($x + 45);
-	$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($bulletin_obj->fonction),0,1,'L');
-
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetFont('Helvetica','',10);
-	$y_salarie += 6;
-	   $pdf->SetY($y_salarie);
-	   $pdf->SetX($x);
-	$pdf->Cell(35 - 5,3,utf8_decode("Date embauche "),0,0,'L');
-	$date_embauche = $obj_user->dateemployment;
-	$pdf->SetTextColor(0, 0, 70);
-	$pdf->SetFont('Helvetica','B',10);
-	$pdf->SetX($x + 45);
-	$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($bulletin_obj->date_embauche),0,1,'L');
-
-	/*$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetFont('Helvetica','',10);
-	$y_salarie += 6;
-	   $pdf->SetY($y_salarie);
-	   $pdf->SetX($x);
-	$pdf->Cell(35 - 5,3,utf8_decode("Contrat "),0,0,'L');
-	$date_embauche = $obj_user->dateemployment;
-	$pdf->SetTextColor(0, 0, 70);
-	$pdf->SetFont('Helvetica','B',10);
-	$pdf->SetX($x + 45);
-	$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($bulletin_obj->contrat),0,1,'L');
-	*/
-	$pdf->SetTextColor(0, 0, 0);
-	$pdf->SetFont('Helvetica','',10);
-	$y_salarie += 6;
-	   $pdf->SetY($y_salarie);
-	   $pdf->SetX($x);
-	$pdf->Cell(35 - 5,3,utf8_decode("Niveau salarié "),0,0,'L');
-	$date_embauche = $obj_user->dateemployment;
-	$pdf->SetTextColor(0, 0, 70);
-	$pdf->SetFont('Helvetica','B',10);
-	$pdf->SetX($x + 45);
-	$pdf->Cell($pdf->GetPageWidth() - 100 - 12 -12 - 5,3,utf8_decode($bulletin_obj->type_salarie),0,1,'L');
-
-  }
-
-  function pdf_ibspagefoot(&$pdf, $marge_droite, $marge_basse)
-  {
-    global $db, $conf, $user, $mysoc, $hookmanager, $id_societe;
-    //$formcompany = new FormCompany($db);
-
-    $societe_Sql = "SELECT * FROM ".MAIN_DB_PREFIX."societe where rowid=".$id_societe;
-    $societe_Result = $db->query($societe_Sql);
-    $societe_obj = $db->fetch_object($societe_Result);
-
-    $line = '';
-    $reg = array();
-
-
-    $line1 = "";
-    $lineTel = "";
-    $lineEmail = "";
-    $lineAdress = "";
-    $line3 = "";
-    $line4 = "";
-    $identProf1 = "";
-    $identProf2 = "";
-    $identProf3 = "";
-    $identProf4 = "";
-    //!empty($conf->global->MAIN_INFO_SOCIETE_NOM) ? $conf->global->MAIN_INFO_SOCIETE_NOM : ''.'"'.(empty($conf->global->MAIN_INFO_SOCIETE_NOM)
-
-    $lineAdress = !empty($mysoc->address) ? $mysoc->address : '';
-	//$lineAdress .= ($lineAdress? "\n":"").!empty($mysoc->zip) ? $mysoc->zip : '';
-	//$lineAdress .= ($lineAdress? "\n":"").!empty($mysoc->town) ? $mysoc->town : '';
-
-	$lineTel .= ($lineTel ? "\n":"").(!empty($mysoc->phone) ? "Tel :".$mysoc->phone : '');
-	$lineTel .= ($lineTel ? "\n":"").(!empty($mysoc->fax) ? "Fax :".$mysoc->fax : '');
-	$lineEmail.= ($lineEmail? "\n":"").(!empty($mysoc->email) ? $mysoc->email : '');
-	$lineEmail.= ($lineEmail? "\n":"").(!empty($mysoc->url) ? $mysoc->url : '');
-
-	// ProfId1
-	   $identProf1 .= dol_escape_htmltag(!empty($mysoc->idprof1) ? $mysoc->idprof1 : '');
-
-
-	// ProfId2
-		$identProf2 .= dol_escape_htmltag(!empty($mysoc->idprof2) ? $mysoc->idprof2 : '');
-
-	// ProfId3
-		$identProf3 .= dol_escape_htmltag(!empty($mysoc->idprof3) ? $mysoc->idprof3 : '');
-
-		$identProf4 = ($identProf1?$identProf1."\n":"").($identProf2?$identProf2."\n":"").($identProf3?$identProf3."\n":"");
-  //(!empty($conf->global->MAIN_INFO_SOCIETE_GENCODE) ? $conf->global->MAIN_INFO_SOCIETE_GENCODE : '')))
-  /*$pdf->SetFillColor(145, 124, 35);
-				$pdf->SetLeftMargin(0);
-				$pdf->SetY($pdf->GetY());
-				$pdf->MultiCell($pdf->getPageWidth(), 13, "",0,'',true);
-				$pdf->SetTextColor(255, 255, 255);*/
-
-    $pdf->SetY(-$marge_basse);
-    $y = $pdf->GetY()+1;
-    $pdf->line(12,$pdf->GetY(),$pdf->GetPageWidth()-12,$pdf->GetY());
-
-        $pdf->Image(DOL_DOCUMENT_ROOT.'/paiementsalaire/doc/icone_folder/phone.jpg',13,$y+1, 6,6);
-        $pdf->SetLeftMargin($marge_droite+6);
-        $pdf->SetY($y);
-        $pdf->MultiCell(38,4, utf8_decode($lineTel),0,'L');
-
-        $pdf->Image(DOL_DOCUMENT_ROOT.'/paiementsalaire/doc/icone_folder/envelope.jpg',58,$y+1, 6,6);
-        $pdf->SetLeftMargin(64);
-        $pdf->SetY($y);
-        $pdf->MultiCell(38,4, utf8_decode($lineEmail),0,'L');
-
-        $pdf->Image(DOL_DOCUMENT_ROOT.'/paiementsalaire/doc/icone_folder/locationMap.jpg',103,$y+1, 6,6);
-        $pdf->SetLeftMargin(109);
-        $pdf->SetY($y);
-        $pdf->MultiCell(38,4, utf8_decode($lineAdress),0,'L');
-
-        $pdf->Image(DOL_DOCUMENT_ROOT.'/paiementsalaire/doc/icone_folder/autre.jpg',148,$y+1, 6,6);
-        $pdf->SetLeftMargin(154);
-        $pdf->SetY($y);
-        $pdf->MultiCell(40,4, utf8_decode($identProf4),0,'L');
-
-
-  }

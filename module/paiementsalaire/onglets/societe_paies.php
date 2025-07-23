@@ -3,7 +3,67 @@ require '../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/lib/paiementsalaire.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//Verification de la licence
+
+
+/*je dois juste protéger les buttons générer
+*/
+if($nombre_salarie_licence == 0){
+	$sql_licence = "SELECT nb_salarie, licence_status FROM ".MAIN_DB_PREFIX."dolipaie_type";
+	$result_licence = $db->query($sql_licence);
+	if($result_licence){
+		$nombre_salarie_licence = $db->fetch_object($result_licence)->nb_salarie;
+		$licence = $db->fetch_object($result_licence)->licence_status;
+	}
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+llxHeader("", "Paiement | Salaire");
+if(!empty($info))
+	print '<mark><h3 style="color:red;">'.$info.'</h3></mark>';
+$id_societe = GETPOST('id_societe','int');
+$action =  GETPOST('action','alpha');
+$id_convention = GETPOST('id_convention','int');
+//set_time_limit(300); // 300 secondes (5 minutes)
+//Verification du nombre de salariés autorisé
+$num_sal_exist = 0;
+$sql = "SELECT sc.rowid FROM ".MAIN_DB_PREFIX."societe as sc";
+	$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_extrafields as sce ON sc.rowid=sce.fk_object WHERE sce.grp=1";
+	$result = $db->query($sql);
+		
+    $num_societe = 0;
+	if($result){
+        $num_societe = $db->num_rows($result);
+		$i = 0;
+		while ($i < $num_societe){
+		$societe = $db->fetch_object($result);
+
+        $sql = "SELECT u.rowid FROM ".MAIN_DB_PREFIX."user as u";
+        $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object Where ue.egp=".$societe->rowid;
+        $result1 = $db->query($sql);
+        if($result1){
+            $num_user = $db->num_rows($result1);
+            $j = 0;
+            while ($j < $num_user) {
+                $users = $db->fetch_object($result1);
+                $sql_salarie = "SELECT * FROM ".MAIN_DB_PREFIX."salarie WHERE fk_user=".$users->rowid." AND archiver!='oui'";
+                $res = $db->query($sql_salarie);
+                if($res){
+                    $salarie = $db->fetch_object($res);
+                    if($salarie->matricule)
+                        $num_sal_exist += 1;
+                }
+                $j++;
+            }
+            
+        }
+
+        $i++;
+       
+		}
+    }
+
+if($action == "generer" && $num_sal_exist <= $nombre_salarie_licence){
+	//Verification de la licence
 // Récupérer la clé de licence
 $licensekey = trim(file_get_contents(DOL_DOCUMENT_ROOT.'/paiementsalaire/onglets/licence.txt'));
 $localkey = file_get_contents(DOL_DOCUMENT_ROOT.'/paiementsalaire/onglets/local.txt');
@@ -236,68 +296,8 @@ if ($results['status'] == "Active") {
     	file_put_contents(DOL_DOCUMENT_ROOT.'/paiementsalaire/onglets/local.txt', $results['localkey']);
 		
 } else {
-    //$info =  "Votre licence est : ".$results['status'];
+    $info =  "Problème de connexion ou de licence";
 }
-
-
-/*je dois juste protéger les buttons générer
-*/
-if($nombre_salarie_licence == 0){
-	$sql_licence = "SELECT nb_salarie, licence_status FROM ".MAIN_DB_PREFIX."dolipaie_type";
-	$result_licence = $db->query($sql_licence);
-	if($result_licence){
-		$nombre_salarie_licence = $db->fetch_object($result_licence)->nb_salarie;
-		$licence = $db->fetch_object($result_licence)->licence_status;
-	}
-}
-
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-llxHeader("", "Paiement | Salaire");
-if(!empty($info))
-	print '<mark><h3 style="color:red;">'.$info.'</h3></mark>';
-$id_societe = GETPOST('id_societe','int');
-$action =  GETPOST('action','alpha');
-$id_convention = GETPOST('id_convention','int');
-//set_time_limit(300); // 300 secondes (5 minutes)
-//Verification du nombre de salariés autorisé
-$num_sal_exist = 0;
-$sql = "SELECT sc.rowid FROM ".MAIN_DB_PREFIX."societe as sc";
-	$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_extrafields as sce ON sc.rowid=sce.fk_object WHERE sce.grp=1";
-	$result = $db->query($sql);
-		
-    $num_societe = 0;
-	if($result){
-        $num_societe = $db->num_rows($result);
-		$i = 0;
-		while ($i < $num_societe){
-		$societe = $db->fetch_object($result);
-
-        $sql = "SELECT u.rowid FROM ".MAIN_DB_PREFIX."user as u";
-        $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object Where ue.egp=".$societe->rowid;
-        $result1 = $db->query($sql);
-        if($result1){
-            $num_user = $db->num_rows($result1);
-            $j = 0;
-            while ($j < $num_user) {
-                $users = $db->fetch_object($result1);
-                $sql_salarie = "SELECT * FROM ".MAIN_DB_PREFIX."salarie WHERE fk_user=".$users->rowid." AND archiver!='oui'";
-                $res = $db->query($sql_salarie);
-                if($res){
-                    $salarie = $db->fetch_object($res);
-                    if($salarie->matricule)
-                        $num_sal_exist += 1;
-                }
-                $j++;
-            }
-            
-        }
-
-        $i++;
-       
-		}
-    }
-
-if($action == "generer" && $num_sal_exist <= $nombre_salarie_licence){
 	include("./progression.html");
 }/*elseif($num_sal_exist > $nombre_salarie_licence){
 	if(empty($info))
@@ -1169,7 +1169,7 @@ if($annee_rechercher == $annee_courant){
 						else
 							print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
 							<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
-						print "Cloturé2</td>";
+						print "Cloturé</td>";
 					}else if($obj_verif->cloture=="non"){
 						print "<td ".$style.">".$nb_salarie."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_brut?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_obj[0]->sal_net?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
 						

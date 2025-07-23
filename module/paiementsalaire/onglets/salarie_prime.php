@@ -735,29 +735,26 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 
 			//affichage des primes exceptionnelle
 			$trouve = false;
-			$sql_bulletin = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='oui' AND fk_salarie=".$fk_salarie." AND fk_societe=".$id_societe;
+			$sql_bulletin = "SELECT rowid, mois, annee FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='oui' AND fk_salarie=".$fk_salarie." AND fk_societe=".$id_societe;
 			$res_bulletin  = $db->query($sql_bulletin);
 			$num_b = $db->num_rows($res_bulletin);
 			$a = 0;
 			while ($a < $num_b) {
 				$obj = $db->fetch_object($res_bulletin);
 
-				$sql_bulletin_pr_except = "SELECT fk_prime FROM ".MAIN_DB_PREFIX."bulletin_prime_exceptionnelle WHERE fk_bulletin=".$obj->rowid;
+				$sql_bulletin_pr_except = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_prime_exceptionnelle WHERE fk_bulletin=".$obj->rowid;
 				$res_bulletin_pr_except  = $db->query($sql_bulletin_pr_except);
 				$num_pr_except = $db->num_rows($res_bulletin_pr_except);
 				$b = 0;
 				while ($b < $num_pr_except) {
 					$obj_bull_pr = $db->fetch_object($res_bulletin_pr_except);
-					$sql_pr_except = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_prime_exceptionnelle WHERE fk_salarie=".$fk_salarie." AND rowid=".$obj_bull_pr->fk_prime;
-					$res_bulletin_pr  = $db->query($sql_pr_except);
-					if($db->num_rows($res_bulletin_pr) > 0){
+			
 						$trouve = true;
 						$obj_except = $db->fetch_object($res_bulletin_pr);
-						$var = "Prime Exceptionnelle : ".$obj_except->date_limit." Soumise au impôt ".$obj_except->soumis_impot." Soumise à cotisation ".$obj_except->soumis_cotisation." et ".$affiche_bulletin;
+						$var = "Prime Exceptionnelle : ".$obj->mois."/".$obj->annee;
 						print "<tr class='impair'><td>";
 						print img_error($var).' <span>'.$obj_except->libelle.'</span></td><td>'.apres_virgule($db, $id_societe, $obj_except->montant);
 						print "</td><td><button disabled class='button'>Dissocier</button></td></tr>";
-					}
 
 					$b ++;
 				}

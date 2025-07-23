@@ -38,7 +38,6 @@ if(empty($message)){
         $array_id_soc .= ")";
 
 $mois_tab = array(" janvier "," février "," mars "," avril "," mai "," juin "," juillet "," août "," septembre "," octobre "," novembre "," décembre ");
-
 if($action == "telecharger")
  $mode = "D";
 else $mode = "I";
@@ -218,7 +217,7 @@ function SetCharSpacing($cs) {
    $pdf->SetY($y);
    $pdf->SetX($x + 69);
    $pdf->SetFont('Arial','',10);
-   $pdf->MultiCell(40,3, utf8_decode("N° Employeur : ".$numero),0,'C');
+   $pdf->MultiCell(45,3, utf8_decode("N° Employeur : ".$numero),0,'C');
 
    $pdf->SetY($pdf->GetY()+3);
    $pdf->SetX($x + 80);
@@ -232,20 +231,43 @@ $pdf->SetFont('Arial','B',6);
    $y = $pdf->GetY()+23;
     $pdf->SetY($y);
     $pdf->Cell(60,17, "",1,0,'');
-    $sql_verif = "SELECT rowid, nom, prenom, matricule, salaire_brut_cotisable, inps, amo FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe IN ".$array_id_soc." ORDER BY nom";
+    $sql_verif = "SELECT rowid, fk_salarie, nom, prenom, matricule, salaire_brut_cotisable, inps, amo FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe IN ".$array_id_soc." ORDER BY nom";
     $res_verif = $db->query($sql_verif);
 
     $nb = 0;
+    $total_permanent = 0;
     if($res_verif){
         $i = 0;
         $num = $db->num_rows($res_verif);
         $nb = $num;
         while ($i < $num){
             $rowid_bulletin[$i] = $db->fetch_object($res_verif);
+            $total_permanent += $rowid_bulletin[$i]->salaire_brut_cotisable;
+
+            //print $rowid_bulletin[$i]->nom.'****'.$rowid_bulletin[$i]->prenom.'//////';
           $i ++;
         }
     }
-    global $nb, $liste_user, $liste_salarie, $rowid_bulletin;
+
+    $sql_verif_b = "SELECT rowid, salaire_brut_cotisable FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+    $res_verif_b = $db->query($sql_verif_b);
+    $nb_b = 0;
+    if($res_verif_b){
+        $i = 0;
+        $num = $db->num_rows($res_verif_b);
+        $nb_b = $num;
+        while ($i < $num){
+            $brut_bonus = 0;
+            $rowid_bulletin_bonus[$i] = $db->fetch_object($res_verif_b);                
+            $brut_bonus += $rowid_bulletin_bonus[$i]->salaire_brut_cotisable;
+              
+          $total_permanent += $brut_bonus;
+
+          $i ++;
+        }
+    }
+
+   // global $nb, $liste_user, $liste_salarie, $rowid_bulletin;
 
     $pdf->SetFont('Arial','',8);
     $pdf->SetY($y+1);
@@ -280,15 +302,15 @@ $x_rect2 = 66;
 
    $pdf->SetY($y+1);
    $pdf->SetX($x_rect2 + 1);
-   $pdf->MultiCell(80,3, utf8_decode("Masse Salariale soumlises è cotisation"),0,'L');
+   $pdf->MultiCell(80,3, utf8_decode("Masse Salariale soumises à cotisation"),0,'L');
 
    $y_permant = $pdf->GetY()+1;
    $pdf->SetY($y_permant);
    $pdf->SetX($x_rect2 + 1);
    $pdf->Cell(30,3, utf8_decode("Permanents"),0,0,'L');
 
-   $pdf->SetX($x_rect2 + 80-15);
-   $pdf->MultiCell(13,3, utf8_decode(0),0,'L');
+   $pdf->SetX($x_rect2 + 80-30);
+   $pdf->MultiCell(28,3, utf8_decode(apres_virgule($total_permanent, 0)),0,'R');
 
    $pdf->SetY($pdf->GetY()+1);
    $pdf->SetX($x_rect2 + 1);
@@ -573,15 +595,32 @@ if($nb>0){
       $pdf->line(5,$pdf->GetY()+10,$pdf->GetPageWidth()-5,$pdf->GetY()+10);
       $y = $pdf->GetY() +12; 
   }
-              $pdf->SetY($y);
 
+              $mots = array("INPS:", "INPS", "INPS :", "INPS ", "INP:", "INP", "INP :", "INP ");
+              $textes = $rowid_bulletin[$i]->inps;
+              for ($j=0; $j < count($mots); $j++) { 
+                $texte = $textes;
+                //suppression des lettres "inps : "
+                $mot = $mots[$j];
+
+                // Vérifie si le mot existe (insensible à la casse)
+                if (stripos($texte, $mot) !== false) {
+                    // Supprime toutes les occurrences du mot (insensible à la casse)
+                    $texteNettoye = preg_replace("/\b$mot\b/i", '', $texte);
+
+                    // Nettoyage des espaces en double
+                    $textes = preg_replace('/\s+/', ' ', trim($texteNettoye));
+                }
+              }
+
+              $pdf->SetY($y);
               $pdf->SetFont('Arial','',7);
               $pdf->SetX(5);
-              $pdf->Cell(19,4, utf8_decode($rowid_bulletin[$i]->inps?:""),0,0,'L');
+              $pdf->Cell(19,4, utf8_decode($textes?:""),0,0,'L');
 
               $pdf->SetFont('Arial','',8);
               $pdf->SetX(24);
-              $pdf->Cell(58,4, utf8_decode($rowid_bulletin[$i]->prenom." ".$rowid_bulletin[$i]->nom),0,0,'L');
+              $pdf->Cell(58,4, utf8_decode($rowid_bulletin[$i]->nom." ".$rowid_bulletin[$i]->prenom),0,0,'L');
 
               $pdf->SetFont('Arial','',7);
               $pdf->SetX(82);
@@ -595,74 +634,152 @@ if($nb>0){
               $pdf->Cell(4,4, utf8_decode("1"),0,0,'C');
               
               $total_horizontal = 0;
+            
+            //On cherche l'id du bulletin bonus ou complement salaire de ce salarié
+              $fk_bul_bonus = 0;
+              $brut_bonus = 0;
+              $bonus_fk_salarie = 0;
+              $sql_cotis_bonus = "SELECT rowid, fk_salarie, salaire_brut_cotisable FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE fk_salarie=".$rowid_bulletin[$i]->fk_salarie." AND mois=".$mois." AND annee=".$annee;//AND fk_cotisation=".$id_cotisation;
+              $result_cotis_bonus = $db->query($sql_cotis_bonus);
+              if($db->num_rows($result_cotis_bonus)){
+                $obj_b = $db->fetch_object($result_cotis_bonus);
+                $fk_bul_bonus = $obj_b->rowid;
+                $brut_bonus = $obj_b->salaire_brut_cotisable;
+                $bonus_fk_salarie = $obj_b->fk_salarie;
+
+              }
 
               //AMTP
             $sql_cotis = "SELECT montant_employeur FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$rowid_bulletin[$i]->rowid." AND fk_cotisation=1";//AND fk_cotisation=".$id_cotisation;
             $result_cotis = $db->query($sql_cotis);
             $cotis = $db->fetch_object($result_cotis);
 
+            $amtp_bonus = 0;
+              if(!empty($rowid_bulletin_bonus))
+                if($rowid_bulletin[$i]->fk_salarie == $bonus_fk_salarie){
+                  $sql_cotis_b = "SELECT montant_employeur FROM ".MAIN_DB_PREFIX."bulletin_bonus_cotisation WHERE fk_bulletin=".$fk_bul_bonus." AND fk_cotisation=1";//AND fk_cotisation=".$id_cotisation;
+                  $result_cotis_b = $db->query($sql_cotis_b);
+                  $cotis_b = $db->fetch_object($result_cotis_b);
+
+                  $amtp_bonus += $cotis_b->montant_employeur;
+                }
             $pdf->SetFont('Arial','',8);
 
             $taux_accident = 2;
             if($id_convention == 1)
               $taux_accident = 4;
+
+
             $pdf->SetX(132);
-              $pdf->Cell(17,4, utf8_decode(apres_virgule($rowid_bulletin[$i]->salaire_brut_cotisable,  0)),0,0,'R');
-              $total_brut += $rowid_bulletin[$i]->salaire_brut_cotisable;
+              $pdf->Cell(17,4, utf8_decode(apres_virgule($rowid_bulletin[$i]->salaire_brut_cotisable + $brut_bonus,  0)),0,0,'R');
+              $total_brut += $rowid_bulletin[$i]->salaire_brut_cotisable + $brut_bonus;
               $pdf->SetX(149);
-              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employeur,  0)),0,0,'R');
-              $total_horizontal += $cotis->montant_employeur;
-              $total_acc += $cotis->montant_employeur;
+              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employeur + $amtp_bonus,  0)),0,0,'R');
+              $total_horizontal += $cotis->montant_employeur + $amtp_bonus;
+              $total_acc += $cotis->montant_employeur + $amtp_bonus;
 
               //Prestation familialles
               $sql_cotis = "SELECT montant_employeur FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$rowid_bulletin[$i]->rowid." AND fk_cotisation=2";//AND fk_cotisation=".$id_cotisation;
               $result_cotis = $db->query($sql_cotis);
               $cotis = $db->fetch_object($result_cotis);
+
+              $prestf_bonus = 0;
+              if(!empty($rowid_bulletin_bonus))
+                if($rowid_bulletin[$i]->fk_salarie == $bonus_fk_salarie){
+                  $sql_cotis_b = "SELECT montant_employeur FROM ".MAIN_DB_PREFIX."bulletin_bonus_cotisation WHERE fk_bulletin=".$fk_bul_bonus." AND fk_cotisation=2";//AND fk_cotisation=".$id_cotisation;
+                  $result_cotis_b = $db->query($sql_cotis_b);
+                  $cotis_b = $db->fetch_object($result_cotis_b);
+
+                  $prestf_bonus += $cotis_b->montant_employeur;
+                }
               $pdf->SetX(166);
-              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employeur,  0)),0,0,'R');
-              $total_horizontal += $cotis->montant_employeur;
-              $total_prst += $cotis->montant_employeur;
+              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employeur + $prestf_bonus,  0)),0,0,'R');
+              $total_horizontal += $cotis->montant_employeur + $prestf_bonus;
+              $total_prst += $cotis->montant_employeur + $prestf_bonus;
 
               //Retraite
               $sql_cotis = "SELECT montant_employeur, montant_employe FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$rowid_bulletin[$i]->rowid." AND fk_cotisation=3";//AND fk_cotisation=".$id_cotisation;
               $result_cotis = $db->query($sql_cotis);
               $cotis = $db->fetch_object($result_cotis);
+
+              $ret_bonus = 0;
+              if(!empty($rowid_bulletin_bonus))
+                if($rowid_bulletin[$i]->fk_salarie == $bonus_fk_salarie){
+                  $sql_cotis_b = "SELECT montant_employeur, montant_employe FROM ".MAIN_DB_PREFIX."bulletin_bonus_cotisation WHERE fk_bulletin=".$fk_bul_bonus." AND fk_cotisation=3";//AND fk_cotisation=".$id_cotisation;
+                  $result_cotis_b = $db->query($sql_cotis_b);
+                  $cotis_b = $db->fetch_object($result_cotis_b);
+
+                  $ret_bonus += $cotis_b->montant_employeur + $cotis_b->montant_employe;
+                }
               $pdf->SetX(183);
-              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employeur + $cotis->montant_employe,  0)),0,0,'R');
-              $total_horizontal += $cotis->montant_employeur + $cotis->montant_employe;
-              $total_retraite += $cotis->montant_employeur + $cotis->montant_employe;
+              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employeur + $cotis->montant_employe + $ret_bonus,  0)),0,0,'R');
+              $total_horizontal += $cotis->montant_employeur + $cotis->montant_employe + $ret_bonus;
+              $total_retraite += $cotis->montant_employeur + $cotis->montant_employe + $ret_bonus;
 
               //Invalidité allocation
               $sql_cotis = "SELECT montant_employeur FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$rowid_bulletin[$i]->rowid." AND fk_cotisation=4";//AND fk_cotisation=".$id_cotisation;
               $result_cotis = $db->query($sql_cotis);
               $cotis = $db->fetch_object($result_cotis);
+
+              $invalal_bonus = 0;
+              if(!empty($rowid_bulletin_bonus))
+                if($rowid_bulletin[$i]->fk_salarie == $bonus_fk_salarie){
+                  $sql_cotis_b = "SELECT montant_employeur FROM ".MAIN_DB_PREFIX."bulletin_bonus_cotisation WHERE fk_bulletin=".$fk_bul_bonus." AND fk_cotisation=4";//AND fk_cotisation=".$id_cotisation;
+                  $result_cotis_b = $db->query($sql_cotis_b);
+                  $cotis_b = $db->fetch_object($result_cotis_b);
+
+                  $invalal_bonus += $cotis_b->montant_employeur;
+                }
               $pdf->SetX(200);
-              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employeur,  0)),0,0,'R');
-              $total_horizontal += $cotis->montant_employeur;
-              $total_alloc += $cotis->montant_employeur;;
+              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employeur + $invalal_bonus,  0)),0,0,'R');
+              $total_horizontal += $cotis->montant_employeur + $invalal_bonus;
+              $total_alloc += $cotis->montant_employeur + $invalal_bonus;
 
               //ANPE
               $sql_cotis = "SELECT montant_employeur FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$rowid_bulletin[$i]->rowid." AND fk_cotisation=5";//AND fk_cotisation=".$id_cotisation;
               $result_cotis = $db->query($sql_cotis);
               $cotis = $db->fetch_object($result_cotis);
+
+              $anpe_bonus = 0;
+              if(!empty($rowid_bulletin_bonus))
+                if($rowid_bulletin[$i]->fk_salarie == $bonus_fk_salarie){
+                  $sql_cotis_b = "SELECT montant_employeur FROM ".MAIN_DB_PREFIX."bulletin_bonus_cotisation WHERE fk_bulletin=".$fk_bul_bonus." AND fk_cotisation=5";//AND fk_cotisation=".$id_cotisation;
+                  $result_cotis_b = $db->query($sql_cotis_b);
+                  $cotis_b = $db->fetch_object($result_cotis_b);
+
+                  $anpe_bonus += $cotis_b->montant_employeur;
+                }
               $pdf->SetX(217);
-              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employeur,  0)),0,0,'R');
-              $total_horizontal += $cotis->montant_employeur;
-              $total_anpe += $cotis->montant_employeur;
+              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employeur + $anpe_bonus,  0)),0,0,'R');
+              $total_horizontal += $cotis->montant_employeur + $anpe_bonus;
+              $total_anpe += $cotis->montant_employeur + $anpe_bonus;
 
               //AMO
               $sql_cotis = "SELECT montant_employeur, montant_employe FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$rowid_bulletin[$i]->rowid." AND fk_cotisation=6";//AND fk_cotisation=".$id_cotisation;
               $result_cotis = $db->query($sql_cotis);
               $cotis = $db->fetch_object($result_cotis);
+
+              $amo_employe = 0;
+              $amo_employeur = 0;
+
+              if(!empty($rowid_bulletin_bonus))
+                if($rowid_bulletin[$i]->fk_salarie == $bonus_fk_salarie){
+                  $sql_cotis_b = "SELECT montant_employeur, montant_employe FROM ".MAIN_DB_PREFIX."bulletin_bonus_cotisation WHERE fk_bulletin=".$fk_bul_bonus." AND fk_cotisation=6";//AND fk_cotisation=".$id_cotisation;
+                  $result_cotis_b = $db->query($sql_cotis_b);
+                  $cotis_b = $db->fetch_object($result_cotis_b);
+
+                  $amo_employe += $cotis_b->montant_employe;
+                  $amo_employeur += $cotis_b->montant_employeur;
+                }
               $pdf->SetX(234);
-              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employeur, 0)),0,0,'R');
-              $total_horizontal += $cotis->montant_employeur;
-              $total_amo_patro += $cotis->montant_employeur;
+              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employeur + $amo_employeur, 0)),0,0,'R');
+              $total_horizontal += $cotis->montant_employeur + $amo_employeur;
+              $total_amo_patro += $cotis->montant_employeur + $amo_employeur;
 
               $pdf->SetX(251);
-              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employe, 0)),0,0,'R');
-              $total_horizontal += $cotis->montant_employe;
-              $total_amo_sal += $cotis->montant_employe;
+              $pdf->Cell(17,4, utf8_decode(apres_virgule($cotis->montant_employe + $amo_employe, 0)),0,0,'R');
+              $total_horizontal += $cotis->montant_employe + $amo_employe;
+              $total_amo_sal += $cotis->montant_employe + $amo_employe;
 
               $pdf->SetY($y-0.3);
               $pdf->SetX(268);

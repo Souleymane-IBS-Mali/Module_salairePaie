@@ -70,9 +70,9 @@ $tab_id = "(0";
 	$sql_societe = "SELECT sc.rowid as r1, sc.nom, sc.name_alias, sc.phone, sc.fax, sc.code_client, sc.zip, sce.rowid as r2, sce.fk_object, sce.conv FROM ".MAIN_DB_PREFIX."societe as sc";
 	$sql_societe .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_extrafields as sce ON sc.rowid=sce.fk_object";
 	if($user->id != 1)
-    $sql_societe .= " WHERE sc.rowid IN ".$array_id_soc." AND sce.grp=1";
-else   
-    $sql_societe .= " WHERE sce.grp=1";
+    	$sql_societe .= " WHERE sc.rowid IN ".$array_id_soc." AND sce.grp=1";
+	else   
+    	$sql_societe .= " WHERE sce.grp=1";
 
 	$res_societe = $db->query($sql_societe);
 	if($res_societe){

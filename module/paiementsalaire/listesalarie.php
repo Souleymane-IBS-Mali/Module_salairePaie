@@ -35,7 +35,7 @@ $recherche_nom = "";
 			$recherche_matricule = "";
 			$recherche_societe = 0;
 			$recherche_date_entree = 0;
-			if($action = "recherche"){
+			if($action == "recherche"){
 				$recherche_nom = GETPOST("recherche_nom", "alpha");
 				$recherche_prenom = GETPOST("recherche_prenom", "alpha");
 				$recherche_matricule = GETPOST("recherche_matricule");

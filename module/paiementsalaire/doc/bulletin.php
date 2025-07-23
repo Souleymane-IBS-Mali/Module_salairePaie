@@ -349,39 +349,39 @@ if($action == "no_save"){
 			//$somme += $value;
 			$sql = "SELECT * FROM ".MAIN_DB_PREFIX."primes WHERE rowid=".$key;
 			$prime_res = $db->query($sql);
-			if($prime_res){
-                  $pr = $db->fetch_object($prime_res);
-                    $pdf->SetLeftMargin(13);
+        if($prime_res){
+          $pr = $db->fetch_object($prime_res);
+            $pdf->SetLeftMargin(13);
 
-                    $y = $pdf->GetY() + 6;
-                    $pdf->SetY($y);
-                    $pdf->Cell(30,4, utf8_decode($pr->libelle),0,0,'L');
+            $y = $pdf->GetY() + 6;
+            $pdf->SetY($y);
+            $pdf->Cell(30,4, utf8_decode($pr->libelle),0,0,'L');
 
-                    $pdf->SetLeftMargin(63);
-                    $pdf->Cell(20,4, utf8_decode(round($pourcentage_pr[$index]*$base_pourcentage)."%"),0,0,'R');
+            $pdf->SetLeftMargin(63);
+            $pdf->Cell(20,4, utf8_decode(round($pourcentage_pr[$index]*$base_pourcentage)."%"),0,0,'R');
 
-                    $pdf->SetLeftMargin(83);
-                    $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $value, 2)),0,0,'R');
+            $pdf->SetLeftMargin(83);
+            $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $value, 2)),0,0,'R');
 
-                    $pdf->SetLeftMargin(103);
-                    $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $value*$base_pourcentage, 2)),0,0,'R');
+            $pdf->SetLeftMargin(103);
+            $pdf->Cell(30,4, utf8_decode(apres_virgule($db, $id_societe, $value*$base_pourcentage, 2)),0,0,'R');
 
-                    $salaire_brut += $value*$base_pourcentage;
-					if($pr->soumis_cotisation=="Oui")
-						$salaire_brut_cotisable += $value*$base_pourcentage;
+            $salaire_brut += $value*$base_pourcentage;
+            if($pr->soumis_cotisation=="Oui")
+              $salaire_brut_cotisable += $value*$base_pourcentage;
 
-					if($pr->soumis_impot=="Oui")
-						$salaire_brut_imposable += $value*$base_pourcentage;
+            if($pr->soumis_impot=="Oui")
+              $salaire_brut_imposable += $value*$base_pourcentage;
 
-                      if($pr->ajout_base_hs == "Oui"){
-                        $array_pr_ind_hs[] = $value*$base_pourcentage;
-                      }
-                    $somme_pr_ind += $value*$base_pourcentage;
-                    $index ++;
+              if($pr->ajout_base_hs == "Oui"){
+                $array_pr_ind_hs[] = $value*$base_pourcentage;
+              }
+            $somme_pr_ind += $value*$base_pourcentage;
+            $index ++;
 
-					}
-				}
             }
+          }
+        }
 
 
 
@@ -532,7 +532,7 @@ if($action == "no_save"){
           $pdf->Cell(30,4, utf8_decode($ind->libelle),0,0,'L');
 
           $pdf->SetLeftMargin(63);
-          $pdf->Cell(20,4, utf8_decode($pourc."%"),0,0,'R');
+          $pdf->Cell(20,4, utf8_decode(round($pourc*$base_pourcentage)."%"),0,0,'R');
 
           $pdf->SetLeftMargin(83);
           $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $val, 2)),0,0,'R');
@@ -713,7 +713,7 @@ if($action == "no_save"){
                 $pdf->Cell(35,4, utf8_decode(apres_virgule($db, $id_societe, $salaire_brut, 2)),0,0,'R');
 
 
-                $index = 0;
+        $index = 0;
 				$global_cotis = salarie_prestation_organisme($db, $obj_salarie->rowid, $salaire_brut_cotisable, $id_convention, $id_societe);
 				$cotis = $global_cotis[1];
 				$taux_p = $global_cotis[0];

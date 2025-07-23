@@ -2103,7 +2103,7 @@ function salarie_avance_acompte_avec_save($db, $fk_salarie, $mois, $annee){
 	$montant_avance_paye = array();
 	$id_avance = array();
 	if(!empty($fk_salarie)){
-		$sql_avance = "SELECT rowid, montant_par_mois, montant_paye FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND CONVERT(montant_paye, float) < CONVERT(montant_total, float) AND ((annee_debut_paiement=".(int)$annee." AND mois_debut_paiement<=".(int)$mois.") OR (annee_debut_paiement <".(int)$annee."))";
+		$sql_avance = "SELECT rowid, montant_par_mois, montant_paye FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND ROUND(montant_paye) < ROUND(montant_total) AND ((annee_debut_paiement=".(int)$annee." AND mois_debut_paiement<=".(int)$mois.") OR (annee_debut_paiement <".(int)$annee."))";
 		$res_avance = $db->query($sql_avance);
 		if($res_avance){
 			$nb_avance = $db->num_rows($res_avance);
@@ -2141,7 +2141,7 @@ function salarie_avance_acompte_avec_save($db, $fk_salarie, $mois, $annee){
 			}
 
 
-				$sql_avance = "SELECT rowid FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND montant_paye = montant_total";
+				$sql_avance = "SELECT rowid FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND ROUND(montant_paye) = ROUND(montant_total)";
 				$res_avance = $db->query($sql_avance);
 				$nb_avance = $db->num_rows($res_avance);
 				$i = 0;
@@ -2172,7 +2172,7 @@ function salarie_avance_acompte_sans_save($db, $fk_salarie, $mois, $annee){
 	$rowid_bulletin = $db->num_rows($res_verif);
 	if($rowid_bulletin == 0){
 		if(!empty($fk_salarie)){
-			$sql_avance = "SELECT rowid, montant_par_mois, montant_paye FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND montant_paye < montant_total AND ((annee_debut_paiement=".(int)$annee." AND mois_debut_paiement<=".(int)$mois.") OR (annee_debut_paiement >".(int)$annee."))";
+			$sql_avance = "SELECT rowid, montant_par_mois, montant_paye FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND ROUND(montant_paye) < ROUND(montant_total) AND ((annee_debut_paiement=".(int)$annee." AND mois_debut_paiement<=".(int)$mois.") OR (annee_debut_paiement >".(int)$annee."))";
 			$res_avance = $db->query($sql_avance);
 			if($res_avance){
 				$nb_avance = $db->num_rows($res_avance);
@@ -2184,7 +2184,7 @@ function salarie_avance_acompte_sans_save($db, $fk_salarie, $mois, $annee){
 
 					$i ++;
 				}
-					$sql_avance = "SELECT rowid FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND montant_paye = montant_total";
+					$sql_avance = "SELECT rowid FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND ROUND(montant_paye) = ROUND(montant_total)";
 					$res_avance = $db->query($sql_avance);
 					$nb_avance = $db->num_rows($res_avance);
 					$i = 0;
@@ -2207,7 +2207,7 @@ function salarie_avance_acompte_sans_save($db, $fk_salarie, $mois, $annee){
 		}
 	}else{
 		if(!empty($fk_salarie)){
-			$sql_avance = "SELECT rowid, montant_par_mois, montant_paye FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND CONVERT(montant_paye, float) < CONVERT(montant_total, float) AND ((annee_debut_paiement=".(int)$annee." AND mois_debut_paiement<=".(int)$mois.") OR (annee_debut_paiement <".(int)$annee."))";
+			$sql_avance = "SELECT rowid, montant_par_mois, montant_paye FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND ROUND(montant_paye) < ROUND(montant_total) AND ((annee_debut_paiement=".(int)$annee." AND mois_debut_paiement<=".(int)$mois.") OR (annee_debut_paiement <".(int)$annee."))";
 			$res_avance = $db->query($sql_avance);
 			if($res_avance){
 				$nb_avance = $db->num_rows($res_avance);
@@ -2218,7 +2218,7 @@ function salarie_avance_acompte_sans_save($db, $fk_salarie, $mois, $annee){
 					$detail_avance_res = $db->query($detail_avance_sql);
 					$nb_detail_avance = $db->num_rows($detail_avance_res);
 					if($nb_detail_avance == 0){
-							//paiement du montant à payer par mois de l'avance/acompte
+							/*//paiement du montant à payer par mois de l'avance/acompte
 	
 							$sql_paiement = "INSERT INTO ".MAIN_DB_PREFIX."detail_avance (fk_avance,annee_paiement,mois_paiement,montant_paye)
 							VALUES(".$obj_avance->rowid.",".((int)$annee).",".((int)$mois).",'".$obj_avance->montant_par_mois."')";
@@ -2228,7 +2228,7 @@ function salarie_avance_acompte_sans_save($db, $fk_salarie, $mois, $annee){
 							//Mise à jour de l'avance/acompte
 							$sql_update = "UPDATE ".MAIN_DB_PREFIX."salarie_avance SET montant_paye=".($obj_avance->montant_paye + $obj_avance->montant_par_mois)."
 							 WHERE rowid=".$obj_avance->rowid;
-							$res_update = $db->query($sql_update);
+							$res_update = $db->query($sql_update);*/
 	
 	
 						$montant_avance_paye[] = $obj_avance->montant_par_mois;
@@ -2244,7 +2244,7 @@ function salarie_avance_acompte_sans_save($db, $fk_salarie, $mois, $annee){
 				}
 	
 	
-					$sql_avance = "SELECT rowid FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND montant_paye = montant_total";
+					$sql_avance = "SELECT rowid FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND ROUND(montant_paye) = ROUND(montant_total)";
 					$res_avance = $db->query($sql_avance);
 					$nb_avance = $db->num_rows($res_avance);
 					$i = 0;
@@ -2336,7 +2336,7 @@ function pdf_pagehead(&$pdf, $onglet_salarie){
 		}
 
 		
-		$date = "Bulletin De Paie :".$mois_tab[$mois_courant-1]." ".($annee ? : date("Y"));
+		$date = "Bulletin de Paie :".$mois_tab[$mois_courant-1]." ".($annee ? : date("Y"));
 		$pdf->SetTextColor(0, 0, 60);
 		$pdf->SetFont('Helvetica','B',16);
 
@@ -2421,12 +2421,12 @@ function pdf_pagehead(&$pdf, $onglet_salarie){
 
 		$y = $pdf->GetY()+1;
 	$pdf->SetY($y);
-	$pdf->MultiCell(60,4, utf8_decode("Pays : ".$bulletin_obj->pays),0,'');
+	$pdf->MultiCell(60,4, utf8_decode("Pays : ".($bulletin_obj->pays?:"Mali")),0,'');
 
 
 	$y = $pdf->GetY()+1;
 	$pdf->SetY($y);
-	$pdf->MultiCell(60,4, utf8_decode("Ville : ".$bulletin_obj->ville),0,'');
+	$pdf->MultiCell(60,4, utf8_decode("Ville : ".($bulletin_obj->ville?:"Bamako")),0,'');
 
 
 	$y = $pdf->GetY()+1;
@@ -2575,7 +2575,7 @@ function pdf_pagehead(&$pdf, $onglet_salarie){
 				$pdf->MultiCell(40,19,utf8_decode("Logo"),0,'C');
 			}
 		}
-		$date = "Bulletin De Paie :".$mois_tab[$mois_courant-1]." ".($annee ? : date("Y"));
+		$date = "Bulletin de Paie :".$mois_tab[$mois_courant-1]." ".($annee ? : date("Y"));
 		$pdf->SetTextColor(0, 0, 60);
 		$pdf->SetFont('Helvetica','B',16);
 
@@ -3056,7 +3056,7 @@ if($onglet_salarie){
 		$pdf->SetTextColor(255, 255, 255);
 		$pdf->SetFont('Helvetica','B',18);
 
-		$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 - 5,5,utf8_decode("Bulletin De Paie"),0,'C');
+		$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 - 5,5,utf8_decode("Bulletin de Paie"),0,'C');
 
 	   $pdf->SetFont('Helvetica','',8);
 		$pdf->SetY($y_salarie+4);
@@ -3366,7 +3366,7 @@ if($onglet_salarie){
 	$pdf->SetTextColor(255, 255, 255);
 	$pdf->SetFont('Helvetica','B',18);
 
-	$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12-5,5,utf8_decode("Bulletin De Paie"),0,'C');
+	$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12-5,5,utf8_decode("Bulletin de Paie"),0,'C');
 
 
 	$pdf->SetTextColor(255, 255, 255);
@@ -3399,7 +3399,7 @@ if($onglet_salarie){
 	$pdf->SetY($y_salarie);
 	$pdf->SetX($x);
 	$pdf->SetTextColor(0, 0, 0);
-	$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 -12 - 8,3,utf8_decode($bulletin_obj->ville." ".$bulletin_obj->pays),0,'L');
+	$pdf->MultiCell($pdf->GetPageWidth() - 100 - 12 -12 - 8,3,utf8_decode(($bulletin_obj->ville?:"Bamako")." ".($bulletin_obj->pays?:"Mali")),0,'L');
 
 //ecart entre information
 //$y_salarie += 6;
@@ -5126,12 +5126,12 @@ function pdf_pagehead_bonus(&$pdf, $onglet_salarie){
 
 	   $y = $pdf->GetY()+1;
 	   $pdf->SetY($y);
-	   $pdf->MultiCell(60,4, utf8_decode("Pays : ".$bulletin_obj->pays),0,'');
+	   $pdf->MultiCell(60,4, utf8_decode("Pays : ".($bulletin_obj->pays?:"Mali")),0,'');
 
 
 	   $y = $pdf->GetY()+1;
 	   $pdf->SetY($y);
-	   $pdf->MultiCell(60,4, utf8_decode("Ville : ".$bulletin_obj->ville),0,'');
+	   $pdf->MultiCell(60,4, utf8_decode("Ville : ".($bulletin_obj->ville?:"Bamako")),0,'');
 
 	   //******************************************************************************************** */
 	   // Adresse et Contact

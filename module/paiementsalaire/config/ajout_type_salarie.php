@@ -192,6 +192,8 @@ print '<input type="hidden" name="action" value="add_type_salarie">';
     </div>
     ';
 }
+
+
 if($action == "liste"){
     print load_fiche_titre($langs->trans("Liste des types salariés"), '', '');
     print "<hr>";

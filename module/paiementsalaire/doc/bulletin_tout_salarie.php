@@ -858,7 +858,7 @@ function apres_virgule($db, $id_societe, $valeur, $decalage){
         }
       }
 
-      $date = "Bulletin De Paie :".$mois_tab[$mois_courant-1]." ".($annee ? : date("Y"));
+      $date = "Bulletin de Paie :".$mois_tab[$mois_courant-1]." ".($annee ? : date("Y"));
       $pdf->SetTextColor(0, 0, 60);
       $pdf->SetFont('Helvetica','B',16);
 
@@ -942,12 +942,12 @@ function apres_virgule($db, $id_societe, $valeur, $decalage){
 
       $y = $pdf->GetY()+1;
       $pdf->SetY($y);
-      $pdf->MultiCell(60,4, utf8_decode("Pays : ".$bulletin_obj->pays),0,'');
+      $pdf->MultiCell(60,4, utf8_decode("Pays : ".($bulletin_obj->pays?:"Mali")),0,'');
 
 
       $y = $pdf->GetY()+1;
       $pdf->SetY($y);
-      $pdf->MultiCell(60,4, utf8_decode("Ville : ".$bulletin_obj->ville),0,'');
+      $pdf->MultiCell(60,4, utf8_decode("Ville : ".($bulletin_obj->ville?:"Bamako")),0,'');
 
 
       $y = $pdf->GetY()+1;

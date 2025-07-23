@@ -311,6 +311,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 				$sql .= " ORDER BY annee DESC, mois DESC";
 				$result = $db->query($sql);
 				if($result){
+					$trouve = false;
 					$i = 0;
 					$num = $db->num_rows($result);
 
@@ -322,6 +323,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 							$result_bull_hs = $db->query($sql_bull_hs);
 							$num_bull_hs = $db->num_rows($result_bull_hs);
 							if($result_bull_hs && $num_bull_hs > 0){
+								$trouve = true;
 								$obj_bull_hs = $db->fetch_object($result_bull_hs);
 
 								print "<tr class='impair'><td>";
@@ -340,7 +342,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 						}
 						$i ++;
 					}
-					if($num == 0)
+					if($num == 0 || $trouve == false)
 						print "<tr><td align='center' colspan='6'>Pas d'heure sup payée pour ce salarié</td></tr>";
 
 				}else{

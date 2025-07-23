@@ -83,7 +83,7 @@ if(empty($fk_salarie)){
 					$i = 0;
 					while($i < $nb){
 						$obj_detail_avance = $db->fetch_object($res_detail_avance );
-						print "<tr class='fieldrequired impair'><td>".($obj_detail_avance->montant_paye?:"N/A")."</td>";
+						print "<tr class='fieldrequired impair'><td>".apres_virgule($db, $id_societe, $obj_detail_avance->montant_paye?:0)."</td>";
 						print "<td>".$obj_detail_avance->annee_paiement."</td>";
 						print "<td>".$mois_tab[$obj_detail_avance->mois_paiement-1]."</td></tr>";
 						$i ++;

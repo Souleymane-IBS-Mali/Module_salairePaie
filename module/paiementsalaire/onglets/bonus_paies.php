@@ -598,7 +598,7 @@ if($user->rights->paiementsalaire->societe->read){
                                     
 									$obj_verif = $db->fetch_object($res_verif);
 
-									//suppression
+									//suppression des bonus de ce mois (annee) qui existe déjà
 									$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_prime WHERE fk_bulletin=".$obj_verif->rowid;
 									$res_del = $db->query($sql_del);
 
@@ -637,340 +637,196 @@ if($user->rights->paiementsalaire->societe->read){
 								}
 							}
 
-                  if(GETPOST('tout_salarie', "alpha") == 'oui'){
-                    $sql_verif = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
-                    $res_verif = $db->query($sql_verif);
-                    if($res_verif){
-                      $a = 0;
-                      $num = $db->num_rows($res_verif);
-                      while ($a < $num) {
-                        $obj_verif = $db->fetch_object($res_verif);
+                      if(GETPOST('tout_salarie', "alpha") == 'oui'){
+                        $sql_verif = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+                        $res_verif = $db->query($sql_verif);
+                        if($res_verif){
+                          $a = 0;
+                          $num = $db->num_rows($res_verif);
+                          while ($a < $num) {
+                            $obj_verif = $db->fetch_object($res_verif);
 
-                          //Calcul Enregistrement dans le bulletin Bonus
-                          //Calcul
-                          $salaire_brut = 0;
-                            $salaire_brut_imposable = 0;
-                            $salaire_brut_cotisable = 0;
-                            $base = 0;
-                            if($type == 'fixe'){
-                              $montant_fixe = GETPOST("fixe","int");
-                              $base = $montant_fixe;
-                              $salaire_brut = $montant_fixe;
-                              $salaire_brut_imposable = $salaire_brut;
-                              $salaire_brut_cotisable = $salaire_brut;
-                              $montant_pourcentage = "100";
-                            }elseif($type == 'pourcentage'){
-                              $montant_pourcentage = explode('%',GETPOST("pourcentage","int"))[0];
-                              $base = $obj_verif->net_payer;
-                              $salaire_brut = $base*$montant_pourcentage/100;
-                              $montant_fixe = $salaire_brut;
-                              $salaire_brut_imposable = $salaire_brut;
-                              $salaire_brut_cotisable = $salaire_brut;
-                            }
-                          
-                          $salaire_net = 0;
-                          $retenu_prest_empl = 0;
-                          $retenu_prest_patro = 0;
-                          $retenu_taxe = 0;
-                          $retenu = 0;
-                          $inps = 0;
+                              //Calcul Enregistrement dans le bulletin Bonus
+                              //Calcul
+                              $salaire_brut = 0;
+                                $salaire_brut_imposable = 0;
+                                $salaire_brut_cotisable = 0;
+                                $base = 0;
+                                if($type == 'fixe'){
+                                  $montant_fixe = GETPOST("fixe","int");
+                                  $base = $montant_fixe;
+                                  $salaire_brut = $montant_fixe;
+                                  $salaire_brut_imposable = $salaire_brut;
+                                  $salaire_brut_cotisable = $salaire_brut;
+                                  $montant_pourcentage = "100";
+                                }elseif($type == 'pourcentage'){
+                                  if(GETPOST("type_salaire") == "brut"){ //pourcentage en salaire brut
+                                    $montant_pourcentage = explode('%',GETPOST("pourcentage","int"))[0];
+                                    $base = $obj_verif->salaire_brut;
 
-                          $old_fk_orga = 0;
-                          $nom_organisme = array();
-                          $id_organisme = array();
-                          $montant_org_sal = array();
-                          $montant_org_patro = array();
-                          $pourcentage_org = array();
+                                    
+                                    $salaire_brut = $base*$montant_pourcentage/100;
+                                    $montant_fixe = $salaire_brut;
+                                    $salaire_brut_imposable = $salaire_brut;
+                                    $salaire_brut_cotisable = $salaire_brut;
+                                  }else{ // Pourcentage en salaire net
+                                    $montant_pourcentage = explode('%',GETPOST("pourcentage","int"))[0];
+                                    $base = $obj_verif->salaire_brut;
 
-                          $index = 0;
-                          $global_cotis = salarie_prestation_organisme($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
-                          $cotis = $global_cotis[1];
-                          $taux_p = $global_cotis[0];
-                          foreach ($cotis as $key => $value) {
-                            $type_prest = "SELECT * FROM ".MAIN_DB_PREFIX."type_prestation WHERE rowid=".$key;
-                            $result_type_prest = $db->query($type_prest);
-                            $obj_prest_type = $db->fetch_object($result_type_prest);
+                                    //Simulation pour avoir le pourcentage% en net
+                                    //$salaire_brut = $base*$montant_pourcentage/100;
+                                    $net  = $montant_pourcentage*$obj_verif->net_payer/100;
+                                    $fin = false;
+                                    $mon_salaire_brut = $montant_pourcentage*$obj_verif->salaire_brut/100;
+                                    $salaire_net = $net;
+                                    $retenu_prest_empl = 0;
+                                    $retenu_prest_patro = 0;
+                                    $retenu_taxe = 0;
+                                    $retenu = 0;
+                                    $inps = 0;
 
-                            if($obj_prest_type->fk_organisme != $old_fk_orga){
-                              $old_fk_orga = $obj_prest_type->fk_organisme;
-                              $organisme = "SELECT rowid, nom_organisme FROM ".MAIN_DB_PREFIX."organisme WHERE rowid=".$old_fk_orga;
-                              $result_organisme = $db->query($organisme);
-                              $id_organisme[] = $old_fk_orga;
-                              $obj_organisme = $db->fetch_object($result_organisme);
-                              $nom_organisme[] = $obj_organisme->nom_organisme;
-                              $montant_org_sal[] = $value*$salaire_brut_cotisable/100;
-                              $montant_org_patro[] = $taux_p[$index]*$salaire_brut_cotisable/100;
-                              $pourcentage_org[] = $value;
+                                    while ($fin == false && $net){
+                                      $mon_brut_cotis = $mon_salaire_brut;
+                                      $mon_brut_imp = $mon_salaire_brut;
 
-                              $retenu_prest_empl += $value*$salaire_brut_cotisable/100;
-                              $retenu_prest_patro += $taux_p[$index]*$salaire_brut_cotisable/100;
-                            }else{
-                              $retenu_prest_empl += $value*$salaire_brut_cotisable/100;
-                              $retenu_prest_patro += $taux_p[$index]*$salaire_brut_cotisable/100;
+                                      $retenu_prest_empl = 0;
+                                      $retenu_prest_patro = 0;
+                                      $inps = 0;
+                                    
+                                      $index = 0;
+                                      $global_cotis = salarie_prestation_simulation($db, $obj_verif->fk_salarie, $mon_brut_cotis, $id_convention);
+                                      $cotis = $global_cotis[1];
+                                      $taux_p = $global_cotis[0];
+                                      foreach ($cotis as $key => $value) {
+                                        $type_prest = "SELECT * FROM ".MAIN_DB_PREFIX."type_prestation WHERE rowid=".$key;
+                                          $result_type_prest = $db->query($type_prest);
+                                          $obj_prest_type = $db->fetch_object($result_type_prest);
+                                          if($obj_prest_type){
+                                            $retenu_prest_empl += round($value*$mon_brut_cotis/100, 2);
+                                            $retenu_prest_patro += round($taux_p[$index]*$mon_brut_cotis/100, 2);
+                                            //print $retenu_prest_empl."<br>";
+                                          }
+                                          if($obj_prest_type->rowid != 6)
+                                            $inps += $value*$mon_brut_cotis/100;
+                                          
+                                      }
+                                      $mon_brut_imp -= $inps;
+                                      $its = its_salarie($db, "", $mon_brut_imp, $obj_verif->situation_familiale, $obj_verif->nombre_enfant, $obj_verif->nombre_enfant_hand);
+                                      $retenu_taxe = $its[2];
 
-                              $montant_org_sal[(count($montant_org_sal) - 1)] += $value*$salaire_brut_cotisable/100;
-                              $montant_org_patro[(count($montant_org_patro) - 1)] += $taux_p[$index]*$salaire_brut_cotisable/100;
-                              $pourcentage_org[count($pourcentage_org)-1] += $value;
-                            }
-                            
-                            if($obj_prest_type->rowid != 6)
-                              $inps += $value*$salaire_brut_cotisable/100;
+                                      $mon_net = $mon_salaire_brut - $retenu_prest_empl - $retenu_taxe;
+                                      
+                                        if(round($mon_net + 100000) < ((int)$net))
+                                          $mon_salaire_brut +=  50000;
+                                        elseif(round($mon_net+ 10000) < ($net))
+                                          $mon_salaire_brut +=  5000;
+                                        elseif(round($mon_net + 5000) < ($net))
+                                          $mon_salaire_brut +=  2000;
+                                        elseif(round($mon_net + 2000) < ($net))
+                                          $mon_salaire_brut +=  1000;
+                                        elseif(round($mon_net + 1000) < ($net))
+                                          $mon_salaire_brut +=  500;
+                                        elseif(round($mon_net+ 100) < ($net))
+                                          $mon_salaire_brut += 20;
+                                        elseif(round($mon_net) < $net)
+                                          $mon_salaire_brut += 5;
+                                        elseif(round($mon_net) == round($net))
+                                          $fin = true;
+                                        elseif(round($mon_net) > ($net + 20000))
+                                          $mon_salaire_brut += -1000;
+                                        elseif(round($mon_net) > ($net + 1000))
+                                          $mon_salaire_brut += -100;
+                                        elseif(round($mon_net) > ($net + 500))
+                                          $mon_salaire_brut += -50;
+                                        else $mon_salaire_brut += -1;
+                                      
+                                    }
 
-                            $index ++;
-                          }
+                                    $salaire_brut = $mon_salaire_brut;
+                                    $montant_fixe = $salaire_brut;
+                                    $salaire_brut_imposable = $salaire_brut;
+                                    $salaire_brut_cotisable = $salaire_brut;
+                                  }
+                                }                              
+                              $salaire_net = 0;
+                              $retenu_prest_empl = 0;
+                              $retenu_prest_patro = 0;
+                              $retenu_taxe = 0;
+                              $retenu = 0;
+                              $inps = 0;
 
-                            //les prestations à afficher sur le bulletin
-                            $index = 0;
-                              $global_cotis = salarie_prestation($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
+                              $old_fk_orga = 0;
+                              $nom_organisme = array();
+                              $id_organisme = array();
+                              $montant_org_sal = array();
+                              $montant_org_patro = array();
+                              $pourcentage_org = array();
+
+                              $index = 0;
+                              $global_cotis = salarie_prestation_organisme($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
                               $cotis = $global_cotis[1];
                               $taux_p = $global_cotis[0];
                               foreach ($cotis as $key => $value) {
-                                $type_prest = "SELECT rowid, fk_organisme, code, affiche_bulletin FROM ".MAIN_DB_PREFIX."type_prestation WHERE rowid=".$key;
-                                  $result_type_prest = $db->query($type_prest);
-                                  $obj_prest_type = $db->fetch_object($result_type_prest);
-                            
-                                  $array_prestation[$index][0] = $key;
-                                  $array_prestation[$index][1] = $obj_prest_type->affiche_bulletin;
-                                  $array_prestation[$index][2] = $value*$salaire_brut_cotisable/100;
-                                  $array_prestation[$index][3] = $taux_p[$index]*$salaire_brut_cotisable/100;
-                                  $array_prestation[$index][4] = $value;
-                                  $array_prestation[$index][5] = $taux_p[$index];
-                                  $array_prestation[$index][6] = $obj_prest_type->code;
+                                $type_prest = "SELECT * FROM ".MAIN_DB_PREFIX."type_prestation WHERE rowid=".$key;
+                                $result_type_prest = $db->query($type_prest);
+                                $obj_prest_type = $db->fetch_object($result_type_prest);
 
-                                  $index ++;
-                                  if(!in_array($obj_prest_type->fk_organisme, $id_organisme)){
-                                    $retenu_prest_empl += apres_virgule($db, $id_societe, $value*$salaire_brut_cotisable/100, 2);
-                                    $retenu_prest_patro += apres_virgule($db, $id_societe, $taux_p[$index]*$salaire_brut_cotisable/100, 2);
-                                    if($obj_prest_type->rowid != 6) //juste AMO
-                                      $inps += $value*$salaire_brut_cotisable/100; 
-                                  }
-                              }//A par amo les autres detail de l'INPS ne sont pas soumis aux impôt
+                                if($obj_prest_type->fk_organisme != $old_fk_orga){
+                                  $old_fk_orga = $obj_prest_type->fk_organisme;
+                                  $organisme = "SELECT rowid, nom_organisme FROM ".MAIN_DB_PREFIX."organisme WHERE rowid=".$old_fk_orga;
+                                  $result_organisme = $db->query($organisme);
+                                  $id_organisme[] = $old_fk_orga;
+                                  $obj_organisme = $db->fetch_object($result_organisme);
+                                  $nom_organisme[] = $obj_organisme->nom_organisme;
+                                  $montant_org_sal[] = $value*$salaire_brut_cotisable/100;
+                                  $montant_org_patro[] = $taux_p[$index]*$salaire_brut_cotisable/100;
+                                  $pourcentage_org[] = $value;
 
-                              //les taxes qui ont comme barème : barème cotisation
-                        $index = 0;
-                        $global_taxe = salarie_taxe2($db, $obj_salarie->rowid, $id_convention);
-                        $taxe = $global_taxe[1];
-                        $taux_t = $global_taxe[0];
-                        foreach ($taxe as $key => $value) {
-                          $type_taxe = "SELECT rowid, libelle, fk_organisme, affiche_bulletin FROM ".MAIN_DB_PREFIX."type_taxe WHERE rowid=".$key;
-                            $result_type_taxe = $db->query($type_taxe);
-                            $obj_taxe_type = $db->fetch_object($result_type_taxe);
+                                  $retenu_prest_empl += $value*$salaire_brut_cotisable/100;
+                                  $retenu_prest_patro += $taux_p[$index]*$salaire_brut_cotisable/100;
+                                }else{
+                                  $retenu_prest_empl += $value*$salaire_brut_cotisable/100;
+                                  $retenu_prest_patro += $taux_p[$index]*$salaire_brut_cotisable/100;
 
-                            $array_taxe[$index][0] = $key;
-                            $array_taxe[$index][1] = $obj_taxe_type->affiche_bulletin;
-                            $array_taxe[$index][2] = $value*$salaire_brut/100;
-                            $array_taxe[$index][3] = $taux_t[$index]*$salaire_brut/100;
-                            $array_taxe[$index][4] = $value;
-                            $array_taxe[$index][5] = $taux_t[$index];
-                            $array_taxe[$index][6] = $obj_taxe_type->libelle;
+                                  $montant_org_sal[(count($montant_org_sal) - 1)] += $value*$salaire_brut_cotisable/100;
+                                  $montant_org_patro[(count($montant_org_patro) - 1)] += $taux_p[$index]*$salaire_brut_cotisable/100;
+                                  $pourcentage_org[count($pourcentage_org)-1] += $value;
+                                }
+                                
+                                if($obj_prest_type->rowid != 6)
+                                  $inps += $value*$salaire_brut_cotisable/100;
 
-                            $index ++;
-                        }
-
-                              $salaire_brut_imposable -= $inps;
-                              //tratement de l'its
-                              $its = its_salarie($db, "", $salaire_brut_imposable, $obj_verif->situation_familiale, $obj_verif->nombre_enfant, $obj_verif->nombre_enfant_hand);
-                              $retenu_taxe = $its[2];
-
-                              $retenu = $retenu_prest_empl + $retenu_taxe;
-                              //calcul du salaire net
-                              $salaire_net = $salaire_brut - $retenu_prest_empl - $retenu_taxe;
-                              //print $obj_verif->nom."  ".$obj_verif->nom." =".$salaire_brut_imposable." BC=".$salaire_brut_cotisable." SN=".$salaire_net." R=".$retenu."<br>";
-
-                              $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus (id_bull, nom_bonus, libelle, nom, prenom, fk_salarie, matricule, situation_familiale, nombre_enfant, nombre_enfant_hand, categorie
-                          , echelon, contrat, diplome, type_salarie, fonction, date_embauche, sexe, pays, ville, addresse, tel, email, annee, mois, salaire_brut, salaire_brut_cotisable,
-                          salaire_brut_imposable, net_payer, fk_societe, nom_societe, logo_societe, nom_convention,inps,amo,banque,compte,montant,pourcentage, base) 
-                          VALUES("'.$id_bull.'","'.$nom_bonus.'", "'.$nom_complement.'","'.$obj_verif->nom.'","'.$obj_verif->prenom.'",'.$obj_verif->fk_salarie.',"'.$obj_verif->matricule.'","'.$obj_verif->situation_familiale.'",'.$obj_verif->nombre_enfant.','.$obj_verif->nombre_enfant_hand.',
-                          "'.$obj_verif->categorie.'","'.$obj_verif->echelon.'","'.$obj_verif->contrat.'","'.$obj_verif->diplome.'","'.$obj_verif->type_salarie.'","'.$obj_verif->fonction.'","'.$obj_verif->date_embauche.'",
-                          "'.$obj_verif->sexe.'","'.$obj_verif->pays.'","'.$obj_verif->ville.'","'.$obj_verif->addresse.'","'.$obj_verif->tel.'","'.$obj_verif->email.'",
-                          '.$annee.','.$mois.',"'.round($salaire_brut, 2).'","'.round($salaire_brut_cotisable, 2).'","'.round($salaire_brut_imposable, 2).'","'.round($salaire_net).'",'.$obj_verif->fk_societe.',"'.$obj_verif->nom_societe.'","'.$obj_verif->logo_societe.'",
-                          "'.$obj_verif->nom_convention.'","'.$obj_verif->inps.'","'.$obj_verif->amo.'","'.$obj_verif->banque.'","'.$obj_verif->compte.'","'.$montant_fixe.'","'.$montant_pourcentage.'","'.$base.'")';
-
-                              $res_bulletin = $db->query($sql_bulletin);
-                              if($res_bulletin){
-                                $sql_verif_bonus = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE fk_salarie=".$obj_verif->fk_salarie." AND annee=".$annee." AND mois=".$mois;
-                                $res_verif_bonus = $db->query($sql_verif_bonus);
-                                $obj_last = $db->fetch_object($res_verif_bonus);
-                                $rowid_bulletin = $obj_last->rowid;
-
-                        
-                            //insertion dans la table bulletin taxe
-                            if($rowid_bulletin){
-                              $fk_taxe = 1;
-                              $montant = $its[2];
-                              $libelle = $its[3];
-                              $affiche_bulletin = "Oui";
-                              $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_taxe (fk_bulletin, fk_taxe, libelle, taux, montant, affiche_bulletin)';
-                              $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_taxe.',"'.$libelle.'","'.round($its[0], 2).'","'.round($montant).'","'.$affiche_bulletin.'")';
-                              $res_bulletin = $db->query($sql_bulletin);
-                            }
-
-                            //CFE et TL
-                            for ($g=0; $g < count($array_taxe); $g++) {
-                              $fk_taxe = $array_taxe[$g][0];
-                              $affiche_bulletin = $array_taxe[$g][1];
-                              $montant_employe = $array_taxe[$g][2]?:0;
-                              $montant_employeur = $array_taxe[$g][3]?:0;
-                              $taux_employe = $array_taxe[$g][4]?:0;
-                              $taux_employeur = $array_taxe[$g][5]?:0;
-                              $libelle = $array_taxe[$g][6];
-                              //insertion dans la table bulletin cotisations
-                              $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_taxe2 (fk_bulletin, fk_taxe, libelle, taux_employe, taux_employeur, montant_employe, montant_employeur, affiche_bulletin)';
-                              $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_taxe.',"'.$libelle.'","'.$taux_employe.'","'.$taux_employeur.'","'.round($montant_employe).'","'.round($montant_employeur).'","'.$affiche_bulletin.'")';
-                              $res_bulletin = $db->query($sql_bulletin);
-                              //if($res_bulletin)
-                               // print $sql_bulletin.'<br>';
-                            }
-
-                            for ($g=0; $g < count($array_prestation); $g++) { 
-                              $fk_cotisation = $array_prestation[$g][0];
-                              $affiche_bulletin = $array_prestation[$g][1];
-                              $montant_employe = $array_prestation[$g][2]?:0;
-                              $montant_employeur = $array_prestation[$g][3]?:0;
-                              $taux_employe = $array_prestation[$g][4]?:0;
-                              $taux_employeur = $array_prestation[$g][5]?:0;
-                              $libelle = $array_prestation[$g][6];
-                              //insertion dans la table bulletin cotisations
-                              $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_cotisation (fk_bulletin, fk_cotisation, libelle, taux_employe, taux_employeur, montant_employe, montant_employeur, affiche_bulletin)';
-                              $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_cotisation.',"'.$libelle.'","'.$taux_employe.'","'.$taux_employeur.'","'.round($montant_employe).'","'.round($montant_employeur).'","'.$affiche_bulletin.'")';
-                              $res_bulletin = $db->query($sql_bulletin);
-                            }
-
-                            for ($g=0; $g < count($nom_organisme); $g++) { 
-                              $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_organisme (fk_bulletin, fk_organisme, nom_organisme, pourcentage, montant_employe, montant_employeur)';
-                              $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$id_organisme[$g].',"'.$nom_organisme[$g].'","'.$pourcentage_org[$g].'","'.round($montant_org_sal[$g]).'","'.round($montant_org_patro[$g]).'")';
-                              $res_bulletin = $db->query($sql_bulletin);
-                      
-                            }
-                          }
-                        $a ++;
-                      }
-                      if($res_bulletin){
-                        $message = 'Complement de salaire "'.$nom_bonus.'" généré et </br>';
-                        $message .= 'lié au mois de '.$mois_tab[($mois-1)].'-'.$annee;
-                        //La trace
-                        $sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
-                        $obj = $db->fetch_object($db->query($sql_select));
-
-                        $action_effectue = "Génération des complements de Salaire ".$mois_tab[$mois-1]." ".$annee." de la société ".$obj_soc->nom;
-                        $sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
-                        $sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Complements salaires")';
-                        $db->query($sql_log);
-                      }
-                    }else $message = 'Bulletin non généré alors impossiblee de generer le Complément salaire';
-                  }elseif(GETPOST('tout_salarie', "alpha") == 'non'){
-
-                    $sql_verif = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
-                    $res_verif = $db->query($sql_verif);
-                    if($res_verif){
-                      $a = 0;
-                      $num = $db->num_rows($res_verif);
-                      while ($a < $num) {
-                        $obj_verif = $db->fetch_object($res_verif);
-                        $name = 'salarie'.$obj_verif->fk_salarie;
-                        $fk_sal = explode('salarie', $name)[1]; //explode('salarie', $name)[0] = 'salarie'
-                          //Calcu et Enregistrement dans le bulletin Bonus                 
-                        if(GETPOST($name,'alpha') == 'on'){
-                          //Calcul
-                          $salaire_brut = 0;
-                            $salaire_brut_imposable = 0;
-                            $salaire_brut_cotisable = 0;
-                            $base = 0;
-                            if($type == 'fixe'){
-                              $montant_fixe = GETPOST("fixe","int");
-                              $base = $montant_fixe;
-                              $salaire_brut = $montant_fixe;
-                              $salaire_brut_imposable = $salaire_brut;
-                              $salaire_brut_cotisable = $salaire_brut;
-                              $montant_pourcentage = "100";
-                            }elseif($type == 'pourcentage'){
-                              $montant_pourcentage = explode('%',GETPOST("pourcentage", "int"))[0];
-                              $base = $obj_verif->net_payer;
-                              $salaire_brut = $base*$montant_pourcentage/100;
-                              $montant_fixe = $salaire_brut;
-                              $salaire_brut_imposable = $salaire_brut;
-                              $salaire_brut_cotisable = $salaire_brut;
-                            }
-                          
-                          $salaire_net = 0;
-                          $retenu_prest_empl = 0;
-                          $retenu_prest_patro = 0;
-                          $retenu_taxe = 0;
-                          $retenu = 0;
-                          $inps = 0;
-
-                          $old_fk_orga = 0;
-                          $nom_organisme = array();
-                          $id_organisme = array();
-                          $montant_org_sal = array();
-                          $montant_org_patro = array();
-                          $pourcentage_org = array();
-
-                          $index = 0;
-                          $global_cotis = salarie_prestation_organisme($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
-                          $cotis = $global_cotis[1];
-                          $taux_p = $global_cotis[0];
-                          foreach ($cotis as $key => $value) {
-                            $type_prest = "SELECT * FROM ".MAIN_DB_PREFIX."type_prestation WHERE rowid=".$key;
-                            $result_type_prest = $db->query($type_prest);
-                            $obj_prest_type = $db->fetch_object($result_type_prest);
-
-                            if($obj_prest_type->fk_organisme != $old_fk_orga){
-                              $old_fk_orga = $obj_prest_type->fk_organisme;
-                              $organisme = "SELECT rowid, nom_organisme FROM ".MAIN_DB_PREFIX."organisme WHERE rowid=".$old_fk_orga;
-                              $result_organisme = $db->query($organisme);
-                              $id_organisme[] = $old_fk_orga;
-                              $obj_organisme = $db->fetch_object($result_organisme);
-                              $nom_organisme[] = $obj_organisme->nom_organisme;
-                              $montant_org_sal[] = $value*$salaire_brut_cotisable/100;
-                              $montant_org_patro[] = $taux_p[$index]*$salaire_brut_cotisable/100;
-                              $pourcentage_org[] = $value;
-
-                              $retenu_prest_empl += $value*$salaire_brut_cotisable/100;
-                              $retenu_prest_patro += $taux_p[$index]*$salaire_brut_cotisable/100;
-                            }else{
-                              $retenu_prest_empl += $value*$salaire_brut_cotisable/100;
-                              $retenu_prest_patro += $taux_p[$index]*$salaire_brut_cotisable/100;
-
-                              $montant_org_sal[(count($montant_org_sal) - 1)] += $value*$salaire_brut_cotisable/100;
-                              $montant_org_patro[(count($montant_org_patro) - 1)] += $taux_p[$index]*$salaire_brut_cotisable/100;
-                              $pourcentage_org[count($pourcentage_org)-1] += $value;
-                            }
-                            
-                            if($obj_prest_type->rowid != 6)
-                              $inps += $value*$salaire_brut_cotisable/100;
-
-                            $index ++;
-                          }
-
-                            //les prestations à afficher sur le bulletin
-                            $index = 0;
-                              $global_cotis = salarie_prestation($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
-                              $cotis = $global_cotis[1];
-                              $taux_p = $global_cotis[0];
-                              foreach ($cotis as $key => $value) {
-                                $type_prest = "SELECT rowid, fk_organisme, code, affiche_bulletin FROM ".MAIN_DB_PREFIX."type_prestation WHERE rowid=".$key;
-                                  $result_type_prest = $db->query($type_prest);
-                                  $obj_prest_type = $db->fetch_object($result_type_prest);
-                            
-                                  $array_prestation[$index][0] = $key;
-                                  $array_prestation[$index][1] = $obj_prest_type->affiche_bulletin;
-                                  $array_prestation[$index][2] = $value*$salaire_brut_cotisable/100;
-                                  $array_prestation[$index][3] = $taux_p[$index]*$salaire_brut_cotisable/100;
-                                  $array_prestation[$index][4] = $value;
-                                  $array_prestation[$index][5] = $taux_p[$index];
-                                  $array_prestation[$index][6] = $obj_prest_type->code;
-
-                                  $index ++;
-                                  if(!in_array($obj_prest_type->fk_organisme, $id_organisme)){
-                                    $retenu_prest_empl += apres_virgule($db, $id_societe, $value*$salaire_brut_cotisable/100, 2);
-                                    $retenu_prest_patro += apres_virgule($db, $id_societe, $taux_p[$index]*$salaire_brut_cotisable/100, 2);
-                                    if($obj_prest_type->rowid != 6)
-                                      $inps += $value*$salaire_brut_cotisable/100; 
-                                  }
+                                $index ++;
                               }
-                              
-                              //les taxes qui ont comme barème : barème cotisation
+
+                                //les prestations à afficher sur le bulletin
+                                $index = 0;
+                                  $global_cotis = salarie_prestation($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
+                                  $cotis = $global_cotis[1];
+                                  $taux_p = $global_cotis[0];
+                                  foreach ($cotis as $key => $value) {
+                                    $type_prest = "SELECT rowid, fk_organisme, code, affiche_bulletin FROM ".MAIN_DB_PREFIX."type_prestation WHERE rowid=".$key;
+                                      $result_type_prest = $db->query($type_prest);
+                                      $obj_prest_type = $db->fetch_object($result_type_prest);
+                                
+                                      $array_prestation[$index][0] = $key;
+                                      $array_prestation[$index][1] = $obj_prest_type->affiche_bulletin;
+                                      $array_prestation[$index][2] = $value*$salaire_brut_cotisable/100;
+                                      $array_prestation[$index][3] = $taux_p[$index]*$salaire_brut_cotisable/100;
+                                      $array_prestation[$index][4] = $value;
+                                      $array_prestation[$index][5] = $taux_p[$index];
+                                      $array_prestation[$index][6] = $obj_prest_type->code;
+
+                                      $index ++;
+                                      if(!in_array($obj_prest_type->fk_organisme, $id_organisme)){
+                                        $retenu_prest_empl += apres_virgule($db, $id_societe, $value*$salaire_brut_cotisable/100, 2);
+                                        $retenu_prest_patro += apres_virgule($db, $id_societe, $taux_p[$index]*$salaire_brut_cotisable/100, 2);
+                                        if($obj_prest_type->rowid != 6) //juste AMO
+                                          $inps += $value*$salaire_brut_cotisable/100; 
+                                      }
+                                  }//A par amo les autres detail de l'INPS ne sont pas soumis aux impôt
+
+                                  //les taxes qui ont comme barème : barème cotisation
                             $index = 0;
                             $global_taxe = salarie_taxe2($db, $obj_salarie->rowid, $id_convention);
                             $taxe = $global_taxe[1];
@@ -991,100 +847,407 @@ if($user->rights->paiementsalaire->societe->read){
                                 $index ++;
                             }
 
-                              //A par amo les autres detail de l'INPS ne sont pas soumis aux impôt
-                              $salaire_brut_imposable -= $inps;
-                              //tratement de l'its
-                              $its = its_salarie($db, "", $salaire_brut_imposable, $obj_verif->situation_familiale, $obj_verif->nombre_enfant, $obj_verif->nombre_enfant_hand);
+                                  $salaire_brut_imposable -= $inps;
+                                  //tratement de l'its
+                                  $its = its_salarie($db, "", $salaire_brut_imposable, $obj_verif->situation_familiale, $obj_verif->nombre_enfant, $obj_verif->nombre_enfant_hand);
+                                  $retenu_taxe = $its[2];
 
-                              //print $obj_verif->nom."  ".$obj_verif->nom." =".$salaire_brut_imposable." BC=".$salaire_brut_cotisable." SN=".$salaire_net." R=".$retenu."<br>";
+                                  $retenu = $retenu_prest_empl + $retenu_taxe;
+                                  //calcul du salaire net
+                                  $salaire_net = $salaire_brut - $retenu_prest_empl - $retenu_taxe;
+                                  //print $obj_verif->nom."  ".$obj_verif->nom." =".$salaire_brut_imposable." BC=".$salaire_brut_cotisable." SN=".$salaire_net." R=".$retenu."<br>";
 
-                              $retenu_taxe = $its[2];
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus (id_bull, nom_bonus, libelle, nom, prenom, fk_salarie, matricule, situation_familiale, nombre_enfant, nombre_enfant_hand, categorie
+                              , echelon, contrat, diplome, type_salarie, fonction, date_embauche, sexe, pays, ville, addresse, tel, email, annee, mois, salaire_brut, salaire_brut_cotisable,
+                              salaire_brut_imposable, net_payer, fk_societe, nom_societe, logo_societe, nom_convention,inps,amo,banque,compte,montant,pourcentage, base, type_salaire) 
+                              VALUES("'.$id_bull.'","'.$nom_bonus.'", "'.$nom_complement.'","'.$obj_verif->nom.'","'.$obj_verif->prenom.'",'.$obj_verif->fk_salarie.',"'.$obj_verif->matricule.'","'.$obj_verif->situation_familiale.'",'.$obj_verif->nombre_enfant.','.$obj_verif->nombre_enfant_hand.',
+                              "'.$obj_verif->categorie.'","'.$obj_verif->echelon.'","'.$obj_verif->contrat.'","'.$obj_verif->diplome.'","'.$obj_verif->type_salarie.'","'.$obj_verif->fonction.'","'.$obj_verif->date_embauche.'",
+                              "'.$obj_verif->sexe.'","'.$obj_verif->pays.'","'.$obj_verif->ville.'","'.$obj_verif->addresse.'","'.$obj_verif->tel.'","'.$obj_verif->email.'",
+                              '.$annee.','.$mois.',"'.round($salaire_brut, 2).'","'.round($salaire_brut_cotisable, 2).'","'.round($salaire_brut_imposable, 2).'","'.round($salaire_net).'",'.$obj_verif->fk_societe.',"'.$obj_verif->nom_societe.'","'.$obj_verif->logo_societe.'",
+                              "'.$obj_verif->nom_convention.'","'.$obj_verif->inps.'","'.$obj_verif->amo.'","'.$obj_verif->banque.'","'.$obj_verif->compte.'","'.$montant_fixe.'","'.$montant_pourcentage.'","'.$base.'", "'.GETPOST("type_salaire", "alpha").'")';
 
-                              $retenu = $retenu_prest_empl + $retenu_taxe;
-                              //calcul du salaire net
-                              $salaire_net = $salaire_brut - $retenu_prest_empl - $retenu_taxe;
+                                  $res_bulletin = $db->query($sql_bulletin);
+                                  if($res_bulletin){
+                                    $sql_verif_bonus = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE fk_salarie=".$obj_verif->fk_salarie." AND annee=".$annee." AND mois=".$mois;
+                                    $res_verif_bonus = $db->query($sql_verif_bonus);
+                                    $obj_last = $db->fetch_object($res_verif_bonus);
+                                    $rowid_bulletin = $obj_last->rowid;
 
-                          $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus (id_bull, nom_bonus, libelle, nom, prenom, fk_salarie, matricule, situation_familiale, nombre_enfant, nombre_enfant_hand, categorie
-                          , echelon, contrat, diplome, type_salarie, fonction, date_embauche, sexe, pays, ville, addresse, tel, email, annee, mois, salaire_brut, salaire_brut_cotisable,
-                          salaire_brut_imposable, net_payer, fk_societe, nom_societe, logo_societe, nom_convention,inps,amo,banque,compte,montant,pourcentage, base) 
-                          VALUES("'.$id_bull.'","'.$nom_bonus.'","'.$nom_complement.'","'.$obj_verif->nom.'","'.$obj_verif->prenom.'",'.$obj_verif->fk_salarie.',"'.$obj_verif->matricule.'","'.$obj_verif->situation_familiale.'",'.$obj_verif->nombre_enfant.','.$obj_verif->nombre_enfant_hand.',
-                          "'.$obj_verif->categorie.'","'.$obj_verif->echelon.'","'.$obj_verif->contrat.'","'.$obj_verif->diplome.'","'.$obj_verif->type_salarie.'","'.$obj_verif->fonction.'","'.$obj_verif->date_embauche.'",
-                          "'.$obj_verif->sexe.'","'.$obj_verif->pays.'","'.$obj_verif->ville.'","'.$obj_verif->addresse.'","'.$obj_verif->tel.'","'.$obj_verif->email.'",
-                          '.$annee.','.$mois.',"'.round($salaire_brut, 2).'","'.round($salaire_brut_cotisable, 2).'","'.round($salaire_brut_imposable, 2).'","'.round($salaire_net).'",'.$obj_verif->fk_societe.',"'.$obj_verif->nom_societe.'","'.$obj_verif->logo_societe.'",
-                          "'.$obj_verif->nom_convention.'","'.$obj_verif->inps.'","'.$obj_verif->amo.'","'.$obj_verif->banque.'","'.$obj_verif->compte.'","'.$montant_fixe.'","'.$montant_pourcentage.'","'.$base.'")';
+                            
+                                //insertion dans la table bulletin taxe
+                                if($rowid_bulletin){
+                                  $fk_taxe = 1;
+                                  $montant = $its[2];
+                                  $libelle = $its[3];
+                                  $affiche_bulletin = "Oui";
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_taxe (fk_bulletin, fk_taxe, libelle, taux, montant, affiche_bulletin)';
+                                  $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_taxe.',"'.$libelle.'","'.round($its[0], 2).'","'.round($montant).'","'.$affiche_bulletin.'")';
+                                  $res_bulletin = $db->query($sql_bulletin);
+                                }
 
-                          $res_bulletin = $db->query($sql_bulletin);
-                          if($res_bulletin){
-                            $sql_verif_bonus = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE fk_salarie=".$obj_verif->fk_salarie." AND annee=".$annee." AND mois=".$mois;
-                            $res_verif_bonus = $db->query($sql_verif_bonus);
-                            $obj_last = $db->fetch_object($res_verif_bonus);
-                            $rowid_bulletin = $obj_last->rowid;
+                                //CFE et TL
+                                for ($g=0; $g < count($array_taxe); $g++) {
+                                  $fk_taxe = $array_taxe[$g][0];
+                                  $affiche_bulletin = $array_taxe[$g][1];
+                                  $montant_employe = $array_taxe[$g][2]?:0;
+                                  $montant_employeur = $array_taxe[$g][3]?:0;
+                                  $taux_employe = $array_taxe[$g][4]?:0;
+                                  $taux_employeur = $array_taxe[$g][5]?:0;
+                                  $libelle = $array_taxe[$g][6];
+                                  //insertion dans la table bulletin cotisations
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_taxe2 (fk_bulletin, fk_taxe, libelle, taux_employe, taux_employeur, montant_employe, montant_employeur, affiche_bulletin)';
+                                  $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_taxe.',"'.$libelle.'","'.$taux_employe.'","'.$taux_employeur.'","'.round($montant_employe).'","'.round($montant_employeur).'","'.$affiche_bulletin.'")';
+                                  $res_bulletin = $db->query($sql_bulletin);
+                                  //if($res_bulletin)
+                                  // print $sql_bulletin.'<br>';
+                                }
 
-                        
-                            //insertion dans la table bulletin taxe
-                            if($rowid_bulletin){
-                              $fk_taxe = 1;
-                              $montant = $its[2];
-                              $libelle = $its[3];
-                              $affiche_bulletin = "Oui";
-                              $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_taxe (fk_bulletin, fk_taxe, libelle, taux, montant, affiche_bulletin)';
-                              $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_taxe.',"'.$libelle.'","'.round($its[0], 2).'","'.round($montant).'","'.$affiche_bulletin.'")';
-                              $res_bulletin = $db->query($sql_bulletin);
-                            }
+                                for ($g=0; $g < count($array_prestation); $g++) { 
+                                  $fk_cotisation = $array_prestation[$g][0];
+                                  $affiche_bulletin = $array_prestation[$g][1];
+                                  $montant_employe = $array_prestation[$g][2]?:0;
+                                  $montant_employeur = $array_prestation[$g][3]?:0;
+                                  $taux_employe = $array_prestation[$g][4]?:0;
+                                  $taux_employeur = $array_prestation[$g][5]?:0;
+                                  $libelle = $array_prestation[$g][6];
+                                  //insertion dans la table bulletin cotisations
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_cotisation (fk_bulletin, fk_cotisation, libelle, taux_employe, taux_employeur, montant_employe, montant_employeur, affiche_bulletin)';
+                                  $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_cotisation.',"'.$libelle.'","'.$taux_employe.'","'.$taux_employeur.'","'.round($montant_employe).'","'.round($montant_employeur).'","'.$affiche_bulletin.'")';
+                                  $res_bulletin = $db->query($sql_bulletin);
+                                }
 
-                            //CFE et TL
-                            for ($g=0; $g < count($array_taxe); $g++) {
-                              $fk_taxe = $array_taxe[$g][0];
-                              $affiche_bulletin = $array_taxe[$g][1];
-                              $montant_employe = $array_taxe[$g][2]?:0;
-                              $montant_employeur = $array_taxe[$g][3]?:0;
-                              $taux_employe = $array_taxe[$g][4]?:0;
-                              $taux_employeur = $array_taxe[$g][5]?:0;
-                              $libelle = $array_taxe[$g][6];
-                              //insertion dans la table bulletin cotisations
-                              $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_taxe2 (fk_bulletin, fk_taxe, libelle, taux_employe, taux_employeur, montant_employe, montant_employeur, affiche_bulletin)';
-                              $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_taxe.',"'.$libelle.'","'.$taux_employe.'","'.$taux_employeur.'","'.round($montant_employe).'","'.round($montant_employeur).'","'.$affiche_bulletin.'")';
-                              $res_bulletin = $db->query($sql_bulletin);
-                              //print $sql_bulletin;
-                            }
-
-                            for ($g=0; $g < count($array_prestation); $g++) { 
-                              $fk_cotisation = $array_prestation[$g][0];
-                              $affiche_bulletin = $array_prestation[$g][1];
-                              $montant_employe = $array_prestation[$g][2]?:0;
-                              $montant_employeur = $array_prestation[$g][3]?:0;
-                              $taux_employe = $array_prestation[$g][4]?:0;
-                              $taux_employeur = $array_prestation[$g][5]?:0;
-                              $libelle = $array_prestation[$g][6];
-                              //insertion dans la table bulletin cotisations
-                              $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_cotisation (fk_bulletin, fk_cotisation, libelle, taux_employe, taux_employeur, montant_employe, montant_employeur, affiche_bulletin)';
-                              $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_cotisation.',"'.$libelle.'","'.$taux_employe.'","'.$taux_employeur.'","'.round($montant_employe).'","'.round($montant_employeur).'","'.$affiche_bulletin.'")';
-                              $res_bulletin = $db->query($sql_bulletin);
-                            }
-
-                            for ($g=0; $g < count($nom_organisme); $g++) { 
-                              $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_organisme (fk_bulletin, fk_organisme, nom_organisme, pourcentage, montant_employe, montant_employeur)';
-                              $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$id_organisme[$g].',"'.$nom_organisme[$g].'","'.$pourcentage_org[$g].'","'.round($montant_org_sal[$g]).'","'.round($montant_org_patro[$g]).'")';
-                              $res_bulletin = $db->query($sql_bulletin);
-                      
-                            }
+                                for ($g=0; $g < count($nom_organisme); $g++) { 
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_organisme (fk_bulletin, fk_organisme, nom_organisme, pourcentage, montant_employe, montant_employeur)';
+                                  $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$id_organisme[$g].',"'.$nom_organisme[$g].'","'.$pourcentage_org[$g].'","'.round($montant_org_sal[$g]).'","'.round($montant_org_patro[$g]).'")';
+                                  $res_bulletin = $db->query($sql_bulletin);
+                          
+                                }
+                              }
+                            $a ++;
                           }
-                        }
-                        $a ++;
-                      }
-                      if($res_bulletin){
-                        $message = 'Complement de salaire "'.$nom_bonus.'" généré et </br>';
-                        $message .= 'lié au mois de '.$mois_tab[($mois-1)].'-'.$annee;
+                          print $db->error();
 
-                        $sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
-                        $obj = $db->fetch_object($db->query($sql_select));
+                          if($res_bulletin){
+                            $message = 'Complement de salaire "'.$nom_bonus.'" généré et </br>';
+                            $message .= 'lié au mois de '.$mois_tab[($mois-1)].'-'.$annee;
+                            //La trace
+                            $sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
+                            $obj = $db->fetch_object($db->query($sql_select));
 
-                        $action_effectue = "Génération des complements de Salaire ".$mois_tab[$mois-1]." ".$annee." de la société ".$obj_soc->nom;
-                        $sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
-                        $sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Complements salaires")';
-                        $db->query($sql_log);
-                      } 
-                    }else $message = 'Bulletin non généré alors impossible de generer le complément salaire';
+                            $action_effectue = "Génération des complements de Salaire ".$mois_tab[$mois-1]." ".$annee." de la société ".$obj_soc->nom;
+                            $sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
+                            $sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Complements salaires")';
+                            $db->query($sql_log);
+                          }
+                        }else $message = 'Bulletin non généré alors impossiblee de generer le Complément salaire';
+                      }elseif(GETPOST('tout_salarie', "alpha") == 'non'){
+
+                        $sql_verif = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+                        $res_verif = $db->query($sql_verif);
+                        if($res_verif){
+                          $a = 0;
+                          $num = $db->num_rows($res_verif);
+                          while ($a < $num) {
+                            $obj_verif = $db->fetch_object($res_verif);
+                            $name = 'salarie'.$obj_verif->fk_salarie;
+                            $fk_sal = explode('salarie', $name)[1]; //explode('salarie', $name)[0] = 'salarie'
+                              //Calcu et Enregistrement dans le bulletin Bonus                 
+                            if(GETPOST($name,'alpha') == 'on'){
+                              //Calcul
+                              $salaire_brut = 0;
+                                $salaire_brut_imposable = 0;
+                                $salaire_brut_cotisable = 0;
+                                $base = 0;
+                                if($type == 'fixe'){
+                                  $montant_fixe = GETPOST("fixe","int");
+                                  $base = $montant_fixe;
+                                  $salaire_brut = $montant_fixe;
+                                  $salaire_brut_imposable = $salaire_brut;
+                                  $salaire_brut_cotisable = $salaire_brut;
+                                  $montant_pourcentage = "100";
+                                }elseif($type == 'pourcentage'){
+                                  if(GETPOST("type_salaire") == "brut"){ //pourcentage en salaire brut
+                                    $montant_pourcentage = explode('%',GETPOST("pourcentage","int"))[0];
+                                    $base = $obj_verif->salaire_brut;
+
+                                    
+                                    $salaire_brut = $base*$montant_pourcentage/100;
+                                    $montant_fixe = $salaire_brut;
+                                    $salaire_brut_imposable = $salaire_brut;
+                                    $salaire_brut_cotisable = $salaire_brut;
+                                  }else{ // Pourcentage en salaire net
+                                    $montant_pourcentage = explode('%',GETPOST("pourcentage","int"))[0];
+                                    $base = $obj_verif->salaire_brut;
+
+                                    //Simulation pour avoir le pourcentage% en net
+                                    //$salaire_brut = $base*$montant_pourcentage/100;
+                                    $net  = $montant_pourcentage*$obj_verif->net_payer/100;
+                                    $fin = false;
+                                    $mon_salaire_brut = $montant_pourcentage*$obj_verif->salaire_brut/100;
+                                    $salaire_net = $net;
+                                    $retenu_prest_empl = 0;
+                                    $retenu_prest_patro = 0;
+                                    $retenu_taxe = 0;
+                                    $retenu = 0;
+                                    $inps = 0;
+
+                                    while ($fin == false && $net){
+                                      $mon_brut_cotis = $mon_salaire_brut;
+                                      $mon_brut_imp = $mon_salaire_brut;
+
+                                      $retenu_prest_empl = 0;
+                                      $retenu_prest_patro = 0;
+                                      $inps = 0;
+                                    
+                                      $index = 0;
+                                      $global_cotis = salarie_prestation_simulation($db, $obj_verif->fk_salarie, $mon_brut_cotis, $id_convention);
+                                      $cotis = $global_cotis[1];
+                                      $taux_p = $global_cotis[0];
+                                      foreach ($cotis as $key => $value) {
+                                        $type_prest = "SELECT * FROM ".MAIN_DB_PREFIX."type_prestation WHERE rowid=".$key;
+                                          $result_type_prest = $db->query($type_prest);
+                                          $obj_prest_type = $db->fetch_object($result_type_prest);
+                                          if($obj_prest_type){
+                                            $retenu_prest_empl += round($value*$mon_brut_cotis/100, 2);
+                                            $retenu_prest_patro += round($taux_p[$index]*$mon_brut_cotis/100, 2);
+                                            //print $retenu_prest_empl."<br>";
+                                          }
+                                          if($obj_prest_type->rowid != 6)
+                                            $inps += $value*$mon_brut_cotis/100;
+                                          
+                                      }
+                                      $mon_brut_imp -= $inps;
+                                      $its = its_salarie($db, "", $mon_brut_imp, $obj_verif->situation_familiale, $obj_verif->nombre_enfant, $obj_verif->nombre_enfant_hand);
+                                      $retenu_taxe = $its[2];
+
+                                      $mon_net = $mon_salaire_brut - $retenu_prest_empl - $retenu_taxe;
+                                      
+                                        if(round($mon_net + 100000) < ((int)$net))
+                                          $mon_salaire_brut +=  50000;
+                                        elseif(round($mon_net+ 10000) < ($net))
+                                          $mon_salaire_brut +=  5000;
+                                        elseif(round($mon_net + 5000) < ($net))
+                                          $mon_salaire_brut +=  2000;
+                                        elseif(round($mon_net + 2000) < ($net))
+                                          $mon_salaire_brut +=  1000;
+                                        elseif(round($mon_net + 1000) < ($net))
+                                          $mon_salaire_brut +=  500;
+                                        elseif(round($mon_net+ 100) < ($net))
+                                          $mon_salaire_brut += 20;
+                                        elseif(round($mon_net) < $net)
+                                          $mon_salaire_brut += 5;
+                                        elseif(round($mon_net) == round($net))
+                                          $fin = true;
+                                        elseif(round($mon_net) > ($net + 20000))
+                                          $mon_salaire_brut += -1000;
+                                        elseif(round($mon_net) > ($net + 1000))
+                                          $mon_salaire_brut += -100;
+                                        elseif(round($mon_net) > ($net + 500))
+                                          $mon_salaire_brut += -50;
+                                        else $mon_salaire_brut += -1;
+                                    }
+
+                                    $salaire_brut = $mon_salaire_brut;
+                                    $montant_fixe = $salaire_brut;
+                                    $salaire_brut_imposable = $salaire_brut;
+                                    $salaire_brut_cotisable = $salaire_brut;
+
+                                  }
+                                }
+                              
+                              $salaire_net = 0;
+                              $retenu_prest_empl = 0;
+                              $retenu_prest_patro = 0;
+                              $retenu_taxe = 0;
+                              $retenu = 0;
+                              $inps = 0;
+
+                              $old_fk_orga = 0;
+                              $nom_organisme = array();
+                              $id_organisme = array();
+                              $montant_org_sal = array();
+                              $montant_org_patro = array();
+                              $pourcentage_org = array();
+
+                              $index = 0;
+                              $global_cotis = salarie_prestation_organisme($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
+                              $cotis = $global_cotis[1];
+                              $taux_p = $global_cotis[0];
+                              foreach ($cotis as $key => $value) {
+                                $type_prest = "SELECT * FROM ".MAIN_DB_PREFIX."type_prestation WHERE rowid=".$key;
+                                $result_type_prest = $db->query($type_prest);
+                                $obj_prest_type = $db->fetch_object($result_type_prest);
+
+                                if($obj_prest_type->fk_organisme != $old_fk_orga){
+                                  $old_fk_orga = $obj_prest_type->fk_organisme;
+                                  $organisme = "SELECT rowid, nom_organisme FROM ".MAIN_DB_PREFIX."organisme WHERE rowid=".$old_fk_orga;
+                                  $result_organisme = $db->query($organisme);
+                                  $id_organisme[] = $old_fk_orga;
+                                  $obj_organisme = $db->fetch_object($result_organisme);
+                                  $nom_organisme[] = $obj_organisme->nom_organisme;
+                                  $montant_org_sal[] = $value*$salaire_brut_cotisable/100;
+                                  $montant_org_patro[] = $taux_p[$index]*$salaire_brut_cotisable/100;
+                                  $pourcentage_org[] = $value;
+
+                                  $retenu_prest_empl += $value*$salaire_brut_cotisable/100;
+                                  $retenu_prest_patro += $taux_p[$index]*$salaire_brut_cotisable/100;
+                                }else{
+                                  $retenu_prest_empl += $value*$salaire_brut_cotisable/100;
+                                  $retenu_prest_patro += $taux_p[$index]*$salaire_brut_cotisable/100;
+
+                                  $montant_org_sal[(count($montant_org_sal) - 1)] += $value*$salaire_brut_cotisable/100;
+                                  $montant_org_patro[(count($montant_org_patro) - 1)] += $taux_p[$index]*$salaire_brut_cotisable/100;
+                                  $pourcentage_org[count($pourcentage_org)-1] += $value;
+                                }
+                                
+                                if($obj_prest_type->rowid != 6)
+                                  $inps += $value*$salaire_brut_cotisable/100;
+
+                                $index ++;
+                              }
+
+                                //les prestations à afficher sur le bulletin
+                                $index = 0;
+                                  $global_cotis = salarie_prestation($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
+                                  $cotis = $global_cotis[1];
+                                  $taux_p = $global_cotis[0];
+                                  foreach ($cotis as $key => $value) {
+                                    $type_prest = "SELECT rowid, fk_organisme, code, affiche_bulletin FROM ".MAIN_DB_PREFIX."type_prestation WHERE rowid=".$key;
+                                      $result_type_prest = $db->query($type_prest);
+                                      $obj_prest_type = $db->fetch_object($result_type_prest);
+                                
+                                      $array_prestation[$index][0] = $key;
+                                      $array_prestation[$index][1] = $obj_prest_type->affiche_bulletin;
+                                      $array_prestation[$index][2] = $value*$salaire_brut_cotisable/100;
+                                      $array_prestation[$index][3] = $taux_p[$index]*$salaire_brut_cotisable/100;
+                                      $array_prestation[$index][4] = $value;
+                                      $array_prestation[$index][5] = $taux_p[$index];
+                                      $array_prestation[$index][6] = $obj_prest_type->code;
+
+                                      $index ++;
+                                      if(!in_array($obj_prest_type->fk_organisme, $id_organisme)){
+                                        $retenu_prest_empl += apres_virgule($db, $id_societe, $value*$salaire_brut_cotisable/100, 2);
+                                        $retenu_prest_patro += apres_virgule($db, $id_societe, $taux_p[$index]*$salaire_brut_cotisable/100, 2);
+                                        if($obj_prest_type->rowid != 6)
+                                          $inps += $value*$salaire_brut_cotisable/100; 
+                                      }
+                                  }
+                                  
+                                  //les taxes qui ont comme barème : barème cotisation
+                                $index = 0;
+                                $global_taxe = salarie_taxe2($db, $obj_salarie->rowid, $id_convention);
+                                $taxe = $global_taxe[1];
+                                $taux_t = $global_taxe[0];
+                                foreach ($taxe as $key => $value) {
+                                  $type_taxe = "SELECT rowid, libelle, fk_organisme, affiche_bulletin FROM ".MAIN_DB_PREFIX."type_taxe WHERE rowid=".$key;
+                                    $result_type_taxe = $db->query($type_taxe);
+                                    $obj_taxe_type = $db->fetch_object($result_type_taxe);
+
+                                    $array_taxe[$index][0] = $key;
+                                    $array_taxe[$index][1] = $obj_taxe_type->affiche_bulletin;
+                                    $array_taxe[$index][2] = $value*$salaire_brut/100;
+                                    $array_taxe[$index][3] = $taux_t[$index]*$salaire_brut/100;
+                                    $array_taxe[$index][4] = $value;
+                                    $array_taxe[$index][5] = $taux_t[$index];
+                                    $array_taxe[$index][6] = $obj_taxe_type->libelle;
+
+                                    $index ++;
+                                }
+
+                                  //A par amo les autres detail de l'INPS ne sont pas soumis aux impôt
+                                  $salaire_brut_imposable -= $inps;
+                                  //tratement de l'its
+                                  $its = its_salarie($db, "", $salaire_brut_imposable, $obj_verif->situation_familiale, $obj_verif->nombre_enfant, $obj_verif->nombre_enfant_hand);
+
+                                  //print $obj_verif->nom."  ".$obj_verif->nom." =".$salaire_brut_imposable." BC=".$salaire_brut_cotisable." SN=".$salaire_net." R=".$retenu."<br>";
+
+                                  $retenu_taxe = $its[2];
+
+                                  $retenu = $retenu_prest_empl + $retenu_taxe;
+                                  //calcul du salaire net
+                                  $salaire_net = $salaire_brut - $retenu_prest_empl - $retenu_taxe;
+
+                              $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus (id_bull, nom_bonus, libelle, nom, prenom, fk_salarie, matricule, situation_familiale, nombre_enfant, nombre_enfant_hand, categorie
+                              , echelon, contrat, diplome, type_salarie, fonction, date_embauche, sexe, pays, ville, addresse, tel, email, annee, mois, salaire_brut, salaire_brut_cotisable,
+                              salaire_brut_imposable, net_payer, fk_societe, nom_societe, logo_societe, nom_convention,inps,amo,banque,compte,montant,pourcentage, base, type_salaire) 
+                              VALUES("'.$id_bull.'","'.$nom_bonus.'","'.$nom_complement.'","'.$obj_verif->nom.'","'.$obj_verif->prenom.'",'.$obj_verif->fk_salarie.',"'.$obj_verif->matricule.'","'.$obj_verif->situation_familiale.'",'.$obj_verif->nombre_enfant.','.$obj_verif->nombre_enfant_hand.',
+                              "'.$obj_verif->categorie.'","'.$obj_verif->echelon.'","'.$obj_verif->contrat.'","'.$obj_verif->diplome.'","'.$obj_verif->type_salarie.'","'.$obj_verif->fonction.'","'.$obj_verif->date_embauche.'",
+                              "'.$obj_verif->sexe.'","'.$obj_verif->pays.'","'.$obj_verif->ville.'","'.$obj_verif->addresse.'","'.$obj_verif->tel.'","'.$obj_verif->email.'",
+                              '.$annee.','.$mois.',"'.round($salaire_brut, 2).'","'.round($salaire_brut_cotisable, 2).'","'.round($salaire_brut_imposable, 2).'","'.round($salaire_net).'",'.$obj_verif->fk_societe.',"'.$obj_verif->nom_societe.'","'.$obj_verif->logo_societe.'",
+                              "'.$obj_verif->nom_convention.'","'.$obj_verif->inps.'","'.$obj_verif->amo.'","'.$obj_verif->banque.'","'.$obj_verif->compte.'","'.$montant_fixe.'","'.$montant_pourcentage.'","'.$base.'", "'.GETPOST("type_salaire", "alpha").'")';
+
+                              $res_bulletin = $db->query($sql_bulletin);
+                              if($res_bulletin){
+                                $sql_verif_bonus = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE fk_salarie=".$obj_verif->fk_salarie." AND annee=".$annee." AND mois=".$mois;
+                                $res_verif_bonus = $db->query($sql_verif_bonus);
+                                $obj_last = $db->fetch_object($res_verif_bonus);
+                                $rowid_bulletin = $obj_last->rowid;
+
+                            
+                                //insertion dans la table bulletin taxe
+                                if($rowid_bulletin){
+                                  $fk_taxe = 1;
+                                  $montant = $its[2];
+                                  $libelle = $its[3];
+                                  $affiche_bulletin = "Oui";
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_taxe (fk_bulletin, fk_taxe, libelle, taux, montant, affiche_bulletin)';
+                                  $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_taxe.',"'.$libelle.'","'.round($its[0], 2).'","'.round($montant).'","'.$affiche_bulletin.'")';
+                                  $res_bulletin = $db->query($sql_bulletin);
+                                }
+
+                                //CFE et TL
+                                for ($g=0; $g < count($array_taxe); $g++) {
+                                  $fk_taxe = $array_taxe[$g][0];
+                                  $affiche_bulletin = $array_taxe[$g][1];
+                                  $montant_employe = $array_taxe[$g][2]?:0;
+                                  $montant_employeur = $array_taxe[$g][3]?:0;
+                                  $taux_employe = $array_taxe[$g][4]?:0;
+                                  $taux_employeur = $array_taxe[$g][5]?:0;
+                                  $libelle = $array_taxe[$g][6];
+                                  //insertion dans la table bulletin cotisations
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_taxe2 (fk_bulletin, fk_taxe, libelle, taux_employe, taux_employeur, montant_employe, montant_employeur, affiche_bulletin)';
+                                  $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_taxe.',"'.$libelle.'","'.$taux_employe.'","'.$taux_employeur.'","'.round($montant_employe).'","'.round($montant_employeur).'","'.$affiche_bulletin.'")';
+                                  $res_bulletin = $db->query($sql_bulletin);
+                                  //print $sql_bulletin;
+                                }
+
+                                for ($g=0; $g < count($array_prestation); $g++) { 
+                                  $fk_cotisation = $array_prestation[$g][0];
+                                  $affiche_bulletin = $array_prestation[$g][1];
+                                  $montant_employe = $array_prestation[$g][2]?:0;
+                                  $montant_employeur = $array_prestation[$g][3]?:0;
+                                  $taux_employe = $array_prestation[$g][4]?:0;
+                                  $taux_employeur = $array_prestation[$g][5]?:0;
+                                  $libelle = $array_prestation[$g][6];
+                                  //insertion dans la table bulletin cotisations
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_cotisation (fk_bulletin, fk_cotisation, libelle, taux_employe, taux_employeur, montant_employe, montant_employeur, affiche_bulletin)';
+                                  $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_cotisation.',"'.$libelle.'","'.$taux_employe.'","'.$taux_employeur.'","'.round($montant_employe).'","'.round($montant_employeur).'","'.$affiche_bulletin.'")';
+                                  $res_bulletin = $db->query($sql_bulletin);
+                                }
+
+                                for ($g=0; $g < count($nom_organisme); $g++) { 
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_organisme (fk_bulletin, fk_organisme, nom_organisme, pourcentage, montant_employe, montant_employeur)';
+                                  $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$id_organisme[$g].',"'.$nom_organisme[$g].'","'.$pourcentage_org[$g].'","'.round($montant_org_sal[$g]).'","'.round($montant_org_patro[$g]).'")';
+                                  $res_bulletin = $db->query($sql_bulletin);
+                          
+                                }
+                              }
+                            }
+                            $a ++;
+                          }
+                          if($res_bulletin){
+                            $message = 'Complement de salaire "'.$nom_bonus.'" généré et </br>';
+                            $message .= 'lié au mois de '.$mois_tab[($mois-1)].'-'.$annee;
+
+                            $sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
+                            $obj = $db->fetch_object($db->query($sql_select));
+
+                            $action_effectue = "Génération des complements de Salaire ".$mois_tab[$mois-1]." ".$annee." de la société ".$obj_soc->nom;
+                            $sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
+                            $sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Complements salaires")';
+                            $db->query($sql_log);
+                          } 
+                        }else $message = 'Bulletin non généré alors impossible de generer le complément salaire';
               }
               $action = "annee_rechercher";
         }
@@ -1376,7 +1539,7 @@ if($user->rights->paiementsalaire->societe->read){
                   }
         }
 
-          //Confirmation de la Cofiguration du Bonus
+          //Boite de dialogue : Confirmation de la Cofiguration du Bonus (pourcentage ou montant fixe)
           if($action == "ajouterbonus"){
             if(GETPOST("type") == 'fixe'){
               if(empty(GETPOST("montant_fixe", "int")))
@@ -1418,10 +1581,14 @@ if($user->rights->paiementsalaire->societe->read){
                 }else{  
                   $array_type = array('label'=> 'type','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'type','value'=>'pourcentage');
                   $fixe_pourc = array('label'=> '% Pourcentage','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'pourcentage','value'=>GETPOST("montant_pourcentage", "int"));
-                
+
+                  if(GETPOST("type_salaire", "alpha") == "brut")
+                    $salaire_type = array('label'=> 'Salaire brut','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'type_sal','value'=>'Oui');
+                  else $salaire_type = array('label'=> 'Salaire net','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'type_sal','value'=>'Oui');
+
                 }
 
-              if($tout_salarie == 'oui'){
+              if($tout_salarie == 'oui'){ //si c'est pour tout les salarié
                 
                   $array = array(
                   array('label'=> 'Nom bulletin','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'libelle','value'=>GETPOST("libelle", "alpha")),
@@ -1431,6 +1598,8 @@ if($user->rights->paiementsalaire->societe->read){
                   array('label'=> 'Année','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'annee','value'=>$annee),
                   $array_type,
                   $fixe_pourc,
+                  $salaire_type,
+                  array('label'=> 'type salaire','type'=> 'hidden', 'size'=>'', 'morecss'=>'', 'moreattr'=>'', 'name'=>'type_salaire','value'=>GETPOST("type_salaire", "alpha")),
                   array('label'=> 'Pour tous les salariés','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'tout_salarie','value'=>$tout_salarie),
 
                 );
@@ -1443,7 +1612,7 @@ if($user->rights->paiementsalaire->societe->read){
                       $array, 
                       '', 
                       1,
-                      350,
+                      360,
                       '30%'
                   );
                   print $formconfirm;
@@ -1459,7 +1628,11 @@ if($user->rights->paiementsalaire->societe->read){
                 }else{  
                   $array_type = array('label'=> 'type','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'type','value'=>'pourcentage');
                   $fixe_pourc = array('label'=> '% Pourcentage','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'pourcentage','value'=>GETPOST("montant_pourcentage", "int"));
-                
+                  
+                  if(GETPOST("type_salaire", "alpha") == "brut")
+                    $salaire_type = array('label'=> 'Salaire brut','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'type_sal','value'=>'Oui');
+                  else $salaire_type = array('label'=> 'Salaire net','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'type_sal','value'=>'Oui');
+
                 }
                   $array = array(
                   array('label'=> 'Nom bulletin','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'libelle','value'=>GETPOST("libelle", "alpha")),
@@ -1469,6 +1642,8 @@ if($user->rights->paiementsalaire->societe->read){
                   array('label'=> 'Année','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'annee','value'=>$annee),
                   $array_type,
                   $fixe_pourc,
+                  $salaire_type,
+                  array('label'=> 'type salaire','type'=> 'hidden', 'size'=>'', 'morecss'=>'', 'moreattr'=>'', 'name'=>'type_salaire','value'=>GETPOST("type_salaire", "alpha")),
                   array('label'=> 'Pour tous les salariés','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'tout_salarie','value'=>$tout_salarie),
                   );
     
@@ -1509,7 +1684,7 @@ if($user->rights->paiementsalaire->societe->read){
           }
 
           //formulaire d'ajout Bonus
-             if($action == "ajoutbonus"){
+             if($action == "ajoutbonus"){ //Si le bonus est pourcentage ou montant fixe
                 $titre = "Veuillez Configurer";
                 $mois = GETPOST("mois", "int");
                 $annee = GETPOST("annee", "int");
@@ -1539,7 +1714,11 @@ if($user->rights->paiementsalaire->societe->read){
                 print "<option value='pourcentage' ".(GETPOST('type', 'alpha')=='pourcentage'?'selected':'').">Pourcentage</option>";
                 print "<option value='fixe' ".(GETPOST('type', 'alpha')=='fixe'?'selected':'').">Montant Fixe</option>";
                 print "</select></td></tr>";
-                print "<tr><td>valeur : </td><td><div id='montant_pourcentage'><input type='number' name='montant_pourcentage' value='".GETPOST("montant_pourcentage", "float")."' min='10' max='100'> %</div>
+                print "<tr><td>valeur : </td><td><div id='montant_pourcentage'><input type='number' name='montant_pourcentage' value='".GETPOST("montant_pourcentage", "float")."' min='5' max='100'> %";
+                print "&nbsp;&nbsp; du &nbsp; &nbsp;<select name='type_salaire' id='type_salaire'>";
+                print "<option value='brut' ".(GETPOST('type_salaire', 'alpha')=='brut'?'selected':'').">Salaire brut</option>";
+                print "<option value='net' ".(GETPOST('type_salaire', 'alpha')=='net'?'selected':'').">Salaire net</option>";
+                print "</div>
                        <input type='text' value='".GETPOST("montant_fixe", "int")."' name='montant_fixe' id='montant_fixe'>
                 </td></tr>";
 
@@ -1583,6 +1762,7 @@ if($user->rights->paiementsalaire->societe->read){
                 );
                 </script>';
 
+                //Le cas ou on met le libelle et montant de bonus par salarié
             }elseif($action == "special_ajoutbonus"){
                 
                 $titre = "<h3><mark>Mettez le montant uniquement pour les salariés concernés<mark></h3>";
@@ -1637,232 +1817,232 @@ if($user->rights->paiementsalaire->societe->read){
             }else{
               
               //Gestion des année et des dates pour l'historique => Gestion des actions recherche année
-			if($action == 'annee_rechercher'){
-        $url = $_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&action=creation_bonus";
-				$annee_rechercher = GETPOST("annee_rechercher", "int");
-				$annee_courant = (int) date("Y");
-				if(empty($annee_rechercher))
-					$annee_rechercher = (int) date("Y");
-				$mois_courant = (int) date("m");
+                if($action == 'annee_rechercher'){
+                  $url = $_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&action=creation_bonus";
+                  $annee_rechercher = GETPOST("annee_rechercher", "int");
+                  $annee_courant = (int) date("Y");
+                  if(empty($annee_rechercher))
+                    $annee_rechercher = (int) date("Y");
+                  $mois_courant = (int) date("m");
 
-				if($annee_rechercher != $annee_courant)
-					print "<h2 style='align:center; display: inline'>Historique de l'année ".$annee_rechercher."!</h2>";
-				else print "<h2 style='align:center;display: inline'>Bulletins du ".$annee_rechercher."!</h2>";
-				print "<div style='float: right; display: inline''>";
-				print '<form name="add" method="POST" action="'.$_SERVER['PHP_SELF'].'?mainmenu=paiementsalaire&leftmenu=societe&id_societe='.$id_societe.'&id_convention='.$id_convention.'">';
-					print '<input type="hidden" name="token" value="'.newToken().'">';
-					print '<input type="hidden" name="action" value="annee_rechercher">';
+                  if($annee_rechercher != $annee_courant)
+                    print "<h2 style='align:center; display: inline'>Historique de l'année ".$annee_rechercher."!</h2>";
+                  else print "<h2 style='align:center;display: inline'>Bulletins du ".$annee_rechercher."!</h2>";
+                  print "<div style='float: right; display: inline''>";
+                  print '<form name="add" method="POST" action="'.$_SERVER['PHP_SELF'].'?mainmenu=paiementsalaire&leftmenu=societe&id_societe='.$id_societe.'&id_convention='.$id_convention.'">';
+                    print '<input type="hidden" name="token" value="'.newToken().'">';
+                    print '<input type="hidden" name="action" value="annee_rechercher">';
 
-					print "<select name='annee_rechercher'>";
-					$sql_verif = "SELECT DISTINCT annee FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_societe=".$id_societe;
-					$res_verif = $db->query($sql_verif);
-					if($res_verif){
-						$num_all = $db->num_rows($res_verif);
-						$i=0;
-						$annee_tab = array();
-						while ($i < $num_all) { 
-							$obj_annee = $db->fetch_object($res_verif);
-							$annee_tab[] = $obj_annee->annee;
-							if($obj_annee->annee == $annee_rechercher)
-								print "<option value='".($obj_annee->annee)."' selected >".($obj_annee->annee)."</option>";
-							else print "<option value='".($obj_annee->annee)."'>".($obj_annee->annee)."</option>";
+                    print "<select name='annee_rechercher'>";
+                    $sql_verif = "SELECT DISTINCT annee FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_societe=".$id_societe;
+                    $res_verif = $db->query($sql_verif);
+                    if($res_verif){
+                      $num_all = $db->num_rows($res_verif);
+                      $i=0;
+                      $annee_tab = array();
+                      while ($i < $num_all) { 
+                        $obj_annee = $db->fetch_object($res_verif);
+                        $annee_tab[] = $obj_annee->annee;
+                        if($obj_annee->annee == $annee_rechercher)
+                          print "<option value='".($obj_annee->annee)."' selected >".($obj_annee->annee)."</option>";
+                        else print "<option value='".($obj_annee->annee)."'>".($obj_annee->annee)."</option>";
 
-							
-							$i ++;
-						}
-						if($num_all == 0){
-							print "<option value='".date("Y")."' selected >".date("Y")."</option>";
-						}elseif(!in_array(date("Y"), $annee_tab))
-							if($annee_rechercher == $annee_courant)
-								print "<option value='".date("Y")."' selected>".date("Y")."</option>";
-							else print "<option value='".date("Y")."' >".date("Y")."</option>";
-
-
-					}
-					print "</select><input type='submit' value='Rechercher'class='button'></form>";
-
-				print "</div>";
-				print "<table class='tagtable liste'>";
-					print "<thead>";
-					print "<tr class='liste_titre'><th rowspan='2'>Mois</th>";	
-					print "<th rowspan='2'>Nb salarié</th>";
-					print "<th rowspan='2'>Masse salariale brute</th>";
-					print "<th rowspan='2'>Masse salariale net</th>";
-					print "<th rowspan='2'>Total I.T.S</th>";
-					print "<th colspan='2' align='center'>Total Cotisation</th>";
-					print "<th rowspan='2' align='center' >Opérations</tr>";
-					print "<tr><th>Employé</th><th>Employeur</th></tr>";
-					print "</thead>";
-        
-				if($annee_courant == $annee_rechercher){
-					print "<tbody>";
-
-					for ($i=0; $i < count($mois_tab); $i++) {
-						print "<tr class='impair'>";
-								$sql_verif = "SELECT rowid, nom_bonus FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
-								$res_verif = $db->query($sql_verif);
-								if($res_verif){
-									$nb_salarie = $db->num_rows($res_verif);
-
-									if($nb_salarie > 0){
-                     $j = 0;
-
-											$obj_verif = $db->fetch_object($res_verif);
-											$sql_som_salaire = "SELECT SUM(salaire_brut) as sal_brut, SUM(net_payer) as sal_net FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
-											$res_som_salaire  = $db->query($sql_som_salaire);
-											$obj_som_salaire = $db->fetch_object($res_som_salaire);
-
-											//$total += $obj_som_salaire->sal_brut + $obj_som_salaire->sal_net;
-
-                        if(($obj_verif->rowid)){
-                          $total = 0;
-                          $a = 0;
-                          $somme_taxe = 0;
-                          $somme_cotisation = 0;
-                          $somme_cotisation_employe = 0;
-                          $somme_cotisation_employeur = 0;
-                          $sql_id_bulletin = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
-                          $res_id_bulletin  = $db->query($sql_id_bulletin);
-                          $num_k = $db->num_rows($res_id_bulletin);
-                          while ($a < $num_k){
-                            $obj_id_bulletin = $db->fetch_object($res_id_bulletin);
-                            $sql_som_taxe = "SELECT SUM(montant) as montant FROM ".MAIN_DB_PREFIX."bulletin_bonus_taxe WHERE fk_bulletin=".$obj_id_bulletin->rowid;
-                            $res_som_taxe  = $db->query($sql_som_taxe);
-                            if($res_som_taxe){
-                              $obj_som_taxe = $db->fetch_object($res_som_taxe);
-                              $somme_taxe += $obj_som_taxe->montant;
-                            }
-
-                            $sql_som_cotisation = "SELECT SUM(montant_employe) as som_empl, SUM(montant_employeur) as som_patro FROM ".MAIN_DB_PREFIX."bulletin_bonus_cotisation WHERE fk_bulletin=".$obj_id_bulletin->rowid;
-                            $res_som_cotisation  = $db->query($sql_som_cotisation);
-                            if($res_som_cotisation){
-                              $obj_som_cotisation = $db->fetch_object($res_som_cotisation);
-                              $somme_cotisation_employe += $obj_som_cotisation->som_empl;
-                              $somme_cotisation_employeur += $obj_som_cotisation->som_patro;
-                            }
-                            $a ++;
-                          }
-                          $db->free($res_id_bulletin);
-                          $somme_cotisation += $somme_cotisation_employe + $somme_cotisation_employeur;
-                          $total += $somme_taxe + $somme_cotisation;
-                          print "<td style='padding: 0px' ><b>".$obj_verif->nom_bonus." ".info_admin("Moi de ".$mois_tab[$i], 1)."</b></td>";
-                          print "<td>".$nb_salarie."</td><td>".apres_virgule($db, $id_societe, $obj_som_salaire->sal_brut?:0, 2)."</td><td>".apres_virgule($db, $id_societe, $obj_som_salaire->sal_net?:0, 2)."</td><td>".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td>".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td>".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
-
-                          print "<td style='padding: 0px' ><span class='fa fa-plus' style='color: gray'></a>&nbsp;&nbsp;&nbsp;";
-                          if($user->rights->paiementsalaire->salarie->voirDocument)
-                            print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp;&nbsp; &nbsp;
-                            <a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span> &nbsp;</a>&nbsp;
-                            <a href='./../doc/export_bonus.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->name."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp;&nbsp;";
-
-                            $sql_req = "SELECT cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='oui' AND annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
-                            $res_req = $db->query($sql_req);
-                            if($db->num_rows($res_req) == 0)
-                              print "<a style='text-decoration : none;' title='Supprimer' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=attente_suppression&annee=".$annee_rechercher."&mois=".($i + 1)."'>".img_delete("", "")."</a>&nbsp;";
-                            
-                          print "</td>";
-
-                        }else{
-                          print "<td style='padding: 0px' ><b>".$mois_tab[$i]."</b></td>";
-                          print "<td>0</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td>";
-                          print "<td style='padding: 0px' >";
-                          $sql_bull = "SELECT rowid, cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
-                          $res_bull = $db->query($sql_bull);
-                          if($res_bull){
-                            $nb_bull = $db->num_rows($res_bull);
-                            if($nb_bull > 0){
-                              $obj_b = $db->fetch_object($res_bull);
-                              if($obj_b->cloture == 'non'){
-                                if($user->rights->paiementsalaire->societe->genererBulletin)
-                                  print "<a href='".$url."&mois=".($i +1)."&annee=".($annee_rechercher)."' ><span class='fa fa-plus' style='color: blue'></span></a>&nbsp;&nbsp;&nbsp;";
-                                else print "<span class='fa fa-plus' style='color: gray'></a>&nbsp;&nbsp;&nbsp;";
-
-                                print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-                                <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
-
-                                print "</td>";	
-                                }else{
-                                  print "<span class='fa fa-plus' style='color: gray'>&nbsp;&nbsp;&nbsp;";
-                                  print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-                                  <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
-                                  print "</td>";
-                                }		
-                            }else{
-                                print "<span class='fa fa-plus' style='color: gray'>&nbsp;&nbsp;&nbsp;";
-                                  print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-                                  <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
-                                  print "</td>";
-                              }				
-                          }else{
-
-                            print "<span class='fa fa-plus' style='color: gray'>&nbsp;&nbsp;&nbsp;";
-                            print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-                            <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
-
-                              print "</td>";
-                        }
+                        
+                        $i ++;
                       }
-										}else{
-                      print "<td style='padding: 0px' ><b>".$mois_tab[$i]."</b></td>";
-                      print "<td>0</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td>";
-                      print "<td style='padding: 0px' >";
-                      $sql_bull = "SELECT rowid, cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
-                      $res_bull = $db->query($sql_bull);
-                      if($res_bull){
-                        $nb_bull = $db->num_rows($res_bull);
-                        $obj_b = $db->fetch_object($res_bull);
-                        if($obj_b->cloture == 'non'){
-                          if($nb_bull > 0){
-                            if($user->rights->paiementsalaire->societe->genererBulletin)
-                              print "<a href='".$url."&mois=".($i +1)."&annee=".($annee_rechercher)."' ><span class='fa fa-plus' style='color: blue'></span></a>&nbsp;&nbsp;&nbsp;";
-                            else print "<span class='fa fa-plus' style='color: gray'></a>&nbsp;&nbsp;&nbsp;";
+                      if($num_all == 0){
+                        print "<option value='".date("Y")."' selected >".date("Y")."</option>";
+                      }elseif(!in_array(date("Y"), $annee_tab))
+                        if($annee_rechercher == $annee_courant)
+                          print "<option value='".date("Y")."' selected>".date("Y")."</option>";
+                        else print "<option value='".date("Y")."' >".date("Y")."</option>";
 
-                            print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-                            <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
 
-                            print "</td>";	
-                          }else{
-                            
-                            print "<span class='fa fa-plus' style='color: gray'>&nbsp;&nbsp;&nbsp;";
+                    }
+                    print "</select><input type='submit' value='Rechercher'class='button'></form>";
 
-                            print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-                            <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+                  print "</div>";
+                  print "<table class='tagtable liste'>";
+                    print "<thead>";
+                    print "<tr class='liste_titre'><th rowspan='2'>Mois</th>";	
+                    print "<th rowspan='2'>Nb salarié</th>";
+                    print "<th rowspan='2'>Masse salariale brute</th>";
+                    print "<th rowspan='2'>Masse salariale net</th>";
+                    print "<th rowspan='2'>Total I.T.S</th>";
+                    print "<th colspan='2' align='center'>Total Cotisation</th>";
+                    print "<th rowspan='2' align='center' >Opérations</tr>";
+                    print "<tr><th>Employé</th><th>Employeur</th></tr>";
+                    print "</thead>";
+                  
+                  if($annee_courant == $annee_rechercher){
+                    print "<tbody>";
 
-                            print "</td>";
+                    for ($i=0; $i < count($mois_tab); $i++) {
+                      print "<tr class='impair'>";
+                          $sql_verif = "SELECT rowid, nom_bonus FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
+                          $res_verif = $db->query($sql_verif);
+                          if($res_verif){
+                            $nb_salarie = $db->num_rows($res_verif);
+
+                            if($nb_salarie > 0){
+                              $j = 0;
+
+                                $obj_verif = $db->fetch_object($res_verif);
+                                $sql_som_salaire = "SELECT SUM(salaire_brut) as sal_brut, SUM(net_payer) as sal_net FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
+                                $res_som_salaire  = $db->query($sql_som_salaire);
+                                $obj_som_salaire = $db->fetch_object($res_som_salaire);
+
+                                //$total += $obj_som_salaire->sal_brut + $obj_som_salaire->sal_net;
+
+                                  if(($obj_verif->rowid)){
+                                    $total = 0;
+                                    $a = 0;
+                                    $somme_taxe = 0;
+                                    $somme_cotisation = 0;
+                                    $somme_cotisation_employe = 0;
+                                    $somme_cotisation_employeur = 0;
+                                    $sql_id_bulletin = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
+                                    $res_id_bulletin  = $db->query($sql_id_bulletin);
+                                    $num_k = $db->num_rows($res_id_bulletin);
+                                    while ($a < $num_k){
+                                      $obj_id_bulletin = $db->fetch_object($res_id_bulletin);
+                                      $sql_som_taxe = "SELECT SUM(montant) as montant FROM ".MAIN_DB_PREFIX."bulletin_bonus_taxe WHERE fk_bulletin=".$obj_id_bulletin->rowid;
+                                      $res_som_taxe  = $db->query($sql_som_taxe);
+                                      if($res_som_taxe){
+                                        $obj_som_taxe = $db->fetch_object($res_som_taxe);
+                                        $somme_taxe += $obj_som_taxe->montant;
+                                      }
+
+                                      $sql_som_cotisation = "SELECT SUM(montant_employe) as som_empl, SUM(montant_employeur) as som_patro FROM ".MAIN_DB_PREFIX."bulletin_bonus_cotisation WHERE fk_bulletin=".$obj_id_bulletin->rowid;
+                                      $res_som_cotisation  = $db->query($sql_som_cotisation);
+                                      if($res_som_cotisation){
+                                        $obj_som_cotisation = $db->fetch_object($res_som_cotisation);
+                                        $somme_cotisation_employe += $obj_som_cotisation->som_empl;
+                                        $somme_cotisation_employeur += $obj_som_cotisation->som_patro;
+                                      }
+                                      $a ++;
+                                    }
+                                    $db->free($res_id_bulletin);
+                                    $somme_cotisation += $somme_cotisation_employe + $somme_cotisation_employeur;
+                                    $total += $somme_taxe + $somme_cotisation;
+                                    print "<td style='padding: 0px' ><b>".$obj_verif->nom_bonus." ".info_admin("Mois de ".$mois_tab[$i], 1)."</b></td>";
+                                    print "<td>".$nb_salarie."</td><td>".apres_virgule($db, $id_societe, $obj_som_salaire->sal_brut?:0, 2)."</td><td>".apres_virgule($db, $id_societe, $obj_som_salaire->sal_net?:0, 2)."</td><td>".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td>".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td>".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
+
+                                    print "<td style='padding: 0px' ><span class='fa fa-plus' style='color: gray'></a>&nbsp;&nbsp;&nbsp;";
+                                    if($user->rights->paiementsalaire->salarie->voirDocument)
+                                      print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-search-plus'></span></a>&nbsp;&nbsp; &nbsp;
+                                      <a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=".($i + 1)."'><span class='fa fa-download'></span> &nbsp;</a>&nbsp;
+                                      <a href='./../doc/export_bonus.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i + 1)."&nom_soc=".$obj_soc->name."&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp;&nbsp;";
+
+                                      $sql_req = "SELECT cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='oui' AND annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
+                                      $res_req = $db->query($sql_req);
+                                      if($db->num_rows($res_req) == 0)
+                                        print "<a style='text-decoration : none;' title='Supprimer' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=attente_suppression&annee=".$annee_rechercher."&mois=".($i + 1)."'>".img_delete("", "")."</a>&nbsp;";
+                                      
+                                    print "</td>";
+
+                                  }else{
+                                    print "<td style='padding: 0px' ><b>".$mois_tab[$i]."</b></td>";
+                                    print "<td>0</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td>";
+                                    print "<td style='padding: 0px' >";
+                                    $sql_bull = "SELECT rowid, cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
+                                    $res_bull = $db->query($sql_bull);
+                                    if($res_bull){
+                                      $nb_bull = $db->num_rows($res_bull);
+                                      if($nb_bull > 0){
+                                        $obj_b = $db->fetch_object($res_bull);
+                                        if($obj_b->cloture == 'non'){
+                                          if($user->rights->paiementsalaire->societe->genererBulletin)
+                                            print "<a href='".$url."&mois=".($i +1)."&annee=".($annee_rechercher)."' ><span class='fa fa-plus' style='color: blue'></span></a>&nbsp;&nbsp;&nbsp;";
+                                          else print "<span class='fa fa-plus' style='color: gray'></a>&nbsp;&nbsp;&nbsp;";
+
+                                          print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+                                          <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+
+                                          print "</td>";	
+                                          }else{
+                                            print "<span class='fa fa-plus' style='color: gray'>&nbsp;&nbsp;&nbsp;";
+                                            print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+                                            <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+                                            print "</td>";
+                                          }		
+                                      }else{
+                                          print "<span class='fa fa-plus' style='color: gray'>&nbsp;&nbsp;&nbsp;";
+                                            print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+                                            <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+                                            print "</td>";
+                                        }				
+                                    }else{
+
+                                      print "<span class='fa fa-plus' style='color: gray'>&nbsp;&nbsp;&nbsp;";
+                                      print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+                                      <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+
+                                        print "</td>";
+                                  }
+                                }
+                              }else{
+                                print "<td style='padding: 0px' ><b>".$mois_tab[$i]."</b></td>";
+                                print "<td>0</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td>";
+                                print "<td style='padding: 0px' >";
+                                $sql_bull = "SELECT rowid, cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
+                                $res_bull = $db->query($sql_bull);
+                                if($res_bull){
+                                  $nb_bull = $db->num_rows($res_bull);
+                                  $obj_b = $db->fetch_object($res_bull);
+                                  if($obj_b->cloture == 'non'){
+                                    if($nb_bull > 0){
+                                      if($user->rights->paiementsalaire->societe->genererBulletin)
+                                        print "<a href='".$url."&mois=".($i +1)."&annee=".($annee_rechercher)."' ><span class='fa fa-plus' style='color: blue'></span></a>&nbsp;&nbsp;&nbsp;";
+                                      else print "<span class='fa fa-plus' style='color: gray'></a>&nbsp;&nbsp;&nbsp;";
+
+                                      print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+                                      <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+
+                                      print "</td>";	
+                                    }else{
+                                      
+                                      print "<span class='fa fa-plus' style='color: gray'>&nbsp;&nbsp;&nbsp;";
+
+                                      print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+                                      <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+
+                                      print "</td>";
+                                    }
+                                  }else{
+                                    print "<span class='fa fa-plus' style='color: gray'>&nbsp;&nbsp;&nbsp;";
+
+                                      print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+                                      <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+
+                                      print "</td>";
+                                  }					
+                                }else{
+
+                                  print "<span class='fa fa-plus' style='color: gray'>&nbsp;&nbsp;&nbsp;";
+
+                                    print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+                                    <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+
+                                    print "</td>";
+                              }
+                              }
+                              print "</tr>";
+
+                          }else {
+                            print "<tr><td align='center' colspan='8'>Un problème persiste</td></tr>";
+                            $i = 12;
                           }
-                        }else{
-                          print "<span class='fa fa-plus' style='color: gray'>&nbsp;&nbsp;&nbsp;";
+                              
 
-                            print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-                            <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+                        
 
-                            print "</td>";
-                        }					
-                      }else{
-
-                        print "<span class='fa fa-plus' style='color: gray'>&nbsp;&nbsp;&nbsp;";
-
-                          print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
-                          <span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
-
-                          print "</td>";
                     }
-                    }
-                    print "</tr>";
-
-                }else {
-                  print "<tr><td align='center' colspan='8'>Un problème persiste</td></tr>";
-                  $i = 12;
-                }
-										
-
-							
-
-					}
-					
-				}
-					print "</tbody>";
-					print "</table>";
-			//Gestion de l'action Generer Bulletin
+                    
+                  }
+                    print "</tbody>";
+                    print "</table>";
+                //Gestion de l'action Generer Bulletin
 			//--------------------------------------------------------------------------------------------------------------------------------------
 			}else if($action == "voir" || $action == "telecharger"){ 
 				$annee_rech = GETPOST("annee", 'int');

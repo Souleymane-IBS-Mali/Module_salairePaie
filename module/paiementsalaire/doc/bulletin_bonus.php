@@ -163,7 +163,10 @@ $obj_salarie = $db->fetch_object($res);
       $pdf->SetLeftMargin(63);
       $pdf->Cell(20,4, utf8_decode($obj_bulletin->pourcentage."%"),0,0,'R');
       $pdf->SetLeftMargin(83);
-      $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->base?:0, 2)),0,0,'R');
+      if(!empty($obj_bulletin->type_salaire) && $obj_bulletin->type_salaire == "net")
+        $pdf->Cell(20,4, utf8_decode("net"),0,0,'R');
+      else
+        $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->base?:0, 2)),0,0,'R');
 
       $pdf->SetLeftMargin(103);
       $pdf->SetX(103);

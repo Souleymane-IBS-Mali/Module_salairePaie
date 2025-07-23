@@ -376,15 +376,16 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 
 
 					$sql .= ' WHERE rowid='.$existSalarie->rowid;
+
+					//Récuperation des ancienne information avant modification
+					$existSql ='SELECT * FROM '.MAIN_DB_PREFIX.'salarie WHERE matricule="'.$mat.'"';
+					$existResult1 = $db->query($existSql);
+					$existSalarie1 = $db->fetch_object($existResult1);
+
 					$result_edit = $db->query($sql);
 					
 					if($result_edit){
-						$existSql ='SELECT * FROM '.MAIN_DB_PREFIX.'salarie WHERE matricule="'.$mat.'"';
-						$existResult1 = $db->query($existSql);
-						$existSalarie1 = $db->fetch_object($existResult1);
-
-
-
+						
 						$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
 						$obj = $db->fetch_object($db->query($sql_select));
 
@@ -485,7 +486,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 			print '<table class="border tableforfield centpercent">';
 				print "<tr>";
 				print '<td class="titlefield">Matricule</td>';
-				print '<td >'.$salarie->matricule.'</td>';
+				print '<td>'.$salarie->matricule.'</td>';
 				print '</tr>';
 
 				print '<tr>';

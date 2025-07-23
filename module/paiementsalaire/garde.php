@@ -51,10 +51,10 @@ $showtutorial = img_picto('', 'object_accounting',);
     //print '<hr>';
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------
    //Insertion de la version
-   $num_v = "1.3.0";
+   $num_v = "1.4.0";
    $statut = "stable";
-   $changelog = "Prémière version avec Correction";
-   $compatible_dolibarr = "Compatible avec toutes les version dolibarr inférieur à 20.0.2";
+   $changelog = "Correction et Ajout";
+   $compatible_dolibarr = "Correction de la gestion des avances et acomptes, avec ajout de détails visuels pour améliorer la lisibilité.";
    $download_link = "https://dolipaie-ibs-mali.com";
    $autheur = "Internet Business Services IBS-Mali";
 

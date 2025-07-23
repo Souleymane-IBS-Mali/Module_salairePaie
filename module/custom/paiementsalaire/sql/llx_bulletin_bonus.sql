@@ -43,7 +43,7 @@ CREATE TABLE llx_bulletin_bonus
     ville                       VARCHAR(20),
     addresse                    VARCHAR(255),
     tel                         VARCHAR(20),
-    email                       VARCHAR(25),
+    email                       VARCHAR(50),
     annee                       integer,
     mois                        integer,
     salaire_brut                VARCHAR(50),
@@ -58,5 +58,6 @@ CREATE TABLE llx_bulletin_bonus
     libelle                     VARCHAR(255),
     montant                     VARCHAR(15),
     base                        VARCHAR(15),
-    pourcentage                 VARCHAR(15)
+    pourcentage                 VARCHAR(15),
+    type_salaire                VARCHAR(15)
 )ENGINE=innodb;  

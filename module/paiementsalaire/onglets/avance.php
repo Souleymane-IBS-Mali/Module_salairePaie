@@ -65,6 +65,11 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		$obj_soc = prepare_objet_entete($fk_salarie, $fk_user, $db, $id_societe, $id_convention);
 		entete_societe($obj_soc, 'societe');
 		print '<hr>';
+
+		//Suppression automatique de toute avance/acompte qui ont zéro comme montant à payer
+		$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_avance WHERE montant_total=0 AND fk_salarie=".$fk_salarie;
+		$result2 = $db->query($sql);
+
 		$monform = new Form($db);
 
 
@@ -423,7 +428,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 			$annee = date("Y");
 			$mois = date("m");
 			$sql = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie;
-			$sql .= " AND CONVERT(montant_paye, float) <= CONVERT(montant_total, float) ORDER BY mois_debut_paiement DESC";// OR  (montant_paye = montant_total AND ((annee_debut_paiement<=".$annee." AND mois_debut_paiement<=".$mois."))))";
+			$sql .= " AND ROUND(montant_paye) <= ROUND(montant_total) ORDER BY mois_debut_paiement DESC";// OR  (montant_paye = montant_total AND ((annee_debut_paiement<=".$annee." AND mois_debut_paiement<=".$mois."))))";
 
 			$result = $db->query($sql);
 			if($result){
@@ -521,9 +526,10 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 			$mois_annee = explode("-", $date);
 
 			$array_id_av = array();
+			$num_sal_av = false;
 			//les mois cloturés
 			$sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".date('Y')." AND fk_salarie=".$fk_salarie." AND cloture='oui'";
-			//$sql .= " AND CONVERT(montant_paye, float) = CONVERT(montant_total, float) ORDER BY mois_debut_paiement DESC";
+			//$sql .= " AND CONVERT(montant_paye, int) = CONVERT(montant_total, int) ORDER BY mois_debut_paiement DESC";
 			$result = $db->query($sql);
 			if($result){
 				$i = 0;
@@ -542,12 +548,13 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 								$obj_bull_avance = $db->fetch_object($res_bull_avance);
 									
 									//les mois cloturés qui ont une avance totalement payé
-									$sql_sal_avance  = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_avance WHERE rowid=".$obj_bull_avance->fk_avance." AND fk_salarie=".$fk_salarie." AND CONVERT(montant_paye, float) = CONVERT(montant_total, float)";
+									$sql_sal_avance  = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_avance WHERE rowid=".$obj_bull_avance->fk_avance." AND fk_salarie=".$fk_salarie." AND ROUND(montant_paye) = ROUND(montant_total)";
 									$sql_sal_avance .= " ORDER BY rowid DESC";
 									$res_sal_avance  = $db->query($sql_sal_avance);
 									$num_sal_avance = $db->num_rows($res_sal_avance);
 
 									if($res_sal_avance && $num_sal_avance > 0 && !in_array($obj_bull_avance->fk_avance, $array_id_av)){
+										$num_sal_av = true;
 										$array_id_av[] = $obj_bull_avance->fk_avance;
 										$obj_sal_avance = $db->fetch_object($res_sal_avance);
 
@@ -579,7 +586,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					}
 					$i ++;
 				}
-				if($num_sal_avance == 0)
+				if($num_sal_av == 0)
 					print "<tr><td align='center' colspan='9'>Aucune avance sur salaire payée pour ce salarié</td></tr>";
 			}else{
 				print "<tr><td align='center' colspan='9'>Aucune avance sur salaire payée pour ce salarié</td></tr>";

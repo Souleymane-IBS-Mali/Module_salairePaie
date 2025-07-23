@@ -17,7 +17,8 @@
 -- ========================================================================
 
 --ALTER TABLE llx_salarie_avance ADD date_affectation date;
-    ALTER TABLE llx_salarie_avance MODIFY date_etablissement timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+    ALTER TABLE llx_salarie_avance MODIFY date_etablissement timestamp DEFAULT CURRENT_TIMESTAMP;
+    ALTER TABLE llx_salarie_avance MODIFY date_affectation timestamp DEFAULT CURRENT_TIMESTAMP;
 
     ALTER TABLE llx_salarie_avance ADD import_key VARCHAR(14);
 

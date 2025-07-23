@@ -122,10 +122,19 @@ print "<table class='tagtable liste'>";
 				$obj_verif = $db->fetch_object($res_verif);
 
 				if(($obj_verif->cloture=="oui")){
-					print "<td><b>".$mois_tab[$i]."</b></td>";
+
+					//Avertissons qu'il y a un complément salaire (bonus)
+					$sql_id_bulletin = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
+					$res_id_bulletin  = $db->query($sql_id_bulletin);
+					$num_k_bonus = $db->num_rows($res_id_bulletin);
+					$bonus = "";
+					if($num_k_bonus > 0)
+						$bonus = info_admin("Un complément salaire est lié à ce mois", 1);
+					print "<td><b>".$mois_tab[$i]." ".$bonus."</b></td>";
 					print "<td>".$nb_salarie."</td>";
 							
 					for ($j=0; $j < count($array_id_taxe); $j++) {
+						
 						//Bulletin
 						$sql_id_bulletin = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
 						$res_id_bulletin  = $db->query($sql_id_bulletin);
@@ -162,9 +171,6 @@ print "<table class='tagtable liste'>";
 						
 
 						//Bulletin bonus
-						$sql_id_bulletin = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
-						$res_id_bulletin  = $db->query($sql_id_bulletin);
-						$num_k_bonus = $db->num_rows($res_id_bulletin);
 						$k_bonus = 0;
 						while ($k_bonus < $num_k_bonus){
 							$obj_id_bulletin = $db->fetch_object($res_id_bulletin);

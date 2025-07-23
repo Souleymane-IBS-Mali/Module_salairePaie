@@ -146,6 +146,11 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					print "<th align='center' >Opérations</tr>";
 					print "</thead>";
 					print "<tbody>";
+					$total_brut = 0;
+					$total_net = 0;
+					$total_its = 0;
+					$total_cotisation = 0;
+					$total_retenue = 0;
 					for ($i=0; $i < count($mois_tab); $i++) { 
 						$total = 0;
 						print "<tr class='impair'>";
@@ -344,8 +349,22 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 								
 							}
 						print "</tr>";
+						$total_net += $obj_som_salaire->sal_net;
+						$total_brut += $obj_som_salaire->sal_brut;
+						$total_its += $somme_taxe;
+						$total_cotisation += $somme_cotisation;
+						$total_retenue += $total;
+						$somme_taxe = 0;
+						$somme_cotisation = 0;
+						
 
 					}
+					print "<tr>";
+					print "<td style='background-color: lightgray;'><b>Total".info_admin('Attention : le mois en cours n\'est ajouté', 1)."</b></td>";
+					print "<td style='background-color: lightgray;'>".apres_virgule($db, $id_societe, $total_brut)."</td><td style='background-color: lightgray;'>".apres_virgule($db, $id_societe, $total_net)."</td><td style='background-color: lightgray;'>".apres_virgule($db, $id_societe, $total_its)."</td><td style='background-color: lightgray;'>".apres_virgule($db, $id_societe, $total_cotisation)."</td><td style='background-color: lightgray;'>".apres_virgule($db, $id_societe, $total_retenue)."</td>";
+					print "<td style='background-color: lightgray;'>";
+					print "</td>";
+					print "</tr>";
 					
 				
 					print "</tbody>";

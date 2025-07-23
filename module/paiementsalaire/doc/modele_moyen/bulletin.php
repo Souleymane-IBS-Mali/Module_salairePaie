@@ -519,7 +519,7 @@ if($action == "no_save"){
                   $pdf->Cell(30,4, utf8_decode($ind->libelle),0,0,'L');
 
                   $pdf->SetLeftMargin(63);
-                  $pdf->Cell(20,4, utf8_decode($pourc."%"),0,0,'R');
+                  $pdf->Cell(20,4, utf8_decode(round($pourc*$base_pourcentage)."%"),0,0,'R');
 
                   $pdf->SetLeftMargin(83);
                   $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $val, 2)),0,0,'R');

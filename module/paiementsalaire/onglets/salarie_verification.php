@@ -5,7 +5,7 @@ require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/lib/paiementsalaire.lib.
 
 llxHeader("", "Paiement | Salaire");
 //Titre 
-print load_fiche_titre($langs->trans("Verification des éléments du salaire de ce salarié"), '', '');
+print load_fiche_titre($langs->trans("Verification des éléments de salaire de ce salarié"), '', '');
 //print '<hr>';
 $fk_user = GETPOST("id","int");
 $id_societe = GETPOST("id_societe","int");
