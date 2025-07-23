@@ -42,3 +42,9 @@ V1.3.0
     2- Ajout de la flexibilité du nombre de colonne à afficher dans liste_personelle.php (catégorie, fonction et solde congé)
     3- Voir ou télécharger les bulletins de tous les salariés (compléménts salaires)
     4- Pouvoir modifier individuellement les compléments salaires
+
+
+V1.3.0
+    1- Correction de la gestion des avances et acomptes, avec ajout de détails visuels pour améliorer la lisibilité.
+    2- Possibilliter d'enregistrement des simulation
+    3- Modification du "Bulletin De Paie" en "BulletindDe Paie"
