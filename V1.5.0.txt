@@ -48,3 +48,20 @@ V1.3.0
     1- Correction de la gestion des avances et acomptes, avec ajout de détails visuels pour améliorer la lisibilité.
     2- Possibilliter d'enregistrement des simulation
     3- Modification du "Bulletin De Paie" en "BulletindDe Paie"
+
+V1.4.0
+Statut  : stable
+Type    : Correction et ajout d’une nouvelle fonctionnalité
+         - Enregistrement et Exportation des simulation
+         - Exportation des bulletin par intervalle (date_debut à date_fin)
+         - Exportation du Récapitulatif par intervalle
+         - Ajout de génération du 13è mois
+         -
+         -
+         -
+
+V1.5.0
+Statut  : stable
+Type    : ajout d’une nouvelle fonctionnalité
+        : Ajout de la gestion des congés et amélioration de la génération des bulletins avec enregistrement des jours acquis,
+          des jours payés et du solde de congé.
