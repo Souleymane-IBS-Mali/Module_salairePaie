@@ -38,7 +38,7 @@ $sheet = $spreadsheet->getActiveSheet();
 $sheet->mergeCells('A1:H3');
 //$sheet->mergeCells('A1:A2');
 
-$info = "Complements de salaires du ".$mois_tab[$mois-1]." ".$annee." de ".$nom_soc."";
+$info = "COMPLEMENTS DE SALAIRE DU".strtoupper($mois_tab[$mois-1]).$annee." DE ".strtoupper($nom_soc);
 $sheet->setCellValue('A1', $info);
       $sheet->getStyle('A1')->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
       
@@ -59,99 +59,84 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
             if($db->num_rows($res_bulletin)>0){
             //Les titre des colonnes
             //Matricule
-                  $sheet->setCellValue('A5', 'MATRICULE');
-                  $sheet->getStyle('A5')->getFont()->setBold(true);
-                  $sheet->mergeCells('A5:A6');
-
+                  $sheet->setCellValue('A6', 'MATRICULE');
+                  $sheet->getStyle('A6')->getFont()->setBold(true);
 
                   $colonne_courante = "A";
 
                   //Prénom
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'PRENOM');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', 'PRENOM');
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //NOM
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'NOM');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', 'NOM');
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Date rentrée
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'DATE RENTREE');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', 'DATE RENTREE');
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Catégorie
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'CATEGORIE');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', 'CATEGORIE');
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Situation matrimoniale
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'SITUAT. MAT');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', 'SITUAT. MAT');
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Fonction
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'FONCTION');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', 'FONCTION');
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Banque
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'BANQUE');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', 'BANQUE');
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Compte
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'N° COMPTE');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', 'N° COMPTE');
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Jours Travaillé
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'JOURS TRAV.');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', 'JOURS TRAV.');
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Taux
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'TAUX');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', 'TAUX');
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'SAL. BASE');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', 'SAL. BASE');
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'SURSALAIRE');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', 'SURSALAIRE');
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', 'LIBELLE');
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', 'LIBELLE');
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   /*//Prime d'Aciennete
@@ -161,13 +146,12 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
                   $res_bulletin_an = $db->query($bulletin_sql_anc);
                   $obj_bulletin_an = $db->fetch_object($res_bulletin_an);
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne.'5', strtoupper($obj_bulletin_an->libelle));
-                  $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne.'6', strtoupper($obj_bulletin_an->libelle));
+                  $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   
-                  $numero_colonne = 5;
+                  $numero_colonne = 6;
                   //Selection des primes
                   $array_id_pr = array();
                   $array_id_ind = array();
@@ -192,9 +176,9 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
                                           $array_id_pr[] = $obj_bulletin_pr->fk_prime;
                                           //$sheet->insertNewColumnBefore('I', 9);
                                           $nextcolonne = getNextColumnName($colonne_courante);
-                                          $sheet->setCellValue($nextcolonne.'5', strtoupper($obj_bulletin_pr->libelle));
-                                          $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                                          $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                                          $sheet->setCellValue($nextcolonne.'6', strtoupper($obj_bulletin_pr->libelle));
+                                          $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
+                  
                                           $colonne_courante = $nextcolonne;
                                     }
                                     $j ++;
@@ -221,9 +205,9 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
                                           $array_id_ind[] = $obj_bulletin_ind->fk_indemnite;
                                           //$sheet->insertNewColumnBefore('I', 9);
                                           $nextcolonne = getNextColumnName($colonne_courante);
-                                          $sheet->setCellValue($nextcolonne.'5', strtoupper($obj_bulletin_ind->libelle));
-                                          $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                                          $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                                          $sheet->setCellValue($nextcolonne.'6', strtoupper($obj_bulletin_ind->libelle));
+                                          $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
+                  
                                           $colonne_courante = $nextcolonne;
                                     }
                                     $j ++;
@@ -252,9 +236,9 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
                                           $array_id_pr_exc[] = $obj_bulletin_pr_exc->fk_prime;
                                           //$sheet->insertNewColumnBefore('I', 9);
                                           $nextcolonne = getNextColumnName($colonne_courante);
-                                          $sheet->setCellValue($nextcolonne.'5', strtoupper($obj_bulletin_pr_exc->libelle));
-                                          $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                                          $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                                          $sheet->setCellValue($nextcolonne.'6', strtoupper($obj_bulletin_pr_exc->libelle));
+                                          $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
+                  
 
                                           $colonne_courante = $nextcolonne;
                                     }
@@ -281,9 +265,9 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
                                           $array_id_hs[] = $obj_bulletin_heure_sup->fk_heur_sup;
                                           //$sheet->insertNewColumnBefore('I', 9);
                                                 $nextcolonne = getNextColumnName($colonne_courante);
-                                                $sheet->setCellValue($nextcolonne.'5', "HEURES SUP");
-                                                $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                                                $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                                                $sheet->setCellValue($nextcolonne.'6', "HEURES SUP");
+                                                $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
+                        
                                                 $colonne_courante = $nextcolonne;
                                     }
                               }
@@ -293,93 +277,80 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
                   
                   //Salaire brut
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "SAL. BRUT");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "SAL. BRUT");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Salaire brut Cotisable
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "SAL. COTIS");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "SAL. COTIS");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Salaire brut
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "SAL. IMP.");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "SAL. IMP.");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //INPS SALARIALE
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "INPS SAL.");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "INPS SAL.");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //INPS PATRONALE
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "INPS PATRO.");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "INPS PATRO.");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //ITS
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "ITS.");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "ITS.");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //AMO
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "AMO SAL.");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "AMO SAL.");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //AMO Patronale
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "AMO PATRO.");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "AMO PATRO.");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Base CFE
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "BASE CFE");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "BASE CFE");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Montant CFE
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "MONTANT CFE.");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "MONTANT CFE.");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Base TL
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "BASE TL.");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "BASE TL.");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Montant TL
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "MONTANT TL.");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "MONTANT TL.");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Salaire net
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "SALAIRE NET");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "SALAIRE NET");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
 
@@ -402,9 +373,9 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
                                           $array_libelle_av[] = $obj_bulletin_av->libelle;
                                           //$sheet->insertNewColumnBefore('I', 9);
                                                 $nextcolonne = getNextColumnName($colonne_courante);
-                                                $sheet->setCellValue($nextcolonne.'5', strtoupper($obj_bulletin_av->libelle));
-                                                $sheet->getStyle($nextcolonne.'5')->getFont()->setBold(true);
-                                                $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                                                $sheet->setCellValue($nextcolonne.'6', strtoupper($obj_bulletin_av->libelle));
+                                                $sheet->getStyle($nextcolonne.'6')->getFont()->setBold(true);
+                        
 
                                                 $colonne_courante = $nextcolonne;
                                     }
@@ -416,23 +387,20 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
 
                   //Total des avances
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "TOTAL AVANCE");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "TOTAL AVANCE");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;*/
 
                   //net payé
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "NET PAYE");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "NET PAYE");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   $colonne_courante = $nextcolonne;
 
                   //Cout Total
                   $nextcolonne = getNextColumnName($colonne_courante);
-                  $sheet->setCellValue($nextcolonne."5", "COUT");
-                  $sheet->getStyle($nextcolonne."5")->getFont()->setBold(true);
-                  $sheet->mergeCells($nextcolonne.'5:'.$nextcolonne.'6');
+                  $sheet->setCellValue($nextcolonne."6", "COUT");
+                  $sheet->getStyle($nextcolonne."6")->getFont()->setBold(true);
                   //$colonne_courante = $nextcolonne;
 
 //--------------------------------------------------------------------
@@ -442,12 +410,10 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
             $bulletin_sql .= " ORDER BY rowid";
             $res_bulletin = $db->query($bulletin_sql);
                   if($res_bulletin){
-                        $i = 0;
                         $num_all = $db->num_rows($res_bulletin);
-                        while ($i < ($num_all)){
+                        while ($obj_bulletin = $db->fetch_object($res_bulletin)){
                               $cout = 0;
                         //Objet Utilisateur
-                              $obj_bulletin = $db->fetch_object($res_bulletin);
                               //Ajout d'une nouvelle ligne
                               $sheet->insertNewRowBefore($numero_ligne+2, $numero_ligne);
 
@@ -733,7 +699,6 @@ $bulletin_sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$a
                               $colonne_courante = $nextcolonne;
 
                               $numero_ligne ++;
-                              $i ++;
                         }
                   }
      /* $salSql = "SELECT jour FROM ".MAIN_DB_PREFIX."salarie_nombre_jour_travaille where annee=".$annee." AND mois=".$mois." AND fk_salarie=".$obj_salarie->rowid;

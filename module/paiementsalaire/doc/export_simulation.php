@@ -351,7 +351,7 @@ if($action == "tout_exporter"){
 
                                           //Montant CFE
                                           $nextcolonne = getNextColumnName($colonne_courante);
-                                          $sheet->setCellValue($nextcolonne.$numero_ligne, round(0));
+                                          $sheet->setCellValue($nextcolonne.$numero_ligne, round($liste_array[$i]->montant_cfe));
                                           $colonne_courante = $nextcolonne;
 
                                           $cout += 0;
@@ -363,7 +363,7 @@ if($action == "tout_exporter"){
 
                                           //Montant TL
                                           $nextcolonne = getNextColumnName($colonne_courante);
-                                          $sheet->setCellValue($nextcolonne.$numero_ligne, round(0));
+                                          $sheet->setCellValue($nextcolonne.$numero_ligne, round($liste_array[$i]->montant_tl));
                                           $colonne_courante = $nextcolonne;
 
                                           $cout += 0;
@@ -422,17 +422,38 @@ if($action == "tout_exporter"){
 
             // Envoyer le fichier au navigateur
             $filename = 'Export_simulation_'.gmdate('D_d_M_Y_H:i:s'); //le nom du fichier
-            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            header('Content-Disposition: attachment;filename="'.$filename.'.xlsx"');
-            header('Cache-Control: max-age=0');
-            header('Cache-Control: max-age=1');
-            header('Expires: Mon, 26 Jul 1997 05:00:00 GMT'); // Date in the past
-            header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT'); // Always modified
-            header('Cache-Control: cache, must-revalidate'); // HTTP/1.1
-            header('Pragma: public'); // HTTP/1.0
+            $filename = 'export_simulation'.date('Ymd_His').'.xlsx';
+
+            $tmpdir = DOL_DATA_ROOT.'/paiementsalaire/temp';
+
+            if (!file_exists($tmpdir)) {
+            mkdir($tmpdir, 0777, true);
+            }
+
+            $tmpfile = $tmpdir.'/export_simulation'.time().'.xlsx';
 
             $writer = new Xlsx($spreadsheet);
-            $writer->save('php://output');
+            $writer->save($tmpfile);
+
+            while (ob_get_level()) {
+            ob_end_clean();
+            }
+
+            header_remove();
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="'.$filename.'"');
+            header('Content-Length: '.filesize($tmpfile));
+            header('Cache-Control: max-age=0, must-revalidate');
+            header('Pragma: public');
+            header('Expires: 0');
+
+            readfile($tmpfile);
+
+            @unlink($tmpfile);
+
+            $db->free($resql);
+            $db->close();
+            exit;
 
 }else{
       print "Un problème est survenu";

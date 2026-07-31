@@ -100,7 +100,35 @@ $salarie_societe_graph = '<div class="div-table-responsive-no-min">';
 	$dolgraph->setShowLegend(2);
 	$dolgraph->setShowPercent(1);
 	$dolgraph->SetType(array('pie'));
-	$dolgraph->setHeight('200');
+	$dolgraph->setHeight('300');
+	$colors = array(
+		"#5DADEC", // Janvier
+		"#A186BE", // Février
+		"#7BB661", // Mars
+		"#F4A7B9", // Avril
+		"#A7D477", // Mai
+		"#FFD93D", // Juin
+		"#FF6F61", // Juillet
+		"#FFA552", // Août
+		"#E49B0F", // Septembre
+		"#D2691E", // Octobre
+		"#8B4513", // Novembre
+		"#264653", // Décembre
+		"#4C9FEC", // Janvier
+		"#C77DFF", // Février
+		"#5BC275", // Mars
+		"#FFB3A7", // Avril
+		"#A8E10C", // Mai
+		"#F9D923", // Juin
+		"#E63946", // Juillet
+		"#FF8C42", // Août
+		"#FFB703", // Septembre
+		"#B35C1E", // Octobre
+		"#7C4A33", // Novembre
+		"#1D3557"  // Décembre
+	);
+
+$dolgraph->SetDataColor($colors);
 	$dolgraph->draw('idgraphsalariesociete');
 	$salarie_societe_graph .= '<tr><td>'.$dolgraph->show();
 	$salarie_societe_graph .= '</td></tr>';
@@ -110,9 +138,7 @@ $salarie_societe_graph = '<div class="div-table-responsive-no-min">';
 	$salarie_societe_graph .= '</table>';
 	$salarie_societe_graph .= '</div>';
 
-print '<div class="clearboth"></div>';
-print '<div class="fichecenter fichecenterbis">';
-
+$salarie_societe_graph .= '<div class="clearboth"></div>';
 
 
 $sql_last_modif = "SELECT sal.rowid as id_salarie, sal.matricule, sal.fk_user, sal.date_modification, u.rowid as id_user, u.lastname, u.firstname, u.dateemployment, ue.fk_object, ue.egp, sc.rowid as id_societe, sc.nom as nom_societe, sce.fk_object, sce.conv FROM ".MAIN_DB_PREFIX."salarie as sal";

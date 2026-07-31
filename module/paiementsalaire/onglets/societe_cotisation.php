@@ -80,6 +80,8 @@ else print "<h2 style='align:center;display: inline'>Cotisations de ".$annee_rec
 print "</div>";
 $element_cotis = "";
 $array_id_cotis = array();
+$array_cotis_an = array();
+
 $nb_cotisation = 1;
 $sql_type_cotis = "SELECT rowid, code FROM ".MAIN_DB_PREFIX."type_prestation";
 	$res_type_cotis = $db->query($sql_type_cotis);
@@ -89,11 +91,19 @@ $sql_type_cotis = "SELECT rowid, code FROM ".MAIN_DB_PREFIX."type_prestation";
 		while ($a < $nb_cotisation) {
 			$obj_type_cotis = $db->fetch_object($res_type_cotis);
 			$array_id_cotis[] = $obj_type_cotis->rowid;
+			$array_cotis_an[] = 0;
 			$element_cotis .= "<th>".$obj_type_cotis->code."</th>";
 			$a ++;
 
 		}
 	}
+
+	$sql = "SELECT COUNT(DISTINCT fk_salarie) AS nb_salaries FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_societe = ".$id_societe." AND annee = ".$annee_rechercher;
+		$res = $db->query($sql);
+		if ($res) {
+			$obj = $db->fetch_object($res);
+			$nb_salaries_par_an = $obj->nb_salaries;
+		}
 print "<table class='tagtable liste'>";
 	print "<thead>";
 	print "<tr class='liste_titre'><th rowspan='2'>Mois</th>";
@@ -165,7 +175,7 @@ print "<table class='tagtable liste'>";
 								}
 
 								print "<td align='center'>".apres_virgule($db, $id_societe, $somme_cotisation?:0, 2)."</td>";
-
+								$array_cotis_an[$j] += $somme_cotisation;
 							}
 					if($user->rights->paiementsalaire->salarie->voirDocument && $obj_verif->cloture=='oui')
 						print "<td ><a style='text-decoration : none;' title='Voir' target='_blank' href='./../doc/fiche_cotisation.php?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=".($i+1)."'><span class='fa fa-search-plus'></span>&nbsp; &nbsp;</a>&nbsp;
@@ -182,6 +192,16 @@ print "<table class='tagtable liste'>";
 			print "</tr>";
 		}
 		print "</tbody>";
+
+		$indice_info = info_admin("Il s'agit du nombre total des distincts salariés dont les salaires ont été générés en ".$annee_rechercher, 1);
+        print "<tr class='liste_titre'><th>Total de l’année ".$annee_rechercher."</th>";
+		print "<th>".$nb_salaries_par_an." ".$indice_info."</th>";
+		for ($i=0; $i < count($array_cotis_an); $i++) { 
+			print "<th align='center'>".apres_virgule($db, $id_societe, $array_cotis_an[$i]?:0, 2)."</th>";
+		}
+		print "<th align='center'></th>";
+
+		print "</tr>";
 		print "</table>";
 		print "</form>";
 		//print '<a class="button" target="_blank" href="./doc/fiche_taxe.php?id_societe='.$id_societe.'">Generer fiche taxe</a>';

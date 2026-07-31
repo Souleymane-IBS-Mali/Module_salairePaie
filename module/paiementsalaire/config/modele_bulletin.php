@@ -28,11 +28,11 @@ require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/lib/paiementsalaire.lib.
 
 
 llxHeader("", "Paiement | Salaire");
-print load_fiche_titre($langs->trans("Mondèles de bulletins disponibles"), '', '');
+print '<h3>Modèles de bulletins disponibles</h3>';
 print '<span style="float:right;"><a title="Reglages" href="./reglages.php?mainmenu=paiementsalaire&leftmenu=reglage">Retour</a></span><br>';
 
 $action = GETPOST('action', 'alpha')?:'liste';
-
+$id_societe = GETPOST('id_societe', 'int');
 //print '<span style="float:right;"><a title="Reglages" href="./reglages.php?mainmenu=paiementsalaire&leftmenu=reglage">Retour</a></span><br>';
 //les types de bulletins
 $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."modele_bulletin";
@@ -97,6 +97,97 @@ if($action == 'activer'){
         $action = 'liste';
 
 }
+
+//Initialisation
+$array_id_soc = "(0";
+	$sql = "SELECT fk_soc FROM ".MAIN_DB_PREFIX."societe_commerciaux";
+	$sql .= " WHERE fk_user=".$user->id;
+	$result = $db->query($sql);
+	if($result){
+		$i = 0;
+		$num = $db->num_rows($result);
+		while ($i < $num){
+			$array_id_soc .= ", ".$db->fetch_object($result)->fk_soc;
+			$i ++;
+		}
+	}
+	$array_id_soc .= ")";
+
+	$sql = "SELECT societe_mere FROM ".MAIN_DB_PREFIX."salairepaie_societe WHERE fk_societe=".$id_societe;
+	$res = $db->query($sql);
+	$num = $db->num_rows($res);
+	if($i <= 0){
+		$sql = "SELECT sc.rowid as r1, sc.nom, sc.name_alias, sc.phone, sc.fax, sc.code_client, sc.zip, sce.rowid as r2, sce.fk_object, sce.conv FROM ".MAIN_DB_PREFIX."societe as sc";
+		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_extrafields as sce ON sc.rowid=sce.fk_object WHERE sce.grp=1";
+		if($user->id != 1)
+			$sql .= " AND sc.rowid IN ".$array_id_soc;
+
+		$sql .= " ORDER BY sc.rowid ASC";
+		$result = $db->query($sql);
+
+		if($result){
+			$i = 0;
+			$num = $db->num_rows($result);
+
+			while ($i < $num){
+				$societe = $db->fetch_object($result);
+				$sql_insert = "INSERT INTO ".MAIN_DB_PREFIX."salairepaie_societe (fk_societe, societe_mere, afficher_regularisation_its) VALUES(".$societe->r1.", 0, 1)";
+				$res = $db->query($sql_insert);
+
+				$i ++;
+			}
+		}
+	}
+
+if($action=="modifier_regularisation_its"){//Mettre "utilisé les informations de la société mère à oui ou à non
+		//On garde la trace de l'action
+	
+		$rep = 0;
+		$ch = "Non";
+		$sql = "SELECT societe_mere, afficher_regularisation_its FROM ".MAIN_DB_PREFIX."salairepaie_societe WHERE fk_societe=".$id_societe;
+		$res = $db->query($sql);
+		if($res){
+			$rep = $db->fetch_object($res)->afficher_regularisation_its;
+	
+			if(empty($db->fetch_object($res))){
+				$sql_insert = "INSERT INTO ".MAIN_DB_PREFIX."salairepaie_societe (fk_societe, societe_mere, afficher_regularisation_its) VALUES(".$id_societe.", 1, 1)";
+				$res = $db->query($sql_insert);
+
+			}else{
+				if($rep == 1){
+					$rep = 0;
+					$ch = "Non";
+				}else{ 
+					$rep = 1;
+					$ch = "Oui";
+				}
+		
+				$sql = "UPDATE ".MAIN_DB_PREFIX."salairepaie_societe SET afficher_regularisation_its=".$rep." WHERE fk_societe=".$id_societe;
+				$res = $db->query($sql);
+		
+				$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
+				$obj = $db->fetch_object($db->query($sql_select));
+
+				$sql = "SELECT nom FROM ".MAIN_DB_PREFIX."societe WHERE rowid=".$id_societe;
+				$res = $db->query($sql);
+				$nom_societe = $db->fetch_object($res)->nom;
+		
+				$action_effectue = "Mise à (".$ch.") de la variable : afficher_regularisation_its de la société ".$nom_societe;
+				$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
+				$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Modification")';
+				$db->query($sql_log);
+		
+				$message = 'Modification effectuée avec succès';
+			}
+		}else
+			$message = 'Un problème est survenu';
+			print $db->error();
+
+		
+		$action = "liste";
+	
+	}
+
 if($action == "liste"){
     //print_barre_liste("", $page, $_SERVER["PHP_SELF"], "", "", "", "", "", "", 'bill', 0, dolGetButtonTitle("Créer un nouveau type de Banque", '', 'fa fa-plus-circle', './ajout_modele_bulletin.php?mainmenu=paiementsalaire&leftmenu=autre&action=create', '', 1), '', 0, 0, 0, 1);
     print '<table style="width: 100%" class="tagtable liste">';
@@ -140,6 +231,66 @@ if($action == "liste"){
 
  print'</table>';
 
+}
+
+
+//Les Regularisation ITS
+
+print '<br><h3>Affichage sur Bulletin</h3>';
+	print '<table class="tagtable liste">';
+	print '<tr class="liste_titre">';
+	print '<td >Sociétés</td>';
+	print '<td >Afficher la regularisation I.T.S sur le bulletin'.info_admin("Visible après la génération des salaires de Décembre", 1).'</td>';
+
+$sql = "SELECT sc.rowid as r1, sc.nom, sc.name_alias, sc.phone, sc.fax, sc.code_client, sc.zip, sce.rowid as r2, sce.fk_object, sce.conv FROM ".MAIN_DB_PREFIX."societe as sc";
+	$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_extrafields as sce ON sc.rowid=sce.fk_object WHERE sce.grp=1";
+
+	if($user->id != 1)
+        $sql .= " AND sc.rowid IN ".$array_id_soc;
+		
+	$sql .= " ORDER BY sc.rowid ASC";
+	$result = $db->query($sql);
+
+	if($result){
+		$i = 0;
+		$num = $db->num_rows($result);
+		while ($i < $num){
+		$societe = $db->fetch_object($result);
+
+		print '<tr  class="pair">';
+		print '<td> <a href="../../societe/card.php?socid='.$societe->r1.'">'.$societe->nom.'</a></td>';
+		$sql_soc = "SELECT afficher_regularisation_its FROM ".MAIN_DB_PREFIX."salairepaie_societe WHERE fk_societe=".$societe->r1;
+		$result_soc = $db->query($sql_soc);
+		if($result_soc)
+			$info_soc = $db->fetch_object($result_soc);
+
+		$rep = "Non";
+		if($info_soc->afficher_regularisation_its == 1)
+			$rep = "Oui";
+		print '<td><mark>'.$rep.'</mark>  <a href="./modele_bulletin.php?mainmenu=paiementsalaire&leftmenu=reglage&id_societe='.$societe->r1.'&action=modifier_regularisation_its">'.img_edit('Modifier logo').'</a></td>';
+
+		/*$extension = '';
+		if (file_exists('./logo_societe_soc/'.$societe->r1.'.png'))
+			$extension = '.png';
+		else if(file_exists('./logo_societe/'.$societe->r1.'.jpeg'))
+			$extension ='.jpeg';
+		else $extension = '.jpg';
+
+		if($info_soc->societe_mere == 1){
+			if (file_exists('./logo_societe/'.$societe->r1.'.png') || file_exists('./logo_societe/'.$societe->r1.'.jpeg') || file_exists('./logo_societe/'.$societe->r1.'.jpg'))
+				print '<td aligh="right"><img height=20 src="./logo_societe/'.$societe->r1.$extension.'" ><a href="./logo_societe.php?mainmenu=paiementsalaire&leftmenu=reglage&id_societe='.$societe->r1.'&action=modifier_logo"> '.img_edit('Modifier logo').'</a></td>';
+			else print '<td aligh="right" ><a href="./logo_societe.php?mainmenu=paiementsalaire&leftmenu=reglage&id_societe='.$societe->r1.'&action=modifier_logo">'.img_edit('Modifier logo').'</a></td>';
+		}else{
+			print '<td>'.img_edit('Veuillez mettre -->Utilisés les informations de la société mère<-- à Oui').'</td>';
+		}*/
+
+
+
+
+		print '</tr>';
+	$i++;
+	$ligne ++;
+		}
 }
 
 if(!empty($message))

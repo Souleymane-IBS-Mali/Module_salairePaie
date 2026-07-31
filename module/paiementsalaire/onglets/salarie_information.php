@@ -45,7 +45,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		$result = $db->query($sql);
 		$obj1 = $db->fetch_object($result);
 		if(empty($obj1->egp))
-			die("Ce salarié n'a pa de société");
+			die("Ce salarié n'a pas de société");
 		//Par defaut tous les salariés ont travaillé le maximum de jours du mois en cours
 		salarie_nb_jour($db, $id_societe);
 		//--------------------------------
@@ -126,8 +126,8 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		//
 			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."salarie WHERE rowid=".$id_salarie;
 			if($db->query($sql_del))
-				$message = 'Salarié supprimé avec succès';
-			else $message = "Un problème est survenu";
+				$message = 'Salarié supprimé avec succÃ¨s';
+			else $message = "Un problÃ¨me est survenu";
 
 		$action = 'detail';
 	}
@@ -159,9 +159,9 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 			if(!empty($compte) && $compte[0] != 'M' && $compte[1] != 'L')
 				$message .= 'Le "NUMERO DE COMPTE" doit commencer par "ML"<br>';
 			if(!empty($inps) && strlen($inps) != 11)
-				$message .= 'Le numéro "INPS" doit être exactement 11 caractère<br>';
+				$message .= 'Le numéro "INPS" doit Ãªtre exactement 11 caractÃ¨re<br>';
 			if(!empty($amo) && strlen($amo) != 13)
-				$message .= 'Le numéro "AMO" doit être exactement 13 caractère<br>';
+				$message .= 'Le numéro "AMO" doit Ãªtre exactement 13 caractÃ¨re<br>';
 
 			if(empty($message)){
 				$tab_cat_ech = explode("/",GETPOST("categories"));
@@ -193,7 +193,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					$existResult = $db->query($existSql);
 					$num = $db->num_rows($existResult);
 					if($num > 0)
-						$message = "Ce MATRICULE (".$mat.") existe déjà";
+						$message = "Ce MATRICULE (".$mat.") existe déjÃ ";
 
 					//Insertion dans la table salarie
 					if(empty($message)){
@@ -249,10 +249,10 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 							$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 							$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Ajout Salarié")';
 							$db->query($sql_log);
-							$message = 'SALARIE enregistrée avec succès';
+							$message = 'SALARIE enregistrée avec succÃ¨s';
 							$action = 'detail';
 						}else{
-							$message = 'Un problème est Survenu';
+							$message = 'Un problÃ¨me est Survenu';
 							$action = 'edit';
 						}
 
@@ -286,15 +286,15 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 
 					if(strlen($compte) != 8 && strlen($compte) != 11){
 						$prefixe = $compte[0].$compte[1].$compte[2].$compte[3].$compte[4];
-						$code = ["ML016", "ML041", "ML043", "ML045", "ML089", "ML090", "ML102", "ML109", "ML135", "ML173", "ML206", "ML181"];
+						$code = ["ML016", "ML041", "ML043", "ML045", "ML089", "ML090", "ML102", "ML109", "ML135", "ML173", "ML206", "ML181", "ML044"];
 						if(!in_array($prefixe, $code))
 							$message .= 'Le "NUMERO DE COMPTE" est incorrect<br>';
 					}
 				}
 				if(!empty($inps) && strlen($inps) != 11)
-					$message .= 'Le numéro "INPS" doit être exactement 11 caractère<br>';
+					$message .= 'Le numéro "INPS" doit Ãªtre exactement 11 caractÃ¨re<br>';
 				if(!empty($amo) && strlen($amo) != 13)
-					$message .= 'Le numéro "AMO" doit être exactement 13 caractère<br>';
+					$message .= 'Le numéro "AMO" doit Ãªtre exactement 13 caractÃ¨re<br>';
 
 			if(empty($message)){
 				$mat = GETPOST("matricule", "alpha");
@@ -304,7 +304,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 
 					$num = $db->num_rows($existResult);
 					if($num > 1)
-						$message = "Ce MATRICULE (".$mat.") existe déjà";
+						$message = "Ce MATRICULE (".$mat.") existe déjÃ ";
 
 				}
 
@@ -398,15 +398,15 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 						// de
 						$action_effectue .= "Modifiacation d'un salarié (N : ".$obj_u->firstname.", P : ".$obj_u->lastname.", Date_emb : ".$obj_u->dateemployment.", archiver : ".$existSalarie1->archiver."/matricule : ".$existSalarie1->matricule."/statut_mat : ".$existSalarie1->situation_familiale."/nb_enf : ".$existSalarie1->nombre_enfant."/nb_enf_hand : ".$existSalarie1->nombre_enfant_hand."/statut_actif: ".$existSalarie1->calcul_salaire."/categ : ".$existSalarie1->fk_categorie."/echel : ".$existSalarie1->fk_echelon."/amo : ".$existSalarie1->amo."/inps : ".$existSalarie1->inps."/compte : ".$existSalarie1->compte.") de la société ".$obj_s->nom;
 
-						//à
-						$action_effectue .= " ==> Modifiacation d'un salarié (N : ".$obj_u->firstname.", P : ".$obj_u->lastname.", Date_emb : ".$obj_u->dateemployment.", archiver : ".$archiver."/matricule : ".$mat."statut_mat".$situation_f."/nb_enf : ".$nb_enfant."/nb_enf_hand : ".$nombre_enfant_hand."/statut_actif : ".$calcul_salaire."/categ : ".$categ."/echel : ".$echel."/amo : ".$amo."/inps : ".$inps."/compte : ".$compte.") de la société ".$obj_s->nom;
+						//Ã 
+						$action_effectue .= " ==>\n Modifiacation d'un salarié (N : ".$obj_u->firstname.", P : ".$obj_u->lastname.", Date_emb : ".$obj_u->dateemployment.", archiver : ".$archiver."/matricule : ".$mat."statut_mat".$situation_f."/nb_enf : ".$nb_enfant."/nb_enf_hand : ".$nombre_enfant_hand."/statut_actif : ".$calcul_salaire."/categ : ".$categ."/echel : ".$echel."/amo : ".$amo."/inps : ".$inps."/compte : ".$compte.") de la société ".$obj_s->nom;
 						$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 						$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Modification Salarié")';
 						$db->query($sql_log);
-						$message = 'SALARIE modifié avec succès';
+						$message = 'SALARIE modifié avec succÃ¨s';
 						$action = 'detail';
 					}else {
-						$message = 'Un problème est survenu';
+						$message = 'Un problÃ¨me est survenu';
 						$action = 'edit';
 					}
 
@@ -417,7 +417,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 
 	}
 
-	$mois_tab = array(" Janvier "," Février "," Mars "," Avril "," Mai "," Juin "," Juillet "," Août "," Septembre "," Octobre "," Novembre "," Décembre ");
+	$mois_tab = array(" Janvier "," Février "," Mars "," Avril "," Mai "," Juin "," Juillet "," AoÃ»t "," Septembre "," Octobre "," Novembre "," Décembre ");
 
 	//recupétration des information sur l'utilisateur dans la table user Dolibarr
 	$userSQL = "SELECT * FROM ".MAIN_DB_PREFIX."user where rowid=".$fk_user;
@@ -454,6 +454,64 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 
 			$obj_soc = prepare_objet_entete($salarie->rowid, $fk_user, $db, $id_societe, $id_convention);
 			entete_societe($obj_soc, 'societe');
+
+			/*
+			 * Alerte individuelle du solde de congé projeté Ã  la fin du mois.
+			 * Elle s'affiche lorsque le salarié atteint ou dépasse 30 jours.
+			 */
+			$sqlConge = "SELECT cs.solde_jours, cs.date_reference,";
+			$sqlConge .= " COALESCE(SUM(cp.jours_payes), 0) AS total_paye";
+			$sqlConge .= " FROM ".MAIN_DB_PREFIX."salarie_conge_solde AS cs";
+			$sqlConge .= " LEFT JOIN ".MAIN_DB_PREFIX."salarie_conge_paiement AS cp";
+			$sqlConge .= " ON cp.fk_salarie=cs.fk_salarie AND cp.entity=cs.entity";
+			$sqlConge .= " WHERE cs.fk_salarie=".(int) $salarie->rowid;
+			$sqlConge .= " AND cs.entity=".(int) $conf->entity;
+			$sqlConge .= " GROUP BY cs.solde_jours, cs.date_reference";
+			$resConge = $db->query($sqlConge);
+
+			if ($resConge && ($objConge = $db->fetch_object($resConge))) {
+				$soldeActuelConge = round((float) $objConge->solde_jours, 2);
+				$soldeFinMoisConge = $soldeActuelConge;
+
+				if (!empty($objConge->date_reference)) {
+					try {
+						$dateReferenceConge = new DateTime(substr($objConge->date_reference, 0, 10));
+						$aujourdhuiConge = new DateTime(date('Y-m-d'));
+						$finMoisConge = new DateTime(date('Y-m-t'));
+
+						if ($dateReferenceConge <= $finMoisConge) {
+							$diffActuelle = $dateReferenceConge->diff($aujourdhuiConge);
+							$moisActuels = ((int) $diffActuelle->y * 12) + (int) $diffActuelle->m;
+
+							$diffFinMois = $dateReferenceConge->diff($finMoisConge);
+							$moisFinMois = ((int) $diffFinMois->y * 12) + (int) $diffFinMois->m;
+
+							$totalPayeConge = round((float) $objConge->total_paye, 2);
+							$soldeActuelConge = max(0, round(($moisActuels * 2.5) - $totalPayeConge, 2));
+							$soldeFinMoisConge = max(0, round(($moisFinMois * 2.5) - $totalPayeConge, 2));
+						}
+					} catch (Exception $e) {
+						/* En cas de date invalide, conserver le solde enregistré. */
+					}
+				}
+
+				if ($soldeFinMoisConge >= 30) {
+					print '<style>
+					.conge-alert-salarie{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:18px 0;padding:16px 20px;border:1px solid #f59e0b;border-left:5px solid #f59e0b;border-radius:8px;background:#fffbeb;color:#78350f}
+					.conge-alert-salarie-title{font-weight:700;margin-bottom:5px}.conge-alert-salarie-values{display:flex;gap:28px;text-align:right;white-space:nowrap}
+					.conge-alert-salarie-values strong{display:block;font-size:18px;color:#b45309}.conge-alert-salarie-values span{font-size:12px;color:#92400e}
+					@media(max-width:700px){.conge-alert-salarie{align-items:flex-start;flex-direction:column}.conge-alert-salarie-values{text-align:left}}
+					</style>';
+
+					print '<div class="conge-alert-salarie">';
+					print '<div><div class="conge-alert-salarie-title">'.img_picto('', 'warning').' Alerte solde de congé</div>';
+					print '<div>Ce salarié atteindra au moins 30 jours de solde congé à la fin du mois courant.</div></div>';
+					print '<div class="conge-alert-salarie-values">';
+					print '<div><strong>'.price2num($soldeActuelConge, 'MT').' jour(s)</strong><span>Solde actuel</span></div>';
+					print '<div><strong>'.price2num($soldeFinMoisConge, 'MT').' jour(s)</strong><span>Solde Ã  la fin du mois</span></div>';
+					print '</div></div>';
+				}
+			}
 			
 		}else $info = "<br><b><mark>Merci de compléter les informations obligatoires avant de pouvoir générer le salaire pour ce salarié</mark></b><br>";
 			if($salarie->rowid)
@@ -630,7 +688,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 				print '<td>'.$type.'</td>';
 				print '</tr>';
 				print '<tr>';
-				print '<td>Diplôme</td>';
+				print '<td>DiplÃ´me</td>';
 				$diplomeSQL = "SELECT * FROM ".MAIN_DB_PREFIX."diplome where rowid=".$salarie->fk_diplome;
 				$diplomeResult = $db->query($diplomeSQL);
 				if($diplomeResult)
@@ -708,7 +766,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		$result = $db->query($userSQL);
 		$userD = $db->fetch_object($result);
 
-		//Recupération des trois(3) prémières lettres de la sociétés
+		//Recupération des trois(3) prémiÃ¨res lettres de la sociétés
 		$salSql_soc = "SELECT * FROM ".MAIN_DB_PREFIX."societe where rowid=".$id_societe;
 		$result_soc = $db->query($salSql_soc);
 		$obj_soc = $db->fetch_object($result_soc);
@@ -910,10 +968,10 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		print '</td></tr>';
 		print '<tr class="impair">';
 
-		print '<td class="fieldrequired" style="padding: 10px; width: 200px;">Nombre enfant à charge</td>';
+		print '<td class="fieldrequired" style="padding: 10px; width: 200px;">Nombre enfant Ã  charge</td>';
 		print '<td style="padding: 10px; width: 200px;"><input id="nombre_enfant" name="nb_enfant" type="number" min="0" max="10" size="5" value="'.(GETPOST("nb_enfant", "int")?:$salarie->nombre_enfant).'">
 		</td>';
-		print '<td style="padding: 10px; width: 200px;">Diplôme</td>';
+		print '<td style="padding: 10px; width: 200px;">DiplÃ´me</td>';
 		print '<td style="padding: 10px; width: 200px;">';
 		print '<select name="diplome">';
 		print '<option value=""></option>';

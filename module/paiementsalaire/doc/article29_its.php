@@ -10,417 +10,1177 @@ require("fpdf/fpdf.php");
 // Connexion à la BDD (à personnaliser)
 $id_societe = GETPOST('id_societe','int');
 $annee_rechercher = GETPOST('annee','int');
-
+$action = GETPOST("action", 'alpha');
 $sql = "SELECT nom FROM ".MAIN_DB_PREFIX."societe Where rowid=".$id_societe;
 	$result1 = $db->query($sql);
   $sc = $db->fetch_object($result1);
 
-  global $sc;
+  global $sc, $annee_rechercher;
   
 $id_societe = GETPOST('id_societe','int');
-      $sql = "SELECT u.rowid, u.lastname, u.firstname, u.dateemployment, u.office_phone, u.email, u.office_fax, ue.fk_object, ue.egp, sal.fk_user, sal.matricule FROM ".MAIN_DB_PREFIX."user as u";
-      $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object";
-      $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."salarie as sal ON sal.fk_user=u.rowid WHERE ue.egp=".$id_societe;
-      $sql .= " ORDER BY u.lastname";
-      $result = $db->query($sql);
-      $num = $db->num_rows($result);
+
+if($action == "tout_salarie"){
+
+  // Création de la class PDF
+  class PDF extends FPDF {
+    
+      // Header
+      function Header() {
+        // Logo : 8 >position à gauche du document (en mm), 2 >position en haut du document, 80 >largeur de l'image en mm). La hauteur est calculée automatiquement.
+        //$this->Image('logo_agence.png',8,2);
+        // Saut de ligne 20 mm
+        //$this->Ln(20);
+        if($this->PageNo() == 1){
+          $this->SetTitle("Article29 ITS",true);
+        }
+          // Titre gras (B) police Helbetica de 11
+          $this->SetFont('Helvetica','B',11);
+          // fond de couleur gris (valeurs en RGB)
+          $this->setFillColor(230,230,230);
+          // position du coin supérieur gauche par rapport à la marge gauche (mm)
+          
+          // Texte : 60 >largeur ligne, 8 >hauteur ligne. Premier 0 >pas de bordure, 1 >retour à la ligneensuite, C >centrer texte, 1> couleur de fond ok
+          $this->SetTextColor(3, 79, 132);
+          $this->SetFont('Helvetica','B',11);
+          global $sc, $annee_rechercher;
+          $nom_soc = strtoupper($sc->nom);
+
+          $y = 12;
+          $this->SetY($y);
+          $this->SetX(12);
+          $this->Cell($this->GetPageWidth()-12,3,utf8_decode($nom_soc),0,0,'L',0);
 
 
-// Création de la class PDF
-class PDF extends FPDF {
-  
-    // Header
-    function Header() {
-      // Logo : 8 >position à gauche du document (en mm), 2 >position en haut du document, 80 >largeur de l'image en mm). La hauteur est calculée automatiquement.
-      //$this->Image('logo_agence.png',8,2);
-      // Saut de ligne 20 mm
-      //$this->Ln(20);
+          $this->SetX(105);
+          $titre = "ETAT ANNUEL DES SALAIRES";
+          $this->Cell(56,3,$titre,0,0,'C',0);
+
+          $y += 7;
+          $this->SetTextColor(0);
+          $this->SetY($y);
+          $this->SetX(110);
+          $this->SetFont('Times','',9);
+          $text = "/ INPS / ".$nom_soc;             
+          $this->Cell(65,3,utf8_decode($text),0,0,'L',0);
+
+          $this->SetX(175);
+          $this->SetTextColor(3, 79, 132);
+          $this->SetFont('Times','',11);
+          $dis = "Distribué en :";
+          $this->Cell(22,3,utf8_decode($dis),0,0,'L',0);
+
+          $this->SetX(200);
+          $this->SetTextColor(247, 103, 7);
+          $this->SetFont('Times','B',10);
+          $this->Cell(8,3,$annee_rechercher,0,0,'L',0);
+
+
+          $this->SetX(210);
+          $this->SetFont('Times','',11);
+          $this->SetTextColor(0);
+          $article = "Article 29 du Code Géneral des Impôts";
+          $this->Cell(60,3,utf8_decode($article),0,0,'L',0);      
+        // Saut de ligne 10 mm
+      // $this->line(12,$this->GetY()+30,$this->GetPageWidth()-12,$this->GetY()+30);
+        
+      }
+
       
-      $this->SetTitle("Article24 ITS",true);
-      // Titre gras (B) police Helbetica de 11
-      $this->SetFont('Helvetica','B',11);
-      // fond de couleur gris (valeurs en RGB)
-      $this->setFillColor(230,230,230);
-       // position du coin supérieur gauche par rapport à la marge gauche (mm)
-       $this->SetX(70);
-       //$this->SetY(20);
-      // Texte : 60 >largeur ligne, 8 >hauteur ligne. Premier 0 >pas de bordure, 1 >retour à la ligneensuite, C >centrer texte, 1> couleur de fond ok  
-      global $sc;
-      $titre = "I.T.S ".$sc->nom;
-      $this->Cell(60,3,$titre,0,0,'R',0);
-      $this->line(12,$this->GetY()+5,$this->GetPageWidth()-12,$this->GetY()+5);
-      // Saut de ligne 10 mm
-     // $this->line(12,$this->GetY()+30,$this->GetPageWidth()-12,$this->GetY()+30);
-      
+      // Footer
+      function Footer() {
+
+        // Positionnement à 1,5 cm du bas
+        $this->SetY(-15);
+        
+        // Police Arial italique 8
+        $this->SetFont('Helvetica','',9);
+        // Numéro de page, centré (C)
+        $this->SetX(12);
+        $this->SetTextColor(3, 79, 132);
+        $this->Cell(50,10,utf8_decode('Edité le : '.date('d/m/Y')),0,0,'L');
+
+        $this->SetTextColor(0);
+        $this->Cell(0,10,'Page '.$this->PageNo().'/{nb}',0,0,'R');
+        $this->SetX(12);
+        $this->line(12,$this->GetY(),$this->GetPageWidth()-12,$this->GetY());
+
+      }
+
+          // On active la classe une fois pour toutes les pages suivantes
+      // Format portrait (>P) ou paysage (>L), en mm (ou en points > pts), A4 (ou A5, etc.)
     }
+      $pdf = new PDF('L','mm','A4');
+      // Nouvelle page A4 (incluant ici logo, titre et pied de page)
+      $pdf->AddPage();
+      // Polices par défaut : Helvetica taille 9
+      $pdf->SetFont('Helvetica','',9);
+      // Couleur par défaut : noir
+      $pdf->SetTextColor(0);
+      // Compteur de pages {nb}
+      $pdf->AliasNbPages();
 
     
-    // Footer
-    function Footer() {
-
-      // Positionnement à 1,5 cm du bas
-      $this->SetY(-15);
+      $pdf->SetLeftMargin(13);
+      $pdf->SetRightMargin(15);
+      $y = $pdf->GetY()+8;
+      $pdf->SetY($y);
       
-      // Police Arial italique 8
-      $this->SetFont('Helvetica','I',9);
-      // Numéro de page, centré (C)
-      $this->Cell(0,10,'Page '.$this->PageNo().'/{nb}',0,0,'C');
-      $this->line(12,$this->GetY(),$this->GetPageWidth()-12,$this->GetY());
+      $pdf->line(12,$pdf->GetY(),$pdf->GetPageWidth()-12,$pdf->GetY());
+      $pdf->line(12,$y,12,$pdf->GetPageHeight()-15);
+      $pdf->line($pdf->GetPageWidth()-12,$y,$pdf->GetPageWidth()-12,$pdf->GetPageHeight()-15);
 
-    }
-
-        // On active la classe une fois pour toutes les pages suivantes
-    // Format portrait (>P) ou paysage (>L), en mm (ou en points > pts), A4 (ou A5, etc.)
-  }
-    $pdf = new PDF('L','mm','A4');
-    // Nouvelle page A4 (incluant ici logo, titre et pied de page)
-    $pdf->AddPage();
-    // Polices par défaut : Helvetica taille 9
-    $pdf->SetFont('Helvetica','',9);
-    // Couleur par défaut : noir
-    $pdf->SetTextColor(0);
-    // Compteur de pages {nb}
-    $pdf->AliasNbPages();
-
-    $pdf->SetY(41);
-    $pdf->SetLeftMargin(13);
-    $pdf->SetRightMargin(15);
-    $pdf->line(12,15,12,$pdf->GetPageHeight()-15);
-    $pdf->line($pdf->GetPageWidth()-12,15,$pdf->GetPageWidth()-12,$pdf->GetPageHeight()-15);
-
-    $y = 15;
-
-   // $pdf->SetDrawColor(200, 200, 200);
-   $pdf->setFillColor(230,230,230);
-    $pdf->SetY($y);
-    $pdf->SetX(12);
-    $pdf->Cell($pdf->GetPageWidth()-24,4, "",0,0,'','true');
-
-     $pdf->SetFont('Helvetica','',8);
+      
+  $y = $pdf->GetY();
+    // $pdf->SetDrawColor(200, 200, 200);
+    $pdf->setFillColor(230,230,230);
       $pdf->SetY($y);
+      $pdf->SetX(13);
+      //$pdf->Cell($pdf->GetPageWidth()-24,8, "",0,0,'','true');
 
-      $pdf->Cell(25,4,utf8_decode("Matricule"),0,'L');
-      $pdf->SetFont('Helvetica','',9);
-
-      $pdf->line(36,15,36,$pdf->GetPageHeight()-15);
-
-      $pdf->SetX(37);
-      $pdf->Cell(30,4,utf8_decode("Prenom"),0,'L');
-      $pdf->SetFont('Helvetica','',9);
-
-      $pdf->line(68,15,68,$pdf->GetPageHeight()-15);
-
-
-      $pdf->SetX(69);
-      $pdf->Cell(30,4,utf8_decode("Nom"),0,'L');
-
-      $pdf->line(100,15,100,$pdf->GetPageHeight()-15);
-
-
-      $pdf->SetX(101);
-      $pdf->Cell(15,4,utf8_decode("Sexe"),0,'L');
-
-      $pdf->line(117,15,117,$pdf->GetPageHeight()-15);
-
-      $pdf->SetX(118);
-      $pdf->Cell(25,4,utf8_decode("Situation F."),0,'L');
-      $pdf->line(144,15,144,$pdf->GetPageHeight()-15);
-
-      $pdf->SetX(145);
-      $pdf->Cell(20,4,utf8_decode("Enfant/Hand"),0,'L');
-      $pdf->line(166,15,166,$pdf->GetPageHeight()-15);
-
-      $pdf->SetX(167);
-      $pdf->Cell(25,4,utf8_decode("Sal. Brut"),0,'L');
-      $pdf->line(193,15,193,$pdf->GetPageHeight()-15);
-
-      $pdf->SetX(194);
-      $pdf->Cell(22,4,utf8_decode("Brut Imp."),0,'L');
-      $pdf->line(217,15,217,$pdf->GetPageHeight()-15);
-
-      $pdf->SetX(218);
-      $pdf->Cell(20,4,utf8_decode("Somme its"),0,'L');
-      $pdf->line(239,15,239,$pdf->GetPageHeight()-15);
-
-      $pdf->SetX(240);
-      $pdf->Cell(22,4,utf8_decode("ITS annuel"),0,'L');
-      $pdf->line(263,15,263,$pdf->GetPageHeight()-15);
-
-      $pdf->SetX(264);
-      $pdf->MultiCell(20,4,utf8_decode("Difference"),0,'L');
-      //$pdf->line(285,15,285,$pdf->GetPageHeight()-15);
-
-
-      $pdf->line(12,$y+4,$pdf->GetPageWidth()-12,$y+4);
-     
-      $article24_obj = article24_its($db, $id_societe, $annee_rechercher);
-      $y=20;
-      $pdf->SetY($y);
-    if(count($article24_obj) > 0){
-      for ($i=0; $i < count($article24_obj); $i++) { 
-
-        $pdf->SetFont('Helvetica','',8);
+      $pdf->SetFont('Helvetica','',8);
         $pdf->SetY($y);
-        $pdf->SetX(13);
-        $pdf->Cell(25,4,utf8_decode($article24_obj[$i]["matricule"]),0,'L');
 
-        $pdf->SetX(37);
-        $pdf->Cell(30,4,utf8_decode($article24_obj[$i]["nom"]),0,'L');
+        $pdf->Cell(18,9,utf8_decode("N° Mat."),0,'L');
+        $pdf->SetFont('Helvetica','',9);
+
+        $pdf->line(32, $y,32,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(33);
+        $pdf->Cell(50,9,utf8_decode("Nom & Prenom"),0,'','C');
+        $pdf->SetFont('Helvetica','',9);
+
+        $pdf->line(84, $y,84,$y + 9);
+
+        $pdf->SetX(85);
+        $pdf->Cell(20,9,utf8_decode("Fonction"),0,'', 'R');
+
+        $pdf->SetX(106);
+        $pdf->MultiCell(18,4.5,utf8_decode("Nbre enf. au 31/12"),0,'R');
+        $pdf->line(125, $y,125,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(126);
+        $pdf->MultiCell(18,3,utf8_decode("Mt salaire et autres retrib.Brut"),0,'C');
+        $pdf->line(144, $y,144,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(145);
+        $pdf->Cell(15,9,utf8_decode("Retraite"),0,'', 'C');
+        $pdf->line(160, $y,160,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(160);
+        $pdf->SetFont('Helvetica','',7.5);
+        $pdf->MultiCell(18,3,utf8_decode("Allocations & Indem. non Imposables"),0,'C');
+        $pdf->line(178, $y,178,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(178);
+        $pdf->MultiCell(19,3,utf8_decode("Montages réel   Avantages   En Nature"),0,'C');
+        $pdf->line(197, $y,197,$pdf->GetPageHeight()-15);
+
+        $pdf->SetFont('Helvetica','',9);
+        $pdf->SetY($y);
+        $pdf->SetX(197);
+        $pdf->MultiCell(19,4,utf8_decode("Base Imposition"),0,'C');
+        $pdf->line(216, $y,216,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(216);
+        $pdf->MultiCell(19,4,utf8_decode("Impôt Retenu"),0,'C');
+        $pdf->line(235, $y,235,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(235);
+        $pdf->MultiCell(19,4,utf8_decode("Impôt Calculé"),0,'C');
+        $pdf->line(254, $y,254,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(254);
+        $pdf->MultiCell(19,4,utf8_decode("Solde Impôt"),0,'C');
+        $pdf->line(273, $y,273,$pdf->GetPageHeight()-15);
+        
+        $pdf->SetY($y);
+        $pdf->SetX(273);
+        $pdf->MultiCell($pdf->GetPageWidth() - 13 - 273,4,utf8_decode("Nbre mois"),0,'C');
+
+
+        $pdf->line(12,$y+9,$pdf->GetPageWidth()-12,$y+9);
+            
+        $y= $pdf->GetY() + 2;
+        $pdf->SetY($y);
+
+        $sql_reg = "SELECT DISTINCT fk_salarie FROM ".MAIN_DB_PREFIX."bulletin WHERE annee = ".$annee_rechercher;
+        $sql_reg .= " ORDER BY nom, prenom";
+
+        $res = $db->query($sql_reg);
+      if($res) {
+        $num_obj = $db->num_rows($res);
+        if($num_obj == 0){
+          $pdf->SetFont('Helvetica','B',18);
+          $pdf->SetTextColor(150,0,0);
+          $pdf->SetY($y+80);
+          $pdf->SetX(95);
+          $pdf->Cell(50,4,utf8_decode("Veuillez attendre Decembre ".$annee_rechercher),0,'C');
+          $pdf->SetTextColor(0);
+        }
+          if($num_obj > 0){
+            $somme_brut_annuel = 0;
+            $somme_retraite = 0;
+            $prime_indemnite_non_imposable = 0;
+            $avantage_nature = 0;
+            $somme_brut_imposable_annuel = 0;
+            $somme_its_mois = 0;
+            $its_annuel = 0;
+            $difference = 0;
+          while ($obj_fk_salarie = $db->fetch_object($res)) {
+            $sal_its = "SELECT 
+                reg.*, 
+                bul.rowid, 
+                bul.matricule, 
+                bul.nom, 
+                bul.prenom, 
+                bul.situation_familiale, 
+                bul.nombre_enfant, 
+                bul.nombre_enfant_hand, 
+                bul.fonction
+            FROM ".MAIN_DB_PREFIX."bulletin_regularisation_its AS reg
+            INNER JOIN ".MAIN_DB_PREFIX."bulletin AS bul
+                ON bul.fk_salarie = reg.fk_salarie
+            WHERE reg.fk_salarie = ".(int)$obj_fk_salarie->fk_salarie;
+
+
+            $sal_res = $db->query($sal_its);
+            if($sal_res)
+              $article29_obj = $db->fetch_object($sal_res);
+            if($article29_obj){
+            if(($y + 24) >= $pdf->GetPageHeight()){
+              $pdf->AddPage();
+              // Polices par défaut : Helvetica taille 9
+              $pdf->SetFont('Helvetica','',9);
+              // Couleur par défaut : noir
+              $pdf->SetTextColor(0);
+              // Compteur de pages {nb}
+              $pdf->AliasNbPages();
+
+              $pdf->SetLeftMargin(13);
+              $pdf->SetRightMargin(15);
+              $y = $pdf->GetY()+8;
+              $pdf->SetY($y);
+              
+              $pdf->line(12,$pdf->GetY(),$pdf->GetPageWidth()-12,$pdf->GetY());
+              $pdf->line(12,$y,12,$pdf->GetPageHeight()-15);
+              $pdf->line($pdf->GetPageWidth()-12,$y,$pdf->GetPageWidth()-12,$pdf->GetPageHeight()-15);
+
+              
+              $y = $pdf->GetY();
+              // $pdf->SetDrawColor(200, 200, 200);
+              $pdf->setFillColor(230,230,230);
+              $pdf->SetY($y);
+              $pdf->SetX(13);
+              //$pdf->Cell($pdf->GetPageWidth()-24,8, "",0,0,'','true');
+
+              $pdf->SetFont('Helvetica','',8);
+                $pdf->SetY($y);
+
+                $pdf->Cell(18,9,utf8_decode("N° Mat."),0,'L');
+                $pdf->SetFont('Helvetica','',9);
+
+                $pdf->line(32, $y,32,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(33);
+                $pdf->Cell(50,9,utf8_decode("Nom & Prenom"),0,'','C');
+                $pdf->SetFont('Helvetica','',9);
+
+                $pdf->line(84, $y,84,$y + 9);
+
+                $pdf->SetX(85);
+                $pdf->Cell(20,9,utf8_decode("Fonction"),0,'', 'R');
+
+                $pdf->SetX(106);
+                $pdf->MultiCell(18,4.5,utf8_decode("Nbre enf. au 31/12"),0,'R');
+                $pdf->line(125, $y,125,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(126);
+                $pdf->MultiCell(18,3,utf8_decode("Mt salaire et autres retrib.Brut"),0,'C');
+                $pdf->line(144, $y,144,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(145);
+                $pdf->Cell(15,9,utf8_decode("Retraite"),0,'', 'C');
+                $pdf->line(160, $y,160,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(160);
+                $pdf->SetFont('Helvetica','',7.5);
+                $pdf->MultiCell(18,3,utf8_decode("Allocations & Indem. non Imposables"),0,'C');
+                $pdf->line(178, $y,178,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(178);
+                $pdf->MultiCell(19,3,utf8_decode("Montages réel   Avantages   En Nature"),0,'C');
+                $pdf->line(197, $y,197,$pdf->GetPageHeight()-15);
+
+                $pdf->SetFont('Helvetica','',9);
+                $pdf->SetY($y);
+                $pdf->SetX(197);
+                $pdf->MultiCell(19,4,utf8_decode("Base Imposition"),0,'C');
+                $pdf->line(216, $y,216,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(216);
+                $pdf->MultiCell(19,4,utf8_decode("Impôt Retenu"),0,'C');
+                $pdf->line(235, $y,235,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(235);
+                $pdf->MultiCell(19,4,utf8_decode("Impôt Calculé"),0,'C');
+                $pdf->line(254, $y,254,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(254);
+                $pdf->MultiCell(19,4,utf8_decode("Solde Impôt"),0,'C');
+                $pdf->line(273, $y,273,$pdf->GetPageHeight()-15);
+                
+                $pdf->SetY($y);
+                $pdf->SetX(273);
+                $pdf->MultiCell($pdf->GetPageWidth() - 13 - 273,4,utf8_decode("Nbre mois"),0,'C');
+
+
+                $pdf->line(12,$y+9,$pdf->GetPageWidth()-12,$y+9);
+                    
+                $y= $pdf->GetY() + 2;
+                $pdf->SetY($y);
+
+                
+            }
+
+            $pdf->SetFont('Times','',7.5);
+            $pdf->SetY($y);
+            $pdf->SetX(13);
+            $pdf->Cell(18,4,utf8_decode($article29_obj->matricule),0,'L');
+
+            
+            if ($pdf->GetStringWidth($text) < 45) {
+              $text = mb_strtoupper($article29_obj->nom.'   '.$article29_obj->prenom);
+            }
+
+          while ($pdf->GetStringWidth($text) > 52) {
+              $text = substr($text, 0, -1);
+            }
+
+            $pdf->SetY($y);
+            $pdf->SetX(32);
+            $pdf->Cell(50,4,utf8_decode($text),0,'L');
+
+            $pdf->SetFont('Times','',7.5);
+
+            $text = mb_strtoupper($article29_obj->fonction);
+            
+            while ($pdf->GetStringWidth($text) > 28) {
+              $text = substr($text, 0, -1);
+            }
+
+            $pdf->SetY($y);
+            $pdf->SetX(85);
+            $pdf->Cell(30,4,utf8_decode($text),0,'L');
+
+            $pdf->SetFont('Times','',8);
+            $st_m = "C";
+            if($article29_obj->situation_familiale == "Marié")
+              $st_m = "M";
+
+            $pdf->SetY($y);
+            $pdf->SetX(115);
+            $pdf->Cell(8,4,utf8_decode(mb_strtoupper($st_m."  ".$article29_obj->nombre_enfant."/".$article29_obj->nombre_enfant_hand)),0,'L');
+
+            $pdf->SetFont('Times','',7.5);
+            $pdf->SetY($y);
+            $pdf->SetX(126);
+            $pdf->Cell(18,4,utf8_decode(number_format(round($article29_obj->somme_brut_annuel), 0, '', ' ')), 0, 0,'R');
+            $somme_brut_annuel += round($article29_obj->somme_brut_annuel);
+
+            $pdf->SetX(145);
+            $pdf->Cell(15,4,utf8_decode(number_format(round($article29_obj->somme_retraite), 0, '', ' ')),0,'', 'R');
+            $somme_retraite += round($article29_obj->somme_retraite);
+
+            $pdf->SetX(160);
+            $pdf->Cell(18,4,utf8_decode(number_format(round($article29_obj->prime_indemnite_non_imposable), 0, '', ' ')),0,'', 'R');
+            $prime_indemnite_non_imposable += $article29_obj->prime_indemnite_non_imposable;
+
+          $pdf->SetX(178);
+            $pdf->Cell(19,4,utf8_decode(number_format(round($article29_obj->avantage_nature), 0, '', ' ')),0,'', 'R');
+            $avantage_nature += $article29_obj->avantage_nature;
+
+
+            $pdf->SetX(194);
+            $pdf->Cell(22,4,utf8_decode(number_format(round($article29_obj->somme_brut_imposable_annuel), 0, '', ' ')), 0, 0,'R');
+            $somme_brut_imposable_annuel += $article29_obj->somme_brut_imposable_annuel;
+
+            $pdf->SetX(216);
+            $pdf->Cell(19,4,utf8_decode(number_format(round($article29_obj->somme_its_mois), 0, '', ' ')), 0, 0,'R');
+            $somme_its_mois += $article29_obj->somme_its_mois;
+
+            $pdf->SetX(235);
+            $pdf->Cell(19,4,utf8_decode(number_format(round($article29_obj->its_annuel), 0, '', ' ')), 0, 0,'R');
+            $its_annuel += $article29_obj->somme_its_mois;
+
+            $pdf->SetX(254);
+            $pdf->Cell(19,4,utf8_decode(number_format(round($article29_obj->difference), 0, '', ' ')), 0, 0,'R');
+            $difference += $article29_obj->difference;
+
+            $pdf->SetX(273);
+            if($article29_obj->nb_mois > 12)
+              $pdf->Cell($pdf->GetPageWidth() - 13 - 273,4,12, 0, 0,'R');
+            else $pdf->Cell($pdf->GetPageWidth() - 13 - 273,4,utf8_decode(number_format(round($article29_obj->nb_mois), 0, '', ' ')), 0, 0,'R');
+            //$pdf->line(12,$y+4,$pdf->GetPageWidth()-12,$y+4);
+
+            $y += 6;
+          }
+          }
+
+          //Préparation pour affichage du total de l'année
+          if(($y + 24) >= $pdf->GetPageHeight()){
+              $pdf->AddPage();
+              // Polices par défaut : Helvetica taille 9
+              $pdf->SetFont('Helvetica','',9);
+              // Couleur par défaut : noir
+              $pdf->SetTextColor(0);
+              // Compteur de pages {nb}
+              $pdf->AliasNbPages();
+
+              $pdf->SetLeftMargin(13);
+              $pdf->SetRightMargin(15);
+              $y = $pdf->GetY()+8;
+              $pdf->SetY($y);
+              
+              $pdf->line(12,$pdf->GetY(),$pdf->GetPageWidth()-12,$pdf->GetY());
+              $pdf->line(12,$y,12,$pdf->GetPageHeight()-15);
+              $pdf->line($pdf->GetPageWidth()-12,$y,$pdf->GetPageWidth()-12,$pdf->GetPageHeight()-15);
+
+              
+              $y = $pdf->GetY();
+              // $pdf->SetDrawColor(200, 200, 200);
+              $pdf->setFillColor(230,230,230);
+              $pdf->SetY($y);
+              $pdf->SetX(13);
+              //$pdf->Cell($pdf->GetPageWidth()-24,8, "",0,0,'','true');
+
+              $pdf->SetFont('Helvetica','',8);
+                $pdf->SetY($y);
+
+                $pdf->Cell(18,9,utf8_decode("N° Mat."),0,'L');
+                $pdf->SetFont('Helvetica','',9);
+
+                $pdf->line(32, $y,32,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(33);
+                $pdf->Cell(50,9,utf8_decode("Nom & Prenom"),0,'','C');
+                $pdf->SetFont('Helvetica','',9);
+
+                $pdf->line(84, $y,84,$y + 9);
+
+                $pdf->SetX(85);
+                $pdf->Cell(20,9,utf8_decode("Fonction"),0,'', 'R');
+
+                $pdf->SetX(106);
+                $pdf->MultiCell(18,4.5,utf8_decode("Nbre enf. au 31/12"),0,'R');
+                $pdf->line(125, $y,125,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(126);
+                $pdf->MultiCell(18,3,utf8_decode("Mt salaire et autres retrib.Brut"),0,'C');
+                $pdf->line(144, $y,144,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(145);
+                $pdf->Cell(15,9,utf8_decode("Retraite"),0,'', 'C');
+                $pdf->line(160, $y,160,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(160);
+                $pdf->SetFont('Helvetica','',7.5);
+                $pdf->MultiCell(18,3,utf8_decode("Allocations & Indem. non Imposables"),0,'C');
+                $pdf->line(178, $y,178,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(178);
+                $pdf->MultiCell(19,3,utf8_decode("Montages réel   Avantages   En Nature"),0,'C');
+                $pdf->line(197, $y,197,$pdf->GetPageHeight()-15);
+
+                $pdf->SetFont('Helvetica','',9);
+                $pdf->SetY($y);
+                $pdf->SetX(197);
+                $pdf->MultiCell(19,4,utf8_decode("Base Imposition"),0,'C');
+                $pdf->line(216, $y,216,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(216);
+                $pdf->MultiCell(19,4,utf8_decode("Impôt Retenu"),0,'C');
+                $pdf->line(235, $y,235,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(235);
+                $pdf->MultiCell(19,4,utf8_decode("Impôt Calculé"),0,'C');
+                $pdf->line(254, $y,254,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(254);
+                $pdf->MultiCell(19,4,utf8_decode("Solde Impôt"),0,'C');
+                $pdf->line(273, $y,273,$pdf->GetPageHeight()-15);
+                
+                $pdf->SetY($y);
+                $pdf->SetX(273);
+                $pdf->MultiCell($pdf->GetPageWidth() - 13 - 273,4,utf8_decode("Nbre mois"),0,'C');
+
+
+                $pdf->line(12,$y+9,$pdf->GetPageWidth()-12,$y+9);
+                    
+                $y= $pdf->GetY() + 2;
+                $pdf->SetY($y);
+            }
+            //on affiche le total
+            //-------------------------------------------------------------------------------------------
+            $pdf->SetFont('Times','B',7.5);
+            $pdf->SetY($y);
+            $pdf->SetX(12);
+            $pdf->setFillColor(216, 222, 233);
+            $pdf->Cell(113,6,utf8_decode(mb_strtoupper("Total général")),1, 0, 'C', true);
+            
+
+            $pdf->SetFont('Times','',7.5);
+            $pdf->SetY($y);
+            $pdf->SetX(125.25);
+            $pdf->Cell(18.5,6,utf8_decode(number_format(round($somme_brut_annuel), 0, '', ' ')),'TB', 0,'R', true);
+
+            $pdf->SetX(144.25);
+            $pdf->Cell(15.5,6,utf8_decode(number_format(round($somme_retraite), 0, '', ' ')),'TB',0, 'R', true);
+
+            $pdf->SetX(160.25);
+            $pdf->Cell(17.5,6,utf8_decode(number_format(round($prime_indemnite_non_imposable), 0, '', ' ')),'TB',0, 'R', true);
+
+          $pdf->SetX(178.25);
+            $pdf->Cell(18.5,6,utf8_decode(number_format(round($avantage_nature), 0, '', ' ')),'TB',0, 'R', true);
+
+
+            $pdf->SetX(197.25);
+            $pdf->Cell(18.5,6,utf8_decode(number_format(round($somme_brut_imposable_annuel), 0, '', ' ')),'TB', 0,'R', true);
+
+            $pdf->SetX(216.25);
+            $pdf->Cell(18.5,6,utf8_decode(number_format(round($somme_its_mois), 0, '', ' ')),'TB', 0,'R', true);
+
+            $pdf->SetX(235.25);
+            $pdf->Cell(18.5,6,utf8_decode(number_format(round($its_annuel), 0, '', ' ')),'TB', 0,'R', true);
+
+            $pdf->SetX(254.25);
+            $pdf->Cell(19,6,utf8_decode(number_format(round($difference), 0, '', ' ')),'TB', 0,'R', true);
+            
+            $pdf->SetX(273);
+            $pdf->Cell($pdf->GetPageWidth() - 12 - 273,6,'', 1, 0,'R', true);
+
+            //------------------------------------------------------------------------------------------------------------------
+        }else{
+          $pdf->SetFont('Helvetica','B',18);
+          $pdf->SetTextColor(150,0,0);
+          $pdf->SetY($y+80);
+          $pdf->SetX(95);
+          $pdf->Cell(50,4,utf8_decode("Veuillez attendre Decembre ".$annee_rechercher),0,'C');
+          $pdf->SetTextColor(0);
+        }
+
+
+      }else{
+          $pdf->SetFont('Helvetica','B',18);
+          $pdf->SetTextColor(150,0,0);
+          $pdf->SetY($y+80);
+          $pdf->SetX(95);
+          $pdf->Cell(50,4,utf8_decode("Veuillez attendre Decembre ".$annee_rechercher),0,'C');
+          $pdf->SetTextColor(0);
+
+      }
+     
+}else{
+
+  // Création de la class PDF
+  class PDF extends FPDF {
+    
+      // Header
+      function Header() {
+        // Logo : 8 >position à gauche du document (en mm), 2 >position en haut du document, 80 >largeur de l'image en mm). La hauteur est calculée automatiquement.
+        //$this->Image('logo_agence.png',8,2);
+        // Saut de ligne 20 mm
+        //$this->Ln(20);
+        if($this->PageNo() == 1){
+          $this->SetTitle("Article29 ITS",true);
+        }
+          // Titre gras (B) police Helbetica de 11
+          $this->SetFont('Helvetica','B',11);
+          // fond de couleur gris (valeurs en RGB)
+          $this->setFillColor(230,230,230);
+          // position du coin supérieur gauche par rapport à la marge gauche (mm)
+          
+          // Texte : 60 >largeur ligne, 8 >hauteur ligne. Premier 0 >pas de bordure, 1 >retour à la ligneensuite, C >centrer texte, 1> couleur de fond ok
+          $this->SetTextColor(3, 79, 132);
+          $this->SetFont('Helvetica','B',11);
+          global $sc, $annee_rechercher;
+          $nom_soc = strtoupper($sc->nom);
+
+          $y = 12;
+          $this->SetY($y);
+          $this->SetX(12);
+          $this->Cell($this->GetPageWidth()-12,3,utf8_decode($nom_soc),0,0,'L',0);
+
+
+          $this->SetX(105);
+          $titre = "ETAT ANNUEL DES SALAIRES";
+          $this->Cell(56,3,$titre,0,0,'C',0);
+
+          $y += 7;
+          $this->SetTextColor(0);
+          $this->SetY($y);
+          $this->SetX(110);
+          $this->SetFont('Times','',9);
+          $text = "/ INPS / ".$nom_soc;             
+          $this->Cell(65,3,utf8_decode($text),0,0,'L',0);
+
+          $this->SetX(175);
+          $this->SetTextColor(3, 79, 132);
+          $this->SetFont('Times','',11);
+          $dis = "Distribué en :";
+          $this->Cell(22,3,utf8_decode($dis),0,0,'L',0);
+
+          $this->SetX(200);
+          $this->SetTextColor(247, 103, 7);
+          $this->SetFont('Times','B',10);
+          $this->Cell(8,3,$annee_rechercher,0,0,'L',0);
+
+
+          $this->SetX(210);
+          $this->SetFont('Times','',11);
+          $this->SetTextColor(0);
+          $article = "Article 29 du Code Géneral des Impôts";
+          $this->Cell(60,3,utf8_decode($article),0,0,'L',0);      
+        // Saut de ligne 10 mm
+      // $this->line(12,$this->GetY()+30,$this->GetPageWidth()-12,$this->GetY()+30);
+        
+      }
 
       
-        $pdf->SetX(69);
-        $pdf->Cell(30,4,utf8_decode($article24_obj[$i]["prenom"]),0,'L');
+      // Footer
+      function Footer() {
 
-        $pdf->SetX(101);
-        $pdf->Cell(10,4,utf8_decode($article24_obj[$i]["sexe"]),0,'L');
+        // Positionnement à 1,5 cm du bas
+        $this->SetY(-15);
+        
+        // Police Arial italique 8
+        $this->SetFont('Helvetica','',9);
+        // Numéro de page, centré (C)
+        $this->SetX(12);
+        $this->SetTextColor(3, 79, 132);
+        $this->Cell(50,10,utf8_decode('Edité le : '.date('d/m/Y')),0,0,'L');
 
-        $pdf->SetX(118);
-        $pdf->Cell(25,4,utf8_decode($article24_obj[$i]["situation_familiale"]),0,'L');
+        $this->SetTextColor(0);
+        $this->Cell(0,10,'Page '.$this->PageNo().'/{nb}',0,0,'R');
+        $this->SetX(12);
+        $this->line(12,$this->GetY(),$this->GetPageWidth()-12,$this->GetY());
 
-        $pdf->SetX(145);
-        $pdf->Cell(20,4,utf8_decode($article24_obj[$i]["nombre_enfant"]."/".$article24_obj[$i]["nombre_enfant_hand"]), 0, 0,'R');
-        $pdf->line(166,15,166,$pdf->GetPageHeight()-15);
+      }
 
-        $pdf->SetX(167);
-        $pdf->Cell(25,4,utf8_decode(apres_virgule($article24_obj[$i]["somme_brut"], 2)), 0, 0,'R');
-        $pdf->line(193,15,193,$pdf->GetPageHeight()-15);
-
-        $pdf->SetX(194);
-        $pdf->Cell(22,4,utf8_decode(apres_virgule($article24_obj[$i]["somme_brut_imposable"], 2)), 0, 0,'R');
-        $pdf->line(217,15,217,$pdf->GetPageHeight()-15);
-
-        $pdf->SetX(218);
-        $pdf->Cell(20,4,utf8_decode(apres_virgule($article24_obj[$i]["somme_its"], 2)), 0, 0,'R');
-        $pdf->line(239,15,239,$pdf->GetPageHeight()-15);
-
-        $pdf->SetX(240);
-        $pdf->Cell(22,4,utf8_decode(apres_virgule($article24_obj[$i]["its_annuelle"], 2)), 0, 0,'R');
-        $pdf->line(263,15,263,$pdf->GetPageHeight()-15);
-
-        $pdf->SetX(264);
-        $pdf->MultiCell(20,4,utf8_decode(apres_virgule($article24_obj[$i]["difference"], 2)), 0, 0,'R');
-        $pdf->line(12,$y+4,$pdf->GetPageWidth()-12,$y+4);
-
-        $y += 6;
-       }
-    }else{
-        $pdf->SetFont('Helvetica','B',18);
-        $pdf->SetTextColor(150,0,0);
-        $pdf->SetY($y+80);
-        $pdf->SetX(95);
-        $pdf->Cell(50,4,utf8_decode("Aucun mois de ".$annee_rechercher." n'est cloturé"),0,'C');
-        $pdf->SetTextColor(0);
-
+          // On active la classe une fois pour toutes les pages suivantes
+      // Format portrait (>P) ou paysage (>L), en mm (ou en points > pts), A4 (ou A5, etc.)
     }
-      /*$pdf->SetX(100);
+      $pdf = new PDF('L','mm','A4');
+      // Nouvelle page A4 (incluant ici logo, titre et pied de page)
+      $pdf->AddPage();
+      // Polices par défaut : Helvetica taille 9
+      $pdf->SetFont('Helvetica','',9);
+      // Couleur par défaut : noir
+      $pdf->SetTextColor(0);
+      // Compteur de pages {nb}
+      $pdf->AliasNbPages();
 
-      $date = date("d/m/Y");
-      $pdf->Cell(10,3,utf8_decode($date),0,'C');*/
+    
+      $pdf->SetLeftMargin(13);
+      $pdf->SetRightMargin(15);
+      $y = $pdf->GetY()+8;
+      $pdf->SetY($y);
+      
+      $pdf->line(12,$pdf->GetY(),$pdf->GetPageWidth()-12,$pdf->GetY());
+      $pdf->line(12,$y,12,$pdf->GetPageHeight()-15);
+      $pdf->line($pdf->GetPageWidth()-12,$y,$pdf->GetPageWidth()-12,$pdf->GetPageHeight()-15);
+
+      
+  $y = $pdf->GetY();
+    // $pdf->SetDrawColor(200, 200, 200);
+    $pdf->setFillColor(230,230,230);
+      $pdf->SetY($y);
+      $pdf->SetX(13);
+      //$pdf->Cell($pdf->GetPageWidth()-24,8, "",0,0,'','true');
+
+      $pdf->SetFont('Helvetica','',8);
+        $pdf->SetY($y);
+
+        $pdf->Cell(18,9,utf8_decode("N° Mat."),0,'L');
+        $pdf->SetFont('Helvetica','',9);
+
+        $pdf->line(32, $y,32,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(33);
+        $pdf->Cell(50,9,utf8_decode("Nom & Prenom"),0,'','C');
+        $pdf->SetFont('Helvetica','',9);
+
+        $pdf->line(84, $y,84,$y + 9);
+
+        $pdf->SetX(85);
+        $pdf->Cell(20,9,utf8_decode("Fonction"),0,'', 'R');
+
+        $pdf->SetX(106);
+        $pdf->MultiCell(18,4.5,utf8_decode("Nbre enf. au 31/12"),0,'R');
+        $pdf->line(125, $y,125,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(126);
+        $pdf->MultiCell(18,3,utf8_decode("Mt salaire et autres retrib.Brut"),0,'C');
+        $pdf->line(144, $y,144,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(145);
+        $pdf->Cell(15,9,utf8_decode("Retraite"),0,'', 'C');
+        $pdf->line(160, $y,160,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(160);
+        $pdf->SetFont('Helvetica','',7.5);
+        $pdf->MultiCell(18,3,utf8_decode("Allocations & Indem. non Imposables"),0,'C');
+        $pdf->line(178, $y,178,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(178);
+        $pdf->MultiCell(19,3,utf8_decode("Montages réel   Avantages   En Nature"),0,'C');
+        $pdf->line(197, $y,197,$pdf->GetPageHeight()-15);
+
+        $pdf->SetFont('Helvetica','',9);
+        $pdf->SetY($y);
+        $pdf->SetX(197);
+        $pdf->MultiCell(19,4,utf8_decode("Base Imposition"),0,'C');
+        $pdf->line(216, $y,216,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(216);
+        $pdf->MultiCell(19,4,utf8_decode("Impôt Retenu"),0,'C');
+        $pdf->line(235, $y,235,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(235);
+        $pdf->MultiCell(19,4,utf8_decode("Impôt Calculé"),0,'C');
+        $pdf->line(254, $y,254,$pdf->GetPageHeight()-15);
+
+        $pdf->SetY($y);
+        $pdf->SetX(254);
+        $pdf->MultiCell(19,4,utf8_decode("Solde Impôt"),0,'C');
+        $pdf->line(273, $y,273,$pdf->GetPageHeight()-15);
+        
+        $pdf->SetY($y);
+        $pdf->SetX(273);
+        $pdf->MultiCell($pdf->GetPageWidth() - 13 - 273,4,utf8_decode("Nbre mois"),0,'C');
 
 
-    /*// ...ou export sur le serveur dans un dossier "fic"
-    $pdf->Output('F', '../fic/test.pdf');
-    ?>*/
+        $pdf->line(12,$y+9,$pdf->GetPageWidth()-12,$y+9);
+            
+        $y= $pdf->GetY() + 2;
+        $pdf->SetY($y);
+
+        $sql_reg = "SELECT DISTINCT fk_salarie FROM ".MAIN_DB_PREFIX."bulletin WHERE annee = ".$annee_rechercher." AND fk_societe = ".$id_societe;
+        $sql_reg .= " ORDER BY nom";
+
+        $res = $db->query($sql_reg);
+      if($res) {
+        $num_obj = $db->num_rows($res);
+        if($num_obj == 0){
+          $pdf->SetFont('Helvetica','B',18);
+          $pdf->SetTextColor(150,0,0);
+          $pdf->SetY($y+80);
+          $pdf->SetX(95);
+          $pdf->Cell(50,4,utf8_decode("Veuillez attendre Decembre ".$annee_rechercher),0,'C');
+          $pdf->SetTextColor(0);
+        }
+          if($num_obj > 0){
+            $somme_brut_annuel = 0;
+            $somme_retraite = 0;
+            $prime_indemnite_non_imposable = 0;
+            $avantage_nature = 0;
+            $somme_brut_imposable_annuel = 0;
+            $somme_its_mois = 0;
+            $its_annuel = 0;
+            $difference = 0;
+          while ($obj_fk_salarie = $db->fetch_object($res)) {
+            $sal_its = "SELECT reg.*, bul.rowid, bul.matricule, bul.nom, bul.prenom, bul.situation_familiale, bul.nombre_enfant, bul.nombre_enfant_hand, bul.fonction";
+            $sal_its .= " FROM ".MAIN_DB_PREFIX."bulletin_regularisation_its AS reg";
+            $sal_its .= " INNER JOIN ".MAIN_DB_PREFIX."bulletin AS bul";
+            $sal_its .= " ON bul.fk_salarie = reg.fk_salarie";
+            $sal_its .= " WHERE reg.fk_salarie = ".$obj_fk_salarie->fk_salarie;
+
+            $sal_res = $db->query($sal_its);
+            if($sal_res)
+              $article29_obj = $db->fetch_object($sal_res);
+
+            if(($y + 24) >= $pdf->GetPageHeight()){
+              $pdf->AddPage();
+              // Polices par défaut : Helvetica taille 9
+              $pdf->SetFont('Helvetica','',9);
+              // Couleur par défaut : noir
+              $pdf->SetTextColor(0);
+              // Compteur de pages {nb}
+              $pdf->AliasNbPages();
+
+              $pdf->SetLeftMargin(13);
+              $pdf->SetRightMargin(15);
+              $y = $pdf->GetY()+8;
+              $pdf->SetY($y);
+              
+              $pdf->line(12,$pdf->GetY(),$pdf->GetPageWidth()-12,$pdf->GetY());
+              $pdf->line(12,$y,12,$pdf->GetPageHeight()-15);
+              $pdf->line($pdf->GetPageWidth()-12,$y,$pdf->GetPageWidth()-12,$pdf->GetPageHeight()-15);
+
+              
+              $y = $pdf->GetY();
+              // $pdf->SetDrawColor(200, 200, 200);
+              $pdf->setFillColor(230,230,230);
+              $pdf->SetY($y);
+              $pdf->SetX(13);
+              //$pdf->Cell($pdf->GetPageWidth()-24,8, "",0,0,'','true');
+
+              $pdf->SetFont('Helvetica','',8);
+                $pdf->SetY($y);
+
+                $pdf->Cell(18,9,utf8_decode("N° Mat."),0,'L');
+                $pdf->SetFont('Helvetica','',9);
+
+                $pdf->line(32, $y,32,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(33);
+                $pdf->Cell(50,9,utf8_decode("Nom & Prenom"),0,'','C');
+                $pdf->SetFont('Helvetica','',9);
+
+                $pdf->line(84, $y,84,$y + 9);
+
+                $pdf->SetX(85);
+                $pdf->Cell(20,9,utf8_decode("Fonction"),0,'', 'R');
+
+                $pdf->SetX(106);
+                $pdf->MultiCell(18,4.5,utf8_decode("Nbre enf. au 31/12"),0,'R');
+                $pdf->line(125, $y,125,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(126);
+                $pdf->MultiCell(18,3,utf8_decode("Mt salaire et autres retrib.Brut"),0,'C');
+                $pdf->line(144, $y,144,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(145);
+                $pdf->Cell(15,9,utf8_decode("Retraite"),0,'', 'C');
+                $pdf->line(160, $y,160,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(160);
+                $pdf->SetFont('Helvetica','',7.5);
+                $pdf->MultiCell(18,3,utf8_decode("Allocations & Indem. non Imposables"),0,'C');
+                $pdf->line(178, $y,178,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(178);
+                $pdf->MultiCell(19,3,utf8_decode("Montages réel   Avantages   En Nature"),0,'C');
+                $pdf->line(197, $y,197,$pdf->GetPageHeight()-15);
+
+                $pdf->SetFont('Helvetica','',9);
+                $pdf->SetY($y);
+                $pdf->SetX(197);
+                $pdf->MultiCell(19,4,utf8_decode("Base Imposition"),0,'C');
+                $pdf->line(216, $y,216,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(216);
+                $pdf->MultiCell(19,4,utf8_decode("Impôt Retenu"),0,'C');
+                $pdf->line(235, $y,235,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(235);
+                $pdf->MultiCell(19,4,utf8_decode("Impôt Calculé"),0,'C');
+                $pdf->line(254, $y,254,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(254);
+                $pdf->MultiCell(19,4,utf8_decode("Solde Impôt"),0,'C');
+                $pdf->line(273, $y,273,$pdf->GetPageHeight()-15);
+                
+                $pdf->SetY($y);
+                $pdf->SetX(273);
+                $pdf->MultiCell($pdf->GetPageWidth() - 13 - 273,4,utf8_decode("Nbre mois"),0,'C');
+
+
+                $pdf->line(12,$y+9,$pdf->GetPageWidth()-12,$y+9);
+                    
+                $y= $pdf->GetY() + 2;
+                $pdf->SetY($y);
+
+                
+            }
+
+            $pdf->SetFont('Times','',7.5);
+            $pdf->SetY($y);
+            $pdf->SetX(13);
+            $pdf->Cell(18,4,utf8_decode($article29_obj->matricule),0,'L');
+
+            
+            if ($pdf->GetStringWidth($text) < 45) {
+              $text = mb_strtoupper($article29_obj->nom.'   '.$article29_obj->prenom);
+            }
+
+          while ($pdf->GetStringWidth($text) > 52) {
+              $text = substr($text, 0, -1);
+            }
+
+            $pdf->SetY($y);
+            $pdf->SetX(32);
+            $pdf->Cell(50,4,utf8_decode($text),0,'L');
+
+            $pdf->SetFont('Times','',7.5);
+
+            $text = mb_strtoupper($article29_obj->fonction);
+            
+            while ($pdf->GetStringWidth($text) > 28) {
+              $text = substr($text, 0, -1);
+            }
+
+            $pdf->SetY($y);
+            $pdf->SetX(85);
+            $pdf->Cell(30,4,utf8_decode($text),0,'L');
+
+            $pdf->SetFont('Times','',8);
+            $st_m = "C";
+            if($article29_obj->situation_familiale == "Marié")
+              $st_m = "M";
+
+            $pdf->SetY($y);
+            $pdf->SetX(115);
+            $pdf->Cell(8,4,utf8_decode(mb_strtoupper($st_m."  ".$article29_obj->nombre_enfant."/".$article29_obj->nombre_enfant_hand)),0,'L');
+
+            $pdf->SetFont('Times','',7.5);
+            $pdf->SetY($y);
+            $pdf->SetX(126);
+            $pdf->Cell(18,4,utf8_decode(number_format(round($article29_obj->somme_brut_annuel), 0, '', ' ')), 0, 0,'R');
+            $somme_brut_annuel += round($article29_obj->somme_brut_annuel);
+
+            $pdf->SetX(145);
+            $pdf->Cell(15,4,utf8_decode(number_format(round($article29_obj->somme_retraite), 0, '', ' ')),0,'', 'R');
+            $somme_retraite += round($article29_obj->somme_retraite);
+
+            $pdf->SetX(160);
+            $pdf->Cell(18,4,utf8_decode(number_format(round($article29_obj->prime_indemnite_non_imposable), 0, '', ' ')),0,'', 'R');
+            $prime_indemnite_non_imposable += $article29_obj->prime_indemnite_non_imposable;
+
+          $pdf->SetX(178);
+            $pdf->Cell(19,4,utf8_decode(number_format(round($article29_obj->avantage_nature), 0, '', ' ')),0,'', 'R');
+            $avantage_nature += $article29_obj->avantage_nature;
+
+
+            $pdf->SetX(194);
+            $pdf->Cell(22,4,utf8_decode(number_format(round($article29_obj->somme_brut_imposable_annuel), 0, '', ' ')), 0, 0,'R');
+            $somme_brut_imposable_annuel += $article29_obj->somme_brut_imposable_annuel;
+
+            $pdf->SetX(216);
+            $pdf->Cell(19,4,utf8_decode(number_format(round($article29_obj->somme_its_mois), 0, '', ' ')), 0, 0,'R');
+            $somme_its_mois += $article29_obj->somme_its_mois;
+
+            $pdf->SetX(235);
+            $pdf->Cell(19,4,utf8_decode(number_format(round($article29_obj->its_annuel), 0, '', ' ')), 0, 0,'R');
+            $its_annuel += $article29_obj->somme_its_mois;
+
+            $pdf->SetX(254);
+            $pdf->Cell(19,4,utf8_decode(number_format(round($article29_obj->difference), 0, '', ' ')), 0, 0,'R');
+            $difference += $article29_obj->difference;
+
+            $pdf->SetX(273);
+            if($article29_obj->nb_mois > 12)
+              $pdf->Cell($pdf->GetPageWidth() - 13 - 273,4,12, 0, 0,'R');
+            else $pdf->Cell($pdf->GetPageWidth() - 13 - 273,4,utf8_decode(number_format(round($article29_obj->nb_mois), 0, '', ' ')), 0, 0,'R');
+            //$pdf->line(12,$y+4,$pdf->GetPageWidth()-12,$y+4);
+
+            $y += 6;
+          }
+
+          //Préparation pour affichage du total de l'année
+          if(($y + 24) >= $pdf->GetPageHeight()){
+              $pdf->AddPage();
+              // Polices par défaut : Helvetica taille 9
+              $pdf->SetFont('Helvetica','',9);
+              // Couleur par défaut : noir
+              $pdf->SetTextColor(0);
+              // Compteur de pages {nb}
+              $pdf->AliasNbPages();
+
+              $pdf->SetLeftMargin(13);
+              $pdf->SetRightMargin(15);
+              $y = $pdf->GetY()+8;
+              $pdf->SetY($y);
+              
+              $pdf->line(12,$pdf->GetY(),$pdf->GetPageWidth()-12,$pdf->GetY());
+              $pdf->line(12,$y,12,$pdf->GetPageHeight()-15);
+              $pdf->line($pdf->GetPageWidth()-12,$y,$pdf->GetPageWidth()-12,$pdf->GetPageHeight()-15);
+
+              
+              $y = $pdf->GetY();
+              // $pdf->SetDrawColor(200, 200, 200);
+              $pdf->setFillColor(230,230,230);
+              $pdf->SetY($y);
+              $pdf->SetX(13);
+              //$pdf->Cell($pdf->GetPageWidth()-24,8, "",0,0,'','true');
+
+              $pdf->SetFont('Helvetica','',8);
+                $pdf->SetY($y);
+
+                $pdf->Cell(18,9,utf8_decode("N° Mat."),0,'L');
+                $pdf->SetFont('Helvetica','',9);
+
+                $pdf->line(32, $y,32,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(33);
+                $pdf->Cell(50,9,utf8_decode("Nom & Prenom"),0,'','C');
+                $pdf->SetFont('Helvetica','',9);
+
+                $pdf->line(84, $y,84,$y + 9);
+
+                $pdf->SetX(85);
+                $pdf->Cell(20,9,utf8_decode("Fonction"),0,'', 'R');
+
+                $pdf->SetX(106);
+                $pdf->MultiCell(18,4.5,utf8_decode("Nbre enf. au 31/12"),0,'R');
+                $pdf->line(125, $y,125,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(126);
+                $pdf->MultiCell(18,3,utf8_decode("Mt salaire et autres retrib.Brut"),0,'C');
+                $pdf->line(144, $y,144,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(145);
+                $pdf->Cell(15,9,utf8_decode("Retraite"),0,'', 'C');
+                $pdf->line(160, $y,160,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(160);
+                $pdf->SetFont('Helvetica','',7.5);
+                $pdf->MultiCell(18,3,utf8_decode("Allocations & Indem. non Imposables"),0,'C');
+                $pdf->line(178, $y,178,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(178);
+                $pdf->MultiCell(19,3,utf8_decode("Montages réel   Avantages   En Nature"),0,'C');
+                $pdf->line(197, $y,197,$pdf->GetPageHeight()-15);
+
+                $pdf->SetFont('Helvetica','',9);
+                $pdf->SetY($y);
+                $pdf->SetX(197);
+                $pdf->MultiCell(19,4,utf8_decode("Base Imposition"),0,'C');
+                $pdf->line(216, $y,216,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(216);
+                $pdf->MultiCell(19,4,utf8_decode("Impôt Retenu"),0,'C');
+                $pdf->line(235, $y,235,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(235);
+                $pdf->MultiCell(19,4,utf8_decode("Impôt Calculé"),0,'C');
+                $pdf->line(254, $y,254,$pdf->GetPageHeight()-15);
+
+                $pdf->SetY($y);
+                $pdf->SetX(254);
+                $pdf->MultiCell(19,4,utf8_decode("Solde Impôt"),0,'C');
+                $pdf->line(273, $y,273,$pdf->GetPageHeight()-15);
+                
+                $pdf->SetY($y);
+                $pdf->SetX(273);
+                $pdf->MultiCell($pdf->GetPageWidth() - 13 - 273,4,utf8_decode("Nbre mois"),0,'C');
+
+
+                $pdf->line(12,$y+9,$pdf->GetPageWidth()-12,$y+9);
+                    
+                $y= $pdf->GetY() + 2;
+                $pdf->SetY($y);
+            }
+            //on affiche le total
+            //-------------------------------------------------------------------------------------------
+            $pdf->SetFont('Times','B',7.5);
+            $pdf->SetY($y);
+            $pdf->SetX(12);
+            $pdf->setFillColor(216, 222, 233);
+            $pdf->Cell(113,6,utf8_decode(mb_strtoupper("Total général")),1, 0, 'C', true);
+            
+
+            $pdf->SetFont('Times','',7.5);
+            $pdf->SetY($y);
+            $pdf->SetX(125.25);
+            $pdf->Cell(18.5,6,utf8_decode(number_format(round($somme_brut_annuel), 0, '', ' ')),'TB', 0,'R', true);
+
+            $pdf->SetX(144.25);
+            $pdf->Cell(15.5,6,utf8_decode(number_format(round($somme_retraite), 0, '', ' ')),'TB',0, 'R', true);
+
+            $pdf->SetX(160.25);
+            $pdf->Cell(17.5,6,utf8_decode(number_format(round($prime_indemnite_non_imposable), 0, '', ' ')),'TB',0, 'R', true);
+
+          $pdf->SetX(178.25);
+            $pdf->Cell(18.5,6,utf8_decode(number_format(round($avantage_nature), 0, '', ' ')),'TB',0, 'R', true);
+
+
+            $pdf->SetX(197.25);
+            $pdf->Cell(18.5,6,utf8_decode(number_format(round($somme_brut_imposable_annuel), 0, '', ' ')),'TB', 0,'R', true);
+
+            $pdf->SetX(216.25);
+            $pdf->Cell(18.5,6,utf8_decode(number_format(round($somme_its_mois), 0, '', ' ')),'TB', 0,'R', true);
+
+            $pdf->SetX(235.25);
+            $pdf->Cell(18.5,6,utf8_decode(number_format(round($its_annuel), 0, '', ' ')),'TB', 0,'R', true);
+
+            $pdf->SetX(254.25);
+            $pdf->Cell(19,6,utf8_decode(number_format(round($difference), 0, '', ' ')),'TB', 0,'R', true);
+            
+            $pdf->SetX(273);
+            $pdf->Cell($pdf->GetPageWidth() - 12 - 273,6,'', 1, 0,'R', true);
+
+            //------------------------------------------------------------------------------------------------------------------
+        }else{
+          $pdf->SetFont('Helvetica','B',18);
+          $pdf->SetTextColor(150,0,0);
+          $pdf->SetY($y+80);
+          $pdf->SetX(95);
+          $pdf->Cell(50,4,utf8_decode("Veuillez attendre Decembre ".$annee_rechercher),0,'C');
+          $pdf->SetTextColor(0);
+        }
+
+
+      }else{
+          $pdf->SetFont('Helvetica','B',18);
+          $pdf->SetTextColor(150,0,0);
+          $pdf->SetY($y+80);
+          $pdf->SetX(95);
+          $pdf->Cell(50,4,utf8_decode("Veuillez attendre Decembre ".$annee_rechercher),0,'C');
+          $pdf->SetTextColor(0);
+
+      }
+     
+}
      
     // affichage à l'écran...
-    $pdf->Output('listePersonnel.pdf','I');
+    $pdf->Output('Regularisation ITS '.$annee_rechercher.' de '.$sc->nom.'.pdf','I');
 
     $db->close();
 
     /*Verification de l'artile 24 de l'its */
-function article24_its($db, $id_societe, $annee_rechercher){
-
-  $sql = "SELECT nom FROM ".MAIN_DB_PREFIX."societe Where rowid=".$id_societe;
-    $result1 = $db->query($sql);
-    $sc = $db->fetch_object($result1);
-  
-    $somme_brut = 0;
-    $somme_brut_imposable = 0;
-    $somme_its = 0;
-    $obj_array = array();
-    $sql_verif_parent = "SELECT DISTINCT fk_salarie FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND fk_societe=".$id_societe." AND cloture='oui'";
-    $res_verif_parent = $db->query($sql_verif_parent);
-    if($res_verif_parent){	  
-      $num = $db->num_rows($res_verif_parent);
-      $a = 0;
-      while ($a < $num) {
-        $somme_brut = 0;
-        $somme_brut_imposable = 0;
-        $somme_its = 0;
-        //bulletin
-        $obj_verif_parent = $db->fetch_object($res_verif_parent);
-        $sql_verif = "SELECT SUM(salaire_brut) as brut, SUM(salaire_brut_imposable) as brut_imposable FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_salarie=".$obj_verif_parent->fk_salarie;
-        $res_verif = $db->query($sql_verif);
-        if($res_verif){
-          $obj_verif = $db->fetch_object($res_verif);
-          $somme_brut = $obj_verif->brut;
-          $somme_brut_imposable = $obj_verif->brut_imposable;
-        }
-
-       //Bulletin bonus
-        $sql_verif = "SELECT SUM(salaire_brut) as brut, SUM(salaire_brut_imposable) as brut_imposable FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND fk_salarie=".$obj_verif_parent->fk_salarie;
-        $res_verif = $db->query($sql_verif);
-        if($res_verif){
-          $obj_verif = $db->fetch_object($res_verif);
-          $somme_brut += $obj_verif->brut;
-          $somme_brut_imposable += $obj_verif->brut_imposable;
-        }
-  
-        //bulletin
-        $sql_bul = "SELECT rowid, matricule, nom, prenom, situation_familiale, nombre_enfant, nombre_enfant_hand, sexe FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_salarie=".$obj_verif_parent->fk_salarie;
-        $res_bul = $db->query($sql_bul);
-        if($res_bul){
-          $num_bul = $db->num_rows($res_bul);
-          $j = 0;
-          while($j < $num_bul){
-            $obj_bul = $db->fetch_object($res_bul);
-            $sql_taxe = "SELECT montant FROM ".MAIN_DB_PREFIX."bulletin_taxe WHERE fk_bulletin=".$obj_bul->rowid;
-            $res_taxe = $db->query($sql_taxe);
-            if($res_taxe){
-              $obj_taxe = $db->fetch_object($res_taxe);
-              $somme_its += $obj_taxe->montant;
-            }
-            $j ++;
-          }
-        
-
-        //bulletin bonus
-        $sql_bul_bonus = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND fk_salarie=".$obj_verif_parent->fk_salarie;
-        $res_bul_bonus = $db->query($sql_bul_bonus);
-        if($res_bul_bonus){
-          $num_bul_bonus = $db->num_rows($res_bul_bonus);
-          $j = 0;
-          while($j < $num_bul_bonus){
-            $obj_bul_bonus = $db->fetch_object($res_bul_bonus);
-            $sql_taxe = "SELECT montant FROM ".MAIN_DB_PREFIX."bulletin_bonus_taxe WHERE fk_bulletin=".$obj_bul_bonus->rowid;
-            $res_taxe = $db->query($sql_taxe);
-            if($res_taxe){
-              $obj_taxe = $db->fetch_object($res_taxe);
-              $somme_its += $obj_taxe->montant;
-            }
-            $j ++;
-          }
-        }
-  
-          $obj_array[$a]["matricule"] = $obj_bul->matricule;
-          $obj_array[$a]["nom"] = $obj_bul->nom;
-          $obj_array[$a]["prenom"] = $obj_bul->prenom;
-          $obj_array[$a]["sexe"] = $obj_bul->sexe;
-          $obj_array[$a]["situation_familiale"] = $obj_bul->situation_familiale;
-          $obj_array[$a]["nombre_enfant"] = $obj_bul->nombre_enfant;
-          $obj_array[$a]["nombre_enfant_hand"] = $obj_bul->nombre_enfant_hand;
-          $obj_array[$a]["somme_brut"] = $somme_brut;
-          $obj_array[$a]["somme_brut_imposable"] = $somme_brut_imposable;
-          $obj_array[$a]["somme_its"] = $somme_its;
-          $its_annuel = its_salarie_annuel($db, $somme_brut, $obj_bul->situation_familiale, $obj_bul->nombre_enfant, $obj_bul->nombre_enfant_hand);
-          $obj_array[$a]["its_annuelle"] = $its_annuel;
-          $obj_array[$a]["difference"] = $its_annuel - $somme_its;
-  
-        }
-        $a ++;
-      }
-    }
-    return $obj_array;
-  }
-
-  //ITS annuel article24.
-function its_salarie_annuel($db, $salaire_brut, $situation_familiale = "celibataire", $nb_enfant = 0, $nb_enf_hand = 0){
-	$taux_montant_its_annuel_mensuel = array();
-		$mont = "".$salaire_brut;
-	if($salaire_brut <= 250){
-		return 0;
-	}else{
-		
-		$dern_ch = substr($mont, strlen($mont)-3, strlen($mont)-1);
-		if($dern_ch >=0 && $dern_ch < 250){
-			$mont = substr($mont, 0, strlen($mont)-3)."000";
-		}else if($dern_ch >=251 && $dern_ch < 500){
-
-			$mont = substr($mont, 0, strlen($mont)-3)."250";
-		}else if($dern_ch >=501 && $dern_ch < 750){
-			$mont = substr($mont, 0, strlen($mont)-3)."500";
-		}else if($dern_ch >=701 && $dern_ch <= 999){
-			$mont = substr($mont, 0, strlen($mont)-3)."750";
-		}
-
-
-		
-		$ss = (int) $mont;
-	//-----------------------------------------
-				
-			
-		
-			$tab = 0;
-				$sql_bareme = "SELECT * FROM ".MAIN_DB_PREFIX."taxe WHERE fk_type=1 AND montant_debut<=".$ss." ORDER BY montant_debut ASC";
-				$result_bareme = $db->query($sql_bareme);
-				if($result_bareme){
-					$i = 0;
-					$num = $db->num_rows($result_bareme);
-					while ($i < $num) {
-						$bareme = $db->fetch_object($result_bareme);
-						if($num >= 2)
-							if($i == ($num - 1)){
-								$tab = $tab + ((($ss - $bareme->montant_debut)*$bareme->taux)/100);
-							}else if($i == ($num - 2)){
-								$tab = $tab +  $bareme->valeur;
-							}
-						$i ++;
-					}
-					$taux = 0;
-					if($situation_familiale == "marie")
-						$taux = 10;
-					$taux = $taux + ($nb_enfant - $nb_enf_hand)*2.5;
-					$taux = $taux + $nb_enf_hand*10;
-
-										
-
-					$its_brut = $tab;
-
-					$its_annuel_net = $its_brut - ($its_brut * $taux / 100);
-
-					$taux_its_annuel =  ($its_annuel_net/$ss)*100;
-					$taux_its_reduit = $taux_its_annuel - 2;
-
-					if($taux_its_reduit < 0)
-						$taux_its_reduit = 0;
-
-
-					$its_annuel = ($taux_its_reduit*$ss)/100;
-					
-				
-		}
-
-		return $its_annuel;
-	}
-		
-}
-
-
-function apres_virgule($valeur, $decalage){
-  $val_retour = "";
-  $tab = explode('.',$valeur);
-  if(count($tab) > 1){
-    $chif = $tab[1];
-    $val_retour = $tab[0].".";
-    
-    if((strlen($chif))>$decalage){
-    for ($i=0; $i < $decalage; $i++) { 
-      $val_retour .= $chif[$i];
-    }
-    }else{
-    for ($i=0; $i < strlen($chif); $i++) { 
-      $val_retour .= $chif[$i];
-    }
-    for ($i=0; $i < ($decalage - strlen($chif)); $i++) { 
-      $val_retour .= "0";
-    }
-    }
-  }else{
-    $val_retour = $valeur.".";
-    for ($i=0; $i < $decalage; $i++) { 
-    $val_retour .= "0";
-    }
-  }
-  
-  return $val_retour;
-  }

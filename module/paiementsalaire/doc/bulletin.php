@@ -32,7 +32,7 @@ if($fk_user && $fk_salarie){
     }
   }
 
-  $sql_soc = "SELECT societe_mere FROM ".MAIN_DB_PREFIX."salairepaie_societe WHERE fk_societe=".$id_societe;
+  $sql_soc = "SELECT societe_mere, afficher_regularisation_its FROM ".MAIN_DB_PREFIX."salairepaie_societe WHERE fk_societe=".$id_societe;
 		$result_soc = $db->query($sql_soc);
 		if($result_soc)
 			$info_soc = $db->fetch_object($result_soc);
@@ -194,7 +194,9 @@ if($action == "no_save"){
     $pdf->Cell(30,4, utf8_decode("Heures travaillés"),0,0,'L');
 
     $pdf->SetLeftMargin(63);
-    $nb_total_jour = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
+    if($mois != 13)
+      $nb_total_jour = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
+    else $nb_total_jour = 30;
     $heur_normal = 173.33;
     if($nb_jours != $nb_total_jour)
       $heur_normal = round(($nb_jours*$heur_normal)/$nb_total_jour, 2);
@@ -862,14 +864,13 @@ if($action == "no_save"){
 
           //Avance/acompte
           $somme_avance = 0;
-          $avance = salarie_avance_acompte_sans_save($db, $fk_salarie, $mois, $annee);
+          $avance = salarie_avance_acompte_sans_save_13($db, $fk_salarie, $mois, $annee);
           $i = 0;
           foreach ($avance as $key => $value) {
             $sql_avance = "SELECT libelle FROM ".MAIN_DB_PREFIX."salarie_avance WHERE rowid=".$key;
               $result_avance = $db->query($sql_avance);
               $obj_avance = $db->fetch_object($result_avance);
 
-            $num = $db->num_rows($bulletin_avance);
             if($i == 0){
               $y = $pdf->GetY()+5;
               $pdf->line(12,$y ,$pdf->GetPageWidth()-12,$y);
@@ -1106,7 +1107,9 @@ if($action == "no_save"){
       $pdf->Cell(30,4, utf8_decode("Heures normales"),0,0,'L');
 
       $pdf->SetLeftMargin(63);
-      $nb_total_jour = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
+      if($mois != 13)
+        $nb_total_jour = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
+      else $nb_total_jour = 30;
       $heur_normal = 173.33;
       if($nb_jours != $nb_total_jour)
         $heur_normal = round(($nb_jours*$heur_normal)/$nb_total_jour, 2);
@@ -1460,18 +1463,47 @@ if($action == "no_save"){
               $y = $pdf->GetY() +2;
               $pdf->SetLeftMargin(13);
               $pdf->SetY($y);
-              $pdf->Cell(49,4, utf8_decode($obj_bulletin_taxe->libelle),0,0,'L');
 
-              $pdf->SetX(63);
-              $pdf->Cell(20,4, utf8_decode($obj_bulletin_taxe->taux."%"),0,0,'R');
+              if($mois == 12){
+                $sql_reg = "SELECT difference FROM ".MAIN_DB_PREFIX."bulletin_regularisation_its";
+                $sql_reg .= " WHERE fk_salarie = ".$obj_bulletin->fk_salarie." AND annee = ".$annee." AND mois = 12";
+                $res = $db->query($sql_reg);
+                if($res){
+                  $article29_obj = $db->fetch_object($res);
+                  $num_obj = $db->num_rows($res);
+                }      
+                if($info_soc->afficher_regularisation_its == 1){
+                  $reg = $article29_obj->difference;
+                  if((int)$article29_obj->difference > 0)
+                    $pdf->Cell(49,4, utf8_decode($obj_bulletin_taxe->libelle." Régularisé(+".apres_virgule($db, $id_societe, $article29_obj->difference, 2).")"),0,0,'L');
+                  else $pdf->Cell(49,4, utf8_decode($obj_bulletin_taxe->libelle." Régularisé(".apres_virgule($db, $id_societe, $article29_obj->difference, 2).")"),0,0,'L');
+                }else{
+                  $pdf->Cell(49,4, utf8_decode($obj_bulletin_taxe->libelle),0,0,'L');
+                }
+                $pdf->SetX(63);
+                $pdf->Cell(20,4, utf8_decode($obj_bulletin_taxe->taux."%"),0,0,'R');
 
-              $pdf->SetX(83);
-              $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_imposable, 2)),0,0,'R');
+                $pdf->SetX(83);
+                $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_imposable, 2)),0,0,'R');
 
-              $pdf->SetX(133);
-              $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_taxe->montant, 2)),0,'R');
-              $retenu += $obj_bulletin_taxe->montant;
-              $retenu_its += $obj_bulletin_taxe->montant;
+                $pdf->SetX(133);
+                $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_taxe->montant + $reg, 2)),0,'R');
+                $retenu += $obj_bulletin_taxe->montant + $reg;
+                $retenu_its += $obj_bulletin_taxe->montant + $reg;
+              }else{
+                $pdf->Cell(49,4, utf8_decode($obj_bulletin_taxe->libelle),0,0,'L');
+
+                $pdf->SetX(63);
+                $pdf->Cell(20,4, utf8_decode($obj_bulletin_taxe->taux."%"),0,0,'R');
+
+                $pdf->SetX(83);
+                $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_imposable, 2)),0,0,'R');
+
+                $pdf->SetX(133);
+                $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_taxe->montant, 2)),0,'R');
+                $retenu += $obj_bulletin_taxe->montant;
+                $retenu_its += $obj_bulletin_taxe->montant;
+              }
 
           }
             $i ++;

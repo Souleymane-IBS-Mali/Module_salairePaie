@@ -10,8 +10,18 @@ llxHeader("", "Paiement | Salaire");
 //print '<hr>';
 
 $id_societe = GETPOST('id_societe','int');
-$action =  GETPOST('action','alpha');
+$action = GETPOST('action','alpha');
 $id_convention = GETPOST('id_convention','int');
+
+$formconfirm = '';
+$message = '';
+$array = array();
+$key = array();
+$val = array();
+$res_bulletin = false;
+$recherche_fk_salarie = '';
+$recherche_anciennete = '';
+
 
 
 /*if(!$user->rights->paiementsalaire->societe->genererBulletin && $user->rights->paiementsalaire->salarie->voirDocument){
@@ -135,6 +145,294 @@ if($user->rights->paiementsalaire->societe->read){
                   $action = "annee_rechercher";
           }
 
+          if($action == "attente_rafraichissement"){
+            $mois = GETPOST("mois", "int");
+              $annee = GETPOST("annee", "int");
+              $id_societe = GETPOST("id_societe", "int");
+                $url = $_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois;
+                $titre = 'Veillez confirmer l\'actualisation';
+
+                  $formconfirm = $monform->formconfirm(
+                      $url, 
+                      $titre, 
+                      "", 
+                      'actualiser', 
+                      $array, 
+                      '', 
+                      1,
+                      300,
+                      '30%'
+                  );
+                  print $formconfirm;
+                  $action = "annee_rechercher";
+          }
+
+          if ($action == "actualiser") {
+              $mois = GETPOST("mois", "int");
+              $annee = GETPOST("annee", "int");
+              $id_societe = GETPOST("id_societe", "int");
+              $tab_bonus = array();
+
+              $sql_verif = "SELECT rowid, pourcentage, fk_salarie, fk_societe, nom, prenom, libelle, nom_bonus, salaire_brut FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee = ".((int) $annee)." AND mois = ".((int) $mois)." AND fk_societe = ".((int) $id_societe);
+              $res_verif = $db->query($sql_verif);
+
+              if ($res_verif) {
+                  while ($obj_verif = $db->fetch_object($res_verif)) {
+
+                      $tab_bonus[] = array(
+                        'id_bull' => $obj_verif->rowid,
+                        'fk_salarie' => $obj_verif->fk_salarie,
+                        'fk_societe' => $obj_verif->fk_societe,
+                          'nom' => $obj_verif->nom,
+                          'prenom' => $obj_verif->prenom,
+                          'libelle' => $obj_verif->libelle,
+                          'nom_bonus' => $obj_verif->nom_bonus,
+                          'salaire_brut' => $obj_verif->salaire_brut,
+                          'pourcentage' => $obj_verif->pourcentage
+                      );
+                  }
+              }
+
+   /* print $db->error();
+    echo '<pre>';
+    print_r($tab_bonus);
+    echo '</pre>';*/
+              //suppression des bulletins
+              suppression($db, $annee, $mois, $id_societe, $obj_soc);
+              
+              foreach ($tab_bonus as $bonus) {
+                  $sql_verif = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe." AND fk_salarie=".$bonus['fk_salarie'];
+                  $res_verif = $db->query($sql_verif);
+                        if($res_verif){
+                          $num = $db->num_rows($res_verif);
+                          $obj_verif = $db->fetch_object($res_verif);
+                        }                  
+
+                            $salaire_brut = $bonus['salaire_brut'];
+                            $montant_fixe = $salaire_brut;
+                            $base = 
+                            $salaire_brut_imposable = $salaire_brut;
+                              $salaire_brut_cotisable = $salaire_brut;
+                              $montant_pourcentage = $bonus['pourcentage']?:"100";
+                              $base = $salaire_brut*$montant_pourcentage/100;
+
+                           
+                              $salaire_net = 0;
+                              $retenu_prest_empl = 0;
+                              $retenu_prest_patro = 0;
+                              $retenu_taxe = 0;
+                              $retenu = 0;
+                              $inps = 0;
+
+                              $old_fk_orga = 0;
+                              $nom_organisme = array();
+                              $id_organisme = array();
+                              $array_prestation = array();
+                              $array_taxe = array();
+                              $montant_org_sal = array();
+                              $montant_org_patro = array();
+                              $pourcentage_org = array();
+
+                              $index = 0;
+                              $global_cotis = salarie_prestation_organisme($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
+                              $cotis = $global_cotis[1];
+                              $taux_p = $global_cotis[0];
+                              foreach ($cotis as $key => $value) {
+                                $type_prest = "SELECT * FROM ".MAIN_DB_PREFIX."type_prestation WHERE rowid=".$key;
+                                $result_type_prest = $db->query($type_prest);
+                                $obj_prest_type = $db->fetch_object($result_type_prest);
+
+                                if($obj_prest_type->fk_organisme != $old_fk_orga){
+                                  $old_fk_orga = $obj_prest_type->fk_organisme;
+                                  $organisme = "SELECT rowid, nom_organisme FROM ".MAIN_DB_PREFIX."organisme WHERE rowid=".$old_fk_orga;
+                                  $result_organisme = $db->query($organisme);
+                                  $id_organisme[] = $old_fk_orga;
+                                  $obj_organisme = $db->fetch_object($result_organisme);
+                                  $nom_organisme[] = $obj_organisme->nom_organisme;
+                                  $montant_org_sal[] = $value*$salaire_brut_cotisable/100;
+                                  $montant_org_patro[] = $taux_p[$index]*$salaire_brut_cotisable/100;
+                                  $pourcentage_org[] = $value;
+
+                                  $retenu_prest_empl += $value*$salaire_brut_cotisable/100;
+                                  $retenu_prest_patro += $taux_p[$index]*$salaire_brut_cotisable/100;
+                                }else{
+                                  $retenu_prest_empl += $value*$salaire_brut_cotisable/100;
+                                  $retenu_prest_patro += $taux_p[$index]*$salaire_brut_cotisable/100;
+
+                                  $montant_org_sal[(count($montant_org_sal) - 1)] += $value*$salaire_brut_cotisable/100;
+                                  $montant_org_patro[(count($montant_org_patro) - 1)] += $taux_p[$index]*$salaire_brut_cotisable/100;
+                                  $pourcentage_org[count($pourcentage_org)-1] += $value;
+                                }
+                                
+                                if($obj_prest_type->rowid != 6)
+                                  $inps += $value*$salaire_brut_cotisable/100;
+
+                                $index ++;
+                              }
+
+                                //les prestations à afficher sur le bulletin
+                                $index = 0;
+                                  $global_cotis = salarie_prestation($db, $obj_verif->fk_salarie, $id_convention, $id_societe);
+                                  $cotis = $global_cotis[1];
+                                  $taux_p = $global_cotis[0];
+                                  foreach ($cotis as $key => $value) {
+                                    $type_prest = "SELECT rowid, fk_organisme, code, affiche_bulletin FROM ".MAIN_DB_PREFIX."type_prestation WHERE rowid=".$key;
+                                      $result_type_prest = $db->query($type_prest);
+                                      $obj_prest_type = $db->fetch_object($result_type_prest);
+                                
+                                      $array_prestation[$index][0] = $key;
+                                      $array_prestation[$index][1] = $obj_prest_type->affiche_bulletin;
+                                      $array_prestation[$index][2] = $value*$salaire_brut_cotisable/100;
+                                      $array_prestation[$index][3] = $taux_p[$index]*$salaire_brut_cotisable/100;
+                                      $array_prestation[$index][4] = $value;
+                                      $array_prestation[$index][5] = $taux_p[$index];
+                                      $array_prestation[$index][6] = $obj_prest_type->code;
+
+                                      $index ++;
+                                      if(!in_array($obj_prest_type->fk_organisme, $id_organisme)){
+                                        $retenu_prest_empl += apres_virgule($db, $id_societe, $value*$salaire_brut_cotisable/100, 2);
+                                        $retenu_prest_patro += apres_virgule($db, $id_societe, $taux_p[$index]*$salaire_brut_cotisable/100, 2);
+                                        if($obj_prest_type->rowid != 6) //juste AMO
+                                          $inps += $value*$salaire_brut_cotisable/100; 
+                                      }
+                                  }
+                                  //A par amo les autres detail de l'INPS ne sont pas soumis aux impôt
+
+                                  //les taxes qui ont comme barème : barème cotisation
+                            $index = 0;
+                            $global_taxe = salarie_taxe2($db, $obj_verif->fk_salarie, $id_convention);
+                            $taxe = $global_taxe[1];
+                            $taux_t = $global_taxe[0];
+                            foreach ($taxe as $key => $value) {
+                              $type_taxe = "SELECT rowid, libelle, fk_organisme, affiche_bulletin FROM ".MAIN_DB_PREFIX."type_taxe WHERE rowid=".$key;
+                                $result_type_taxe = $db->query($type_taxe);
+                                $obj_taxe_type = $db->fetch_object($result_type_taxe);
+
+                                $array_taxe[$index][0] = $key;
+                                $array_taxe[$index][1] = $obj_taxe_type->affiche_bulletin;
+                                $array_taxe[$index][2] = $value*$salaire_brut/100;
+                                $array_taxe[$index][3] = $taux_t[$index]*$salaire_brut/100;
+                                $array_taxe[$index][4] = $value;
+                                $array_taxe[$index][5] = $taux_t[$index];
+                                $array_taxe[$index][6] = $obj_taxe_type->libelle;
+
+                                $index ++;
+                            }
+
+                                  $salaire_brut_imposable -= $inps;
+                                  //tratement de l'its
+                                  $its = its_salarie($db, "", $salaire_brut_imposable, $obj_verif->situation_familiale, $obj_verif->nombre_enfant, $obj_verif->nombre_enfant_hand);
+                                  $retenu_taxe = $its[2];
+
+                                  $retenu = $retenu_prest_empl + $retenu_taxe;
+                                  //calcul du salaire net
+                                  $salaire_net = $salaire_brut - $retenu_prest_empl - $retenu_taxe;
+                                  //print $obj_verif->nom."  ".$obj_verif->nom." =".$salaire_brut_imposable." BC=".$salaire_brut_cotisable." SN=".$salaire_net." R=".$retenu."<br>";
+
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus (id_bull, nom_bonus, libelle, nom, prenom, fk_salarie, matricule, situation_familiale, nombre_enfant, nombre_enfant_hand, categorie
+                              , echelon, contrat, diplome, type_salarie, fonction, date_embauche, sexe, pays, ville, addresse, tel, email, annee, mois, salaire_brut, salaire_brut_cotisable,
+                              salaire_brut_imposable, net_payer, fk_societe, nom_societe, logo_societe, nom_convention,inps,amo,banque,compte,montant,pourcentage, base, type_salaire) 
+                              VALUES("'.$id_bull.'","'.$bonus['nom_bonus'].'", "'.$bonus['libelle'].'","'.$bonus['nom'].'","'.$bonus['prenom'].'",'.$obj_verif->fk_salarie.',"'.$obj_verif->matricule.'","'.$obj_verif->situation_familiale.'",'.$obj_verif->nombre_enfant.','.$obj_verif->nombre_enfant_hand.',
+                              "'.$obj_verif->categorie.'","'.$obj_verif->echelon.'","'.$obj_verif->contrat.'","'.$obj_verif->diplome.'","'.$obj_verif->type_salarie.'","'.$obj_verif->fonction.'","'.$obj_verif->date_embauche.'",
+                              "'.$obj_verif->sexe.'","'.$obj_verif->pays.'","'.$obj_verif->ville.'","'.$obj_verif->addresse.'","'.$obj_verif->tel.'","'.$obj_verif->email.'",
+                              '.$annee.','.$mois.',"'.round($salaire_brut, 2).'","'.round($salaire_brut_cotisable, 2).'","'.round($salaire_brut_imposable, 2).'","'.round($salaire_net).'",'.$obj_verif->fk_societe.',"'.$obj_verif->nom_societe.'","'.$obj_verif->logo_societe.'",
+                              "'.$obj_verif->nom_convention.'","'.$obj_verif->inps.'","'.$obj_verif->amo.'","'.$obj_verif->banque.'","'.$obj_verif->compte.'","'.$montant_fixe.'","'.$montant_pourcentage.'","'.$base.'", "'.GETPOST("type_salaire", "alpha").'")';
+
+                                  $res_bulletin = $db->query($sql_bulletin);
+                                  if($res_bulletin){
+                                    $sql_verif_bonus = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE fk_salarie=".$obj_verif->fk_salarie." AND annee=".$annee." AND mois=".$mois;
+                                    $res_verif_bonus = $db->query($sql_verif_bonus);
+                                    $obj_last = $db->fetch_object($res_verif_bonus);
+                                    $rowid_bulletin = $obj_last->rowid;
+
+                            
+                                //insertion dans la table bulletin taxe
+                                if($rowid_bulletin){
+                                  $fk_taxe = 1;
+                                  $montant = $its[2];
+                                  $libelle = $its[3];
+                                  $affiche_bulletin = "Oui";
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_taxe (fk_bulletin, fk_taxe, libelle, taux, montant, affiche_bulletin)';
+                                  $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_taxe.',"'.$libelle.'","'.round($its[0], 2).'","'.round($montant).'","'.$affiche_bulletin.'")';
+                                  $res_bulletin = $db->query($sql_bulletin);
+                                }
+
+                                //CFE et TL
+                                for ($g=0; $g < count($array_taxe); $g++) {
+                                  $fk_taxe = $array_taxe[$g][0];
+                                  $affiche_bulletin = $array_taxe[$g][1];
+                                  $montant_employe = $array_taxe[$g][2]?:0;
+                                  $montant_employeur = $array_taxe[$g][3]?:0;
+                                  $taux_employe = $array_taxe[$g][4]?:0;
+                                  $taux_employeur = $array_taxe[$g][5]?:0;
+                                  $libelle = $array_taxe[$g][6];
+                                  //insertion dans la table bulletin cotisations
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_taxe2 (fk_bulletin, fk_taxe, libelle, taux_employe, taux_employeur, montant_employe, montant_employeur, affiche_bulletin)';
+                                  $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_taxe.',"'.$libelle.'","'.$taux_employe.'","'.$taux_employeur.'","'.round($montant_employe).'","'.round($montant_employeur).'","'.$affiche_bulletin.'")';
+                                  $res_bulletin = $db->query($sql_bulletin);
+                                  //if($res_bulletin)
+                                  // print $sql_bulletin.'<br>';
+                                }
+
+                                for ($g=0; $g < count($array_prestation); $g++) { 
+                                  $fk_cotisation = $array_prestation[$g][0];
+                                  $affiche_bulletin = $array_prestation[$g][1];
+                                  $montant_employe = $array_prestation[$g][2]?:0;
+                                  $montant_employeur = $array_prestation[$g][3]?:0;
+                                  $taux_employe = $array_prestation[$g][4]?:0;
+                                  $taux_employeur = $array_prestation[$g][5]?:0;
+                                  $libelle = $array_prestation[$g][6];
+                                  //insertion dans la table bulletin cotisations
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_cotisation (fk_bulletin, fk_cotisation, libelle, taux_employe, taux_employeur, montant_employe, montant_employeur, affiche_bulletin)';
+                                  $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_cotisation.',"'.$libelle.'","'.$taux_employe.'","'.$taux_employeur.'","'.round($montant_employe).'","'.round($montant_employeur).'","'.$affiche_bulletin.'")';
+                                  $res_bulletin = $db->query($sql_bulletin);
+                                }
+
+                                for ($g=0; $g < count($nom_organisme); $g++) { 
+                                  $sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_bonus_organisme (fk_bulletin, fk_organisme, nom_organisme, pourcentage, montant_employe, montant_employeur)';
+                                  $sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$id_organisme[$g].',"'.$nom_organisme[$g].'","'.$pourcentage_org[$g].'","'.round($montant_org_sal[$g]).'","'.round($montant_org_patro[$g]).'")';
+                                  $res_bulletin = $db->query($sql_bulletin);
+                          
+                                }
+                              }
+                            $a ++;
+              }
+
+              if ($res_bulletin) {
+                $message = "Complément de salaire de ".$mois_tab[$mois - 1]." ".$annee." régénéré avec succès";
+                $sql_select = "SELECT firstname, lastname 
+                              FROM ".MAIN_DB_PREFIX."user 
+                              WHERE rowid = ".((int) $user->id);
+
+                $res_user = $db->query($sql_select);
+                $obj = $db->fetch_object($res_user);
+
+                $action_effectue = "Actualisation du complément salaire de ".$mois_tab[$mois - 1]." ".$annee." de la société ".$obj_soc->nom;
+
+                $sql_log = "INSERT INTO ".MAIN_DB_PREFIX."log 
+                            (fk_user, nom, prenom, quand, action_effectue, object_concerne)
+                            VALUES (
+                                ".((int) $user->id).",
+                                '".$db->escape($obj->lastname)."',
+                                '".$db->escape($obj->firstname)."',
+                                NOW(),
+                                '".$db->escape($action_effectue)."',
+                                'Complements salaires'
+                            )";
+
+                $db->query($sql_log);
+
+            } else {
+
+                $message = "Un problème est survenu<br>";
+                $message .= $db->error();
+            }
+              $action = "annee_rechercher";
+
+              // Affichage pour vérifier
+              
+          }
+
           //Suppression d'un complément salaire
           if($action == "supprimer_complement"){
             $mois = GETPOST("mois", "int");
@@ -232,7 +530,7 @@ if($user->rights->paiementsalaire->societe->read){
           if($action == "save_modification_nom"){
               $mois = GETPOST("mois", "int");
               $annee = GETPOST("annee", "int");
-              $nom_bonus = GETPOST("nom_bonus", "alpha");
+              $nom_bonus = GETPOST("nom_bonus", "alphanohtml");
 
               //Recupération des données à modifier
               $sql_verif = 'UPDATE '.MAIN_DB_PREFIX.'bulletin_bonus SET nom_bonus="'.$nom_bonus.'" WHERE annee='.$annee.' AND mois='.$mois.' AND fk_societe='.$id_societe;
@@ -390,7 +688,7 @@ if($user->rights->paiementsalaire->societe->read){
                               
                               //les taxes qui ont comme barème : barème cotisation
                             $index = 0;
-                            $global_taxe = salarie_taxe2($db, $obj_salarie->rowid, $id_convention);
+                            $global_taxe = salarie_taxe2($db, $obj_verif->fk_salarie, $id_convention);
                             $taxe = $global_taxe[1];
                             $taux_t = $global_taxe[0];
                             foreach ($taxe as $key => $value) {
@@ -511,70 +809,7 @@ if($user->rights->paiementsalaire->societe->read){
             $mois = GETPOST("mois", "int");
               $annee = GETPOST("annee", "int");
               $id_societe = GETPOST("id_societe", "int");
-            //Préparation de la base de donnée
-            $sql_verif = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
-            $res_verif = $db->query($sql_verif);
-            if($res_verif){
-                              
-              $d = 0;
-              $dnum = $db->num_rows($res_verif);
-              while ($d < $dnum) {
-                                  
-                $obj_verif = $db->fetch_object($res_verif);
-
-                //suppression
-                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_prime WHERE fk_bulletin=".$obj_verif->rowid;
-                $res_del = $db->query($sql_del);
-
-                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_prime_exceptionnelle WHERE fk_bulletin=".$obj_verif->rowid;
-                $res_del = $db->query($sql_del);
-
-                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_indemnite WHERE fk_bulletin=".$obj_verif->rowid;
-                $res_del = $db->query($sql_del);
-
-                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_taxe WHERE fk_bulletin=".$obj_verif->rowid;
-                $res_del = $db->query($sql_del);
-
-                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_taxe2 WHERE fk_bulletin=".$obj_verif->rowid;
-                $res_del = $db->query($sql_del);
-
-                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_cotisation WHERE fk_bulletin=".$obj_verif->rowid;
-                $res_del = $db->query($sql_del);
-
-                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_anciennete WHERE fk_bulletin=".$obj_verif->rowid;
-                $res_del = $db->query($sql_del);
-
-                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_organisme WHERE fk_bulletin=".$obj_verif->rowid;
-                $res_del = $db->query($sql_del);
-
-                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_heure_sup WHERE fk_bulletin=".$obj_verif->rowid;
-                $res_del = $db->query($sql_del);
-
-                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_avance WHERE fk_bulletin=".$obj_verif->rowid;
-                $res_del = $db->query($sql_del);
-
-                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE rowid=".$obj_verif->rowid;
-                $res_del = $db->query($sql_del);
-
-
-                $d ++;
-              }
-            }
-
-            if($res_del){
-              $message = "Complément de salaire de ".$mois_tab[$mois-1].$annee." supprimer avec succès";
-
-              $sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
-              $obj = $db->fetch_object($db->query($sql_select));
-
-              $action_effectue = "Suppression du complément salaire de ".$mois_tab[$mois-1]." ".$annee." de la société ".$obj_soc->nom;
-              $sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
-              $sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Complements salaires")';
-              $db->query($sql_log);
-            }else{
-              $message = "Un problème est survenu<br>";
-              $message .= $db->error();
-            }
+              suppression($db, $annee, $mois, $id_societe, $obj_soc);
             $action = "annee_rechercher";
 
           }
@@ -583,9 +818,9 @@ if($user->rights->paiementsalaire->societe->read){
           if($action == 'ajouterbonusValider'){
               $mois = GETPOST("mois", "int");
               $annee = GETPOST("annee", "int");
-              $nom_bonus = GETPOST("libelle", "alpha");
+              $nom_bonus = GETPOST("libelle", "alphanohtml");
               $type = GETPOST("type","alpha");
-              $nom_complement = GETPOST("nom_complement", "alpha");
+              $nom_complement = GETPOST("nom_complement", "alphanohtml");
 
               //Préparation de la base de donnée
               $sql_verif = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
@@ -758,6 +993,8 @@ if($user->rights->paiementsalaire->societe->read){
                               $old_fk_orga = 0;
                               $nom_organisme = array();
                               $id_organisme = array();
+                              $array_prestation = array();
+                              $array_taxe = array();
                               $montant_org_sal = array();
                               $montant_org_patro = array();
                               $pourcentage_org = array();
@@ -828,7 +1065,7 @@ if($user->rights->paiementsalaire->societe->read){
 
                                   //les taxes qui ont comme barème : barème cotisation
                             $index = 0;
-                            $global_taxe = salarie_taxe2($db, $obj_salarie->rowid, $id_convention);
+                            $global_taxe = salarie_taxe2($db, $obj_verif->fk_salarie, $id_convention);
                             $taxe = $global_taxe[1];
                             $taux_t = $global_taxe[0];
                             foreach ($taxe as $key => $value) {
@@ -1065,6 +1302,8 @@ if($user->rights->paiementsalaire->societe->read){
                               $old_fk_orga = 0;
                               $nom_organisme = array();
                               $id_organisme = array();
+                              $array_prestation = array();
+                              $array_taxe = array();
                               $montant_org_sal = array();
                               $montant_org_patro = array();
                               $pourcentage_org = array();
@@ -1135,7 +1374,7 @@ if($user->rights->paiementsalaire->societe->read){
                                   
                                   //les taxes qui ont comme barème : barème cotisation
                                 $index = 0;
-                                $global_taxe = salarie_taxe2($db, $obj_salarie->rowid, $id_convention);
+                                $global_taxe = salarie_taxe2($db, $obj_verif->fk_salarie, $id_convention);
                                 $taxe = $global_taxe[1];
                                 $taux_t = $global_taxe[0];
                                 foreach ($taxe as $key => $value) {
@@ -1256,9 +1495,9 @@ if($user->rights->paiementsalaire->societe->read){
 
           $mois = GETPOST("mois", "int");
               $annee = GETPOST("annee", "int");
-              $nom_bonus = GETPOST("libelle", "alpha");
+              $nom_bonus = GETPOST("libelle", "alphanohtml");
 
-          if(empty(GETPOST("libelle", "alpha")))
+          if(empty(GETPOST("libelle", "alphanohtml")))
               $message = 'Veuillez définir le champ "LIBELLE"<br>';
           if(empty($message)){
 
@@ -1420,7 +1659,7 @@ if($user->rights->paiementsalaire->societe->read){
                               
                               //les taxes qui ont comme barème : barème cotisation
                             $index = 0;
-                            $global_taxe = salarie_taxe2($db, $obj_salarie->rowid, $id_convention);
+                            $global_taxe = salarie_taxe2($db, $obj_verif->fk_salarie, $id_convention);
                             $taxe = $global_taxe[1];
                             $taux_t = $global_taxe[0];
                             foreach ($taxe as $key => $value) {
@@ -1548,10 +1787,10 @@ if($user->rights->paiementsalaire->societe->read){
               if(empty(GETPOST("montant_pourcentage", "int")))
               $message = 'Veuillez définir le champ "VALEUR"<br>';
             }
-            if(empty(GETPOST("libelle", "alpha")))
+            if(empty(GETPOST("libelle", "alphanohtml")))
                 $message .= 'Veuillez définir le champ "LIBELLE"<br>';
             
-            if(empty(GETPOST("nom_complement", "alpha")))
+            if(empty(GETPOST("nom_complement", "alphanohtml")))
                 $message .= 'Veuillez définir le champ "Nom complément"<br>';
                 
             if(!empty(GETPOST('mois', 'int'))){
@@ -1574,7 +1813,7 @@ if($user->rights->paiementsalaire->societe->read){
                 
                 $array_type = array();
                 $fixe_pourc = array();
-                $nom_complement = array('label'=> 'Nom du complément','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'nom_complement','value'=>GETPOST("nom_complement", "alpha"));
+                $nom_complement = array('label'=> 'Nom du complément','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'nom_complement','value'=>GETPOST("nom_complement", "alphanohtml"));
                 if(GETPOST("type", "alpha") == 'fixe'){
                   $array_type = array('label'=> 'type','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'type','value'=>'fixe');
                   $fixe_pourc = array('label'=> 'Montant','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'fixe','value'=>GETPOST("montant_fixe", "int"));
@@ -1591,7 +1830,7 @@ if($user->rights->paiementsalaire->societe->read){
               if($tout_salarie == 'oui'){ //si c'est pour tout les salarié
                 
                   $array = array(
-                  array('label'=> 'Nom bulletin','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'libelle','value'=>GETPOST("libelle", "alpha")),
+                  array('label'=> 'Nom bulletin','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'libelle','value'=>GETPOST("libelle", "alphanohtml")),
                   $nom_complement,
                   array('label'=> 'Mois','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'moisinfo','value'=>$mois_tab[($mois-1)]),
                   array('label'=> '','type'=> 'hidden', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'mois','value'=>$mois),
@@ -1635,7 +1874,7 @@ if($user->rights->paiementsalaire->societe->read){
 
                 }
                   $array = array(
-                  array('label'=> 'Nom bulletin','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'libelle','value'=>GETPOST("libelle", "alpha")),
+                  array('label'=> 'Nom bulletin','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'libelle','value'=>GETPOST("libelle", "alphanohtml")),
                   $nom_complement,
                   array('label'=> 'Mois','type'=> 'text', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'moisinfo','value'=>$mois_tab[($mois-1)]),
                   array('label'=> '','type'=> 'hidden', 'size'=>'', 'morecss'=>'', 'moreattr'=>'disabled', 'name'=>'mois','value'=>$mois),
@@ -1874,10 +2113,25 @@ if($user->rights->paiementsalaire->societe->read){
                     print "<tr><th>Employé</th><th>Employeur</th></tr>";
                     print "</thead>";
                   
-                  if($annee_courant == $annee_rechercher){
+                    $sql = "SELECT COUNT(DISTINCT fk_salarie) AS nb_salaries FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE fk_societe = ".$id_societe." AND annee = ".$annee_rechercher;
+                    $res = $db->query($sql);
+                    if ($res) {
+                      $obj = $db->fetch_object($res);
+                      $nb_salaries_par_an = $obj->nb_salaries;
+                    }
+
+                    $sal_brut_an = 0;
+                    $sal_net_an = 0;
+                    $taxe_its_an = 0;
+                    $costi_sal = 0;
+                    $cotis_patro = 0;
+                    
+                  if($annee_rechercher){
                     print "<tbody>";
 
                     for ($i=0; $i < count($mois_tab); $i++) {
+                      $sal_b = 0;
+                      $sal_n = 0;
                       print "<tr class='impair'>";
                           $sql_verif = "SELECT rowid, nom_bonus FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
                           $res_verif = $db->query($sql_verif);
@@ -1936,8 +2190,10 @@ if($user->rights->paiementsalaire->societe->read){
 
                                       $sql_req = "SELECT cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='oui' AND annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
                                       $res_req = $db->query($sql_req);
-                                      if($db->num_rows($res_req) == 0)
+                                      if($db->num_rows($res_req) == 0){
+                                        print "<a style='text-decoration : none;' title='Supprimer' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=attente_rafraichissement&annee=".$annee_rechercher."&mois=".($i + 1)."'>".img_picto("Actualiser", "refresh")."</a>&nbsp;&nbsp;&nbsp;";
                                         print "<a style='text-decoration : none;' title='Supprimer' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=attente_suppression&annee=".$annee_rechercher."&mois=".($i + 1)."'>".img_delete("", "")."</a>&nbsp;";
+                                      }
                                       
                                     print "</td>";
 
@@ -1981,6 +2237,8 @@ if($user->rights->paiementsalaire->societe->read){
                                         print "</td>";
                                   }
                                 }
+                                $sal_b = $obj_som_salaire->sal_brut?:0;
+                                $sal_n = $obj_som_salaire->sal_net?:0;
                               }else{
                                 print "<td style='padding: 0px' ><b>".$mois_tab[$i]."</b></td>";
                                 print "<td>0</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td><td>".apres_virgule($db, $id_societe, 0, 2)."</td>";
@@ -2034,12 +2292,29 @@ if($user->rights->paiementsalaire->societe->read){
                             $i = 12;
                           }
                               
-
+                      $sal_brut_an += $sal_b;
+											$sal_net_an += $sal_n;
+											$taxe_its_an += $somme_taxe;
+											$costi_sal += $somme_cotisation_employe;
+											$cotis_patro += $somme_cotisation_employeur;
                         
 
                     }
                     
                   }
+
+                    $indice_info = info_admin("Il s'agit du nombre total des distincts salariés dont les compléments salaires ont été générés en ".$annee_rechercher, 1);
+                    print "<tr class='liste_titre'><th>Total de l’année ".$annee_rechercher."</th>";
+					          print "<th>".$nb_salaries_par_an." ".$indice_info."</th>";
+                    print "<th>".apres_virgule($db, $id_societe, $sal_brut_an, 2)."</th>";
+                    print "<th>".apres_virgule($db, $id_societe, $sal_net_an, 2)."</th>";
+                    print "<th>".apres_virgule($db, $id_societe, $taxe_its_an, 2)."</th>";
+                    print "<th>".apres_virgule($db, $id_societe, $costi_sal, 2)."</th>";
+                    print "<th>".apres_virgule($db, $id_societe, $cotis_patro, 2)."</th>";
+                    print "<th></th>";
+
+                    print "</tr>";
+
                     print "</tbody>";
                     print "</table>";
                 //Gestion de l'action Generer Bulletin
@@ -2048,30 +2323,31 @@ if($user->rights->paiementsalaire->societe->read){
 				$annee_rech = GETPOST("annee", 'int');
 				$mois_rech = (int) GETPOST("mois", 'int');
 				$object_liste = array();
-				$limit = GETPOST('limit','int')?:20;
-				$arret = GETPOST('arret','int')?:0;
-				$nb_page = GETPOST('nbpage','int')?:1;
+				$limit_get = GETPOST('limit','alpha');
+				$limit = ($limit_get == 'tout') ? 0 : (GETPOST('limit','int') ?: 20);
+				$arret = GETPOST('arret','int') ?: 0;
+				$nb_page = GETPOST('nbpage','int') ?: 1;
+				if ($arret < 0) $arret = 0;
+				if ($nb_page < 1) $nb_page = 1;
 
-				$recherche_nom = "";
-				$recherche_prenom = "";
-				$recherche_nom = GETPOST("recherche_nom", "alpha");
-				$recherche_prenom = GETPOST("recherche_prenom", "alpha");
+				$recherche_nom = GETPOST("recherche_nom", "alphanohtml");
+				$recherche_prenom = GETPOST("recherche_prenom", "alphanohtml");
 			
 
 				$sql_verif = "SELECT sal.rowid , sal.fk_user, u.firstname, u.lastname, u.rowid as id_user, bul.rowid as id_bulletin, bul.nom_bonus, bul.fk_salarie as mat, bul.annee, bul.mois, bul.fk_societe FROM ".MAIN_DB_PREFIX."salarie as sal";
 				$sql_verif .= " LEFT JOIN ".MAIN_DB_PREFIX."bulletin_bonus as bul ON bul.fk_salarie=sal.rowid";
 				$sql_verif .= " LEFT JOIN ".MAIN_DB_PREFIX."user as u ON sal.fk_user=u.rowid";
-				$sql_verif .= " WHERE bul.annee=".$annee_rech." AND bul.mois=".$mois_rech." AND bul.fk_societe=".$id_societe;
+				$sql_verif .= " WHERE bul.annee=".((int) $annee_rech)." AND bul.mois=".((int) $mois_rech)." AND bul.fk_societe=".((int) $id_societe);
 
-				if(!empty(GETPOST("recherche_nom", "alpha"))){
-					$sql_verif .= " AND (u.lastname LIKE '%".GETPOST("recherche_nom", "alpha")."%'";
-					$sql_verif .= " OR u.firstname LIKE '%".GETPOST("recherche_nom", "alpha")."%')";
+				if(!empty($recherche_nom)){
+					$sql_verif .= " AND (u.lastname LIKE '%".$db->escape($recherche_nom)."%'";
+					$sql_verif .= " OR u.firstname LIKE '%".$db->escape($recherche_nom)."%')";
 
 				}
 			
-				if(!empty(GETPOST("recherche_prenom", "alpha"))){
-					$sql_verif .= " AND (u.firstname LIKE '%".GETPOST("recherche_prenom", "alpha")."%'";
-					$sql_verif .= " OR u.lastname LIKE '%".GETPOST("recherche_prenom", "alpha")."%')";
+				if(!empty($recherche_prenom)){
+					$sql_verif .= " AND (u.firstname LIKE '%".$db->escape($recherche_prenom)."%'";
+					$sql_verif .= " OR u.lastname LIKE '%".$db->escape($recherche_prenom)."%')";
 
 				}
 				$zero = false;
@@ -2091,8 +2367,9 @@ if($user->rights->paiementsalaire->societe->read){
 				//Gestion des action voir et telcharger
 				//----------------------------------------------------------------------------------
 				$num = count($object_liste) == 0 ? 1 : count($object_liste);
+				$sel5 = "";
 				$sel10 = "";
-				$sel25 = "";
+				$sel15 = "";
 				$sel20 = "";
 				$sel30 = "";
 				$sel50 = "";
@@ -2141,15 +2418,15 @@ if($user->rights->paiementsalaire->societe->read){
 			<option value='tout' ".$seltout."><b>tout</b></option>";
 			
 			print "</select>";
-			if(!empty(GETPOST("limit", "alpha")))
-				$limit = $num;
+			if($limit_get == 'tout' || $limit <= 0)
+				$limit = ($num > 0) ? $num : 1;
 
-			print "<mark><b>".(GETPOST("nbpage", 'int')?:1)."</b></mark> sur <mark><b>".(((int)($num%$limit))==0?((int)($num/$limit)):((int)($num/$limit)+1))."</b></mark>";
+			print "<mark><b>".(GETPOST("nbpage", 'int')?:1)."</b></mark> sur <mark><b>".($limit > 0 ? ((((int)($num%$limit))==0?((int)($num/$limit)):((int)($num/$limit)+1))) : 1)."</b></mark>";
 					print '<script type="text/javascript">
 					var convention = document.getElementById("limit");
 					convention.addEventListener("change", function () {
 						var limit = convention.value;
-						window.location.href = "'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenusociete&id_societe='.$id_societe.'&id_convention='.$id_convention.'&limit="+limit+"&action='.$action.'&annee='.$annee_rech.'&mois='.$mois_rech.'&recherche_nom='.$recherche_nom.'&recherche_prenom='.$recherche_prenom.'&recherche_fk_salarie='.$recherche_fk_salarie.'&recherche_anciennete='.$recherche_anciennete.'";
+						window.location.href = "'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenu=societe&id_societe='.$id_societe.'&id_convention='.$id_convention.'&limit="+limit+"&action='.$action.'&annee='.$annee_rech.'&mois='.$mois_rech.'&recherche_nom='.$recherche_nom.'&recherche_prenom='.$recherche_prenom.'&recherche_fk_salarie='.$recherche_fk_salarie.'&recherche_anciennete='.$recherche_anciennete.'";
 					},
 					false,
 					);
@@ -2174,7 +2451,7 @@ if($user->rights->paiementsalaire->societe->read){
           $bulletin_pr_res = $db->query($bulletin_pr_sql);
           $obj_bulletin_pr = $db->fetch_object($bulletin_pr_res);
           $modif = "";
-          if($obj_bulletin_pr->cloture == 'non')
+          if($obj_bulletin_pr && $obj_bulletin_pr->cloture == 'non')
             $modif = '&nbsp;&nbsp;<a target="" href="'.$_SERVER["PHP_SELF"].'?id_societe='.$id_societe.'&id_convention='.$id_convention.'&mois='.$mois_rech.'&annee='.$annee_rech.'&action=modifier_nom_complement">'.img_edit('Modifer le nom du complément salaire', '');
 
           if($num > 1)
@@ -2203,9 +2480,9 @@ if($user->rights->paiementsalaire->societe->read){
 									$class = "impair";
                     if(($i % 2) == 0)
                       $class = "pair";
-									  print '<tr class="'.$class.'" ><td style="text-align:center; padding:0px">'.$object_liste[$i]->lastname.'</><td style="text-align:center; padding:0px">'.$object_liste[$i]->firstname.'</td>';
+									  print '<tr class="'.$class.'" ><td style="text-align:center; padding:0px">'.$object_liste[$i]->lastname.'</td><td style="text-align:center; padding:0px">'.$object_liste[$i]->firstname.'</td>';
 										print '<td style="text-align:center; padding:0px"><a class="button" target="_blank" href="../doc/bulletin_bonus.php?id_societe='.$id_societe.'&fk_user='.$object_liste[$i]->id_user.'&fk_salarie='.$object_liste[$i]->rowid.'&id_convention='.$id_convention.'&mois='.$mois_rech.'&annee='.$annee_rech.'&action='.$action.'">Voir</a>';
-                    if($obj_bulletin_pr->cloture == 'non'){
+                    if($obj_bulletin_pr && $obj_bulletin_pr->cloture == 'non'){
                       print '&nbsp;&nbsp;<a target="" href="'.$_SERVER["PHP_SELF"].'?id_societe='.$id_societe.'&fk_user='.$object_liste[$i]->id_user.'&fk_salarie='.$object_liste[$i]->rowid.'&id_convention='.$id_convention.'&mois='.$mois_rech.'&annee='.$annee_rech.'&action=modifier_complement">'.img_edit('Modifer ce complément salaire', '').'</a>&nbsp;&nbsp;&nbsp;';
                       print '<a target="" href="'.$_SERVER["PHP_SELF"].'?id_societe='.$id_societe.'&fk_user='.$object_liste[$i]->id_user.'&fk_salarie='.$object_liste[$i]->rowid.'&id_convention='.$id_convention.'&mois='.$mois_rech.'&annee='.$annee_rech.'&action=supprimer_complement">'.img_delete('Supprimer ce complément salaire', '').'</a>';
                     }
@@ -2230,43 +2507,43 @@ if($user->rights->paiementsalaire->societe->read){
 				}else print "<h2 style='align:center;'>Pas d'historique pour le ".$mois_tab[$mois_rech-1]."".$annee_rech."!";
 
 				print '<span style="float:right; margin-left: 20px;">';
-		$nb = (((int)($num%$limit))==0?((int)($num/$limit)):((int)($num/$limit)+1));
+		$nb = ($limit > 0 ? ((((int)($num%$limit))==0?((int)($num/$limit)):((int)($num/$limit)+1))) : 1);
 		$page_link = "";
 		if($num>$limit){
 
 			if($nb_page!= 1)
 				if($nb==0 && 1 < ($nb))
-					$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=0&nbpage=1&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>Debut</b>    </a>&nbsp;&nbsp;";
+					$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=0&nbpage=1&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>Debut</b>    </a>&nbsp;&nbsp;";
 				else if(1 < ($nb+1))
-				$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=0&nbpage=1&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>Debut</b>    </a>&nbsp;&nbsp;";
+				$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=0&nbpage=1&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>Debut</b>    </a>&nbsp;&nbsp;";
 
 			
 			if($arret > $limit){
 
 				
 				if($nb_page-3>=0)
-					$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*($nb_page-3))."&nbpage=".($nb_page-2)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>".($nb_page -2)."</b></a>&nbsp;&nbsp;";
+					$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*($nb_page-3))."&nbpage=".($nb_page-2)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>".($nb_page -2)."</b></a>&nbsp;&nbsp;";
 
 				if($nb_page-2>=0)
-							$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*($nb_page-2))."&nbpage=".($nb_page-1)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>".($nb_page-1)."</b></a>&nbsp;&nbsp;";
+							$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*($nb_page-2))."&nbpage=".($nb_page-1)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>".($nb_page-1)."</b></a>&nbsp;&nbsp;";
 				
 				
 				if($nb_page-1>=0)
-						$page_link .= "<a style='background-color: yellow;' href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*($nb_page-1))."&nbpage=".($nb_page)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>".($nb_page)."</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a style='background-color: yellow;' href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*($nb_page-1))."&nbpage=".($nb_page)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>".($nb_page)."</b></a>&nbsp;&nbsp;";
 
 			
 
 				
 					if(	(($nb_page+1) <= ($nb)))
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*$nb_page)."&nbpage=".($nb_page+1)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>".($nb_page + 1)."</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*$nb_page)."&nbpage=".($nb_page+1)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>".($nb_page + 1)."</b></a>&nbsp;&nbsp;";
 
 				
 					if((($nb_page+2) <= ($nb)))
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*($nb_page +1))."&nbpage=".($nb_page+2)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>".($nb_page + 2)."</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*($nb_page +1))."&nbpage=".($nb_page+2)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>".($nb_page + 2)."</b></a>&nbsp;&nbsp;";
 						
 					
 					if((($nb_page+3) <= ($nb)))
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*($nb_page+2))."&nbpage=".($nb_page+3)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>".($nb_page + 3)."</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*($nb_page+2))."&nbpage=".($nb_page+3)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>".($nb_page + 3)."</b></a>&nbsp;&nbsp;";
 
 						
 
@@ -2276,31 +2553,31 @@ if($user->rights->paiementsalaire->societe->read){
 				
 					if( 1 <= ($nb))
 						
-						$page_link .= "<a style='background-color: yellow;' href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=0&nbpage=1&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>1</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a style='background-color: yellow;' href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=0&nbpage=1&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>1</b></a>&nbsp;&nbsp;";
 				
 				
 					if(2 <= ($nb))
 						
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".$limit."&nbpage=2&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>2</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".$limit."&nbpage=2&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>2</b></a>&nbsp;&nbsp;";
 				
 				
 					if(3 <= ($nb))
 						
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*2)."&nbpage=3&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>3</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*2)."&nbpage=3&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>3</b></a>&nbsp;&nbsp;";
 					
 					if(4 <= ($nb))
 						
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*3)."&nbpage=4&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>4</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*3)."&nbpage=4&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>4</b></a>&nbsp;&nbsp;";
 
 					if(5 <= ($nb))
 						
-						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*4)."&nbpage=5&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>5</b></a>&nbsp;&nbsp;";
+						$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*4)."&nbpage=5&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'><b>5</b></a>&nbsp;&nbsp;";
 
 
 
 			}
 			if($nb_page != ($nb)  )
-					$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*($nb-1))."&nbpage=".($nb)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'>      <b>Fin</b></a>&nbsp;&nbsp;";
+					$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois."&limit=".$limit."&arret=".($limit*($nb-1))."&nbpage=".($nb)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'>      <b>Fin</b></a>&nbsp;&nbsp;";
 
 
 		}
@@ -2378,3 +2655,72 @@ function apres_virgule($db, $id_societe, $valeur, $decalage){
 		print "<script>
 		$.jnotify('".$message."', {delay : 5000, fadeSpeed: 500});
 		</script>";
+
+
+    function suppression($db, $annee, $mois, $id_societe, $obj_soc){
+      global $user;
+            //Préparation de la base de donnée
+            $sql_verif = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+            $res_verif = $db->query($sql_verif);
+            if($res_verif){
+                              
+              $d = 0;
+              $dnum = $db->num_rows($res_verif);
+              while ($d < $dnum) {
+                                  
+                $obj_verif = $db->fetch_object($res_verif);
+
+                //suppression
+                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_prime WHERE fk_bulletin=".$obj_verif->rowid;
+                $res_del = $db->query($sql_del);
+
+                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_prime_exceptionnelle WHERE fk_bulletin=".$obj_verif->rowid;
+                $res_del = $db->query($sql_del);
+
+                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_indemnite WHERE fk_bulletin=".$obj_verif->rowid;
+                $res_del = $db->query($sql_del);
+
+                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_taxe WHERE fk_bulletin=".$obj_verif->rowid;
+                $res_del = $db->query($sql_del);
+
+                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_taxe2 WHERE fk_bulletin=".$obj_verif->rowid;
+                $res_del = $db->query($sql_del);
+
+                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_cotisation WHERE fk_bulletin=".$obj_verif->rowid;
+                $res_del = $db->query($sql_del);
+
+                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_anciennete WHERE fk_bulletin=".$obj_verif->rowid;
+                $res_del = $db->query($sql_del);
+
+                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_organisme WHERE fk_bulletin=".$obj_verif->rowid;
+                $res_del = $db->query($sql_del);
+
+                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_heure_sup WHERE fk_bulletin=".$obj_verif->rowid;
+                $res_del = $db->query($sql_del);
+
+                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus_avance WHERE fk_bulletin=".$obj_verif->rowid;
+                $res_del = $db->query($sql_del);
+
+                $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE rowid=".$obj_verif->rowid;
+                $res_del = $db->query($sql_del);
+
+
+                $d ++;
+              }
+            }
+
+            if($res_del){
+              $message = "Complément de salaire de ".$mois_tab[$mois-1].$annee." supprimer avec succès";
+
+              $sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
+              $obj = $db->fetch_object($db->query($sql_select));
+
+              $action_effectue = "Suppression du complément salaire de ".$mois_tab[$mois-1]." ".$annee." de la société ".$obj_soc->nom;
+              $sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
+              $sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Complements salaires")';
+              $db->query($sql_log);
+            }else{
+              $message = "Un problème est survenu<br>";
+              $message .= $db->error();
+            }
+    }

@@ -99,19 +99,13 @@ print '<div class="div-table-responsive-no-min">';
                 print '<td></td>';
 
                 print '</tr>';
-                /*print '<tr class="oddeven nodrag nodrop nohover">';
-                print '<td></td>';
+
+                print '<tr class="oddeven nodrag nodrop nohover">';
+                print '<td><a href="export_regularisation_its.php?mainmenu=paiementsalaire&leftmenu=importexportsociete&action=export_reg_its" >Article 29 I.T.S</a></td>';
                 print '<td></td>';
                 print '<td></td>';
 
                 print '</tr>';
-
-                print '<tr class="oddeven nodrag nodrop nohover">';
-                print '<td></td>';
-                print '<td></td>';
-                print '<td></td>';
-
-                print '</tr>';*/
 
 
         print '</table>';

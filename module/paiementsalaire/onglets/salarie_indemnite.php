@@ -193,7 +193,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
 		$obj = $db->fetch_object($db->query($sql_select));
 
-		$action_effectue = "Désaffectation d'une indemnité flottante ".$obj_ind->libelle."(".$obj_ind_fl->montant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
+		$action_effectue = "Désaffectation d'une indemnité flottante ".$obj_ind->libelle."(".$obj_ind_fl->montant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie." de la société ".$obj_soc->name;
 		$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 		$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Désaffectation")';
 		$db->query($sql_log);
@@ -247,7 +247,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
 					$obj = $db->fetch_object($db->query($sql_select));
 
-					$action_effectue = "Affectation d'une indemnité flottante ".$obj_ind->libelle."(".$montant_flottant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
+					$action_effectue = "Affectation d'une indemnité flottante ".$obj_ind->libelle."(".$montant_flottant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie." de la société ".$obj_soc->name;
 					$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 					$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Affectation")';
 					$db->query($sql_log);
@@ -294,7 +294,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 							$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
 							$obj = $db->fetch_object($db->query($sql_select));
 
-							$action_effectue = "Modification d'une indemnité flottante ".$obj_ind->libelle."(".$montant_flottant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
+							$action_effectue = "Modification d'une indemnité flottante ".$obj_ind->libelle."(".$montant_flottant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie." de la société ".$obj_soc->name;
 							$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 							$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Affectation")';
 							$db->query($sql_log);

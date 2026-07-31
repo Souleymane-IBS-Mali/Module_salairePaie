@@ -25,6 +25,7 @@ llxHeader("", "Paiement | Salaire");
 		$array_id_soc .= ")";
 
 $limit = GETPOST('limit','alpha')?:20;
+$action = GETPOST('action','alpha');
 $arret = GETPOST('arret','int')?:0;
 $nb_page = GETPOST('nbpage','int')?:1;
 

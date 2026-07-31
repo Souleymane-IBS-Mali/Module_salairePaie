@@ -44,6 +44,7 @@ $fk_user = GETPOST("id","int");
 $fk_salarie = GETPOST("fk_salarie", "int");
 $id_convention = GETPOST("id_convention","int");
 $id_contrat = GETPOST("id_contrat","int");
+$page = GETPOST("page", "int") ?: 0;
 
 // Recuperation des information après le clique sur l'onglet Salaire au niveau du module user
 if($user->id !=1 && !$user->rights->paiementsalaire->contrats->write){
@@ -51,7 +52,7 @@ if($user->id !=1 && !$user->rights->paiementsalaire->contrats->write){
 }else{
 	$head = salaire_Head($fk_salarie, $fk_user, $id_societe, $id_convention);
 	print dol_get_fiche_head($head, 'contrat', "", -1, '');
-	$action = GETPOST("action", "alpha");
+	$action = GETPOST("action", "alpha") ?: "detail";
 
 
 	$salaire_base = 0;
@@ -103,16 +104,15 @@ if($user->id !=1 && !$user->rights->paiementsalaire->contrats->write){
 
 				if($db->query($sql_update)){
 						$sursalaire = GETPOST('sursalaire', 'int');
-						if(!empty($sursalaire)){
-							$sql = 'INSERT INTO '.MAIN_DB_PREFIX.'salarie_contrat_salaire_net (fk_contrat, salaire_net, sursalaire, date_debut, active)';
-							$sql .= 'VALUES('.$id_contrat.',"'.$salaire_net.'","'.$sursalaire.'",now(),1)';
-							$db->query($sql);
+						$sql = 'INSERT INTO '.MAIN_DB_PREFIX.'salarie_contrat_salaire_net (fk_contrat, salaire_net, sursalaire, date_debut, active)';
+						$sql .= 'VALUES('.$id_contrat.',"'.$salaire_net.'","'.$sursalaire.'",now(),1)';
+						$db->query($sql);
 
-							//Modification du sursalaire dans la table salarié
-							$sql_update = 'UPDATE '.MAIN_DB_PREFIX.'salarie SET sursalaire="'.$sursalaire.'" WHERE rowid='.$fk_salarie;
-							$db->query($sql_update);
-							//Insertion dans salarié contrat salaire net
-							$message = "Salaire net modifié avec succès";
+						//Modification du sursalaire dans la table salarié
+						$sql_update = 'UPDATE '.MAIN_DB_PREFIX.'salarie SET sursalaire="'.$sursalaire.'" WHERE rowid='.$fk_salarie;
+						$db->query($sql_update);
+						//Insertion dans salarié contrat salaire net
+						$message = "Salaire net modifié avec succès";
 
 							$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
 							$obj = $db->fetch_object($db->query($sql_select));
@@ -125,7 +125,6 @@ if($user->id !=1 && !$user->rights->paiementsalaire->contrats->write){
 							$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 							$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Modification")';
 							$db->query($sql_log);
-						}
 
 				}else{
 					$message = "Un problème est survenu";
@@ -139,8 +138,8 @@ if($user->id !=1 && !$user->rights->paiementsalaire->contrats->write){
 		if($action == "ajout_salaire_net" && !empty($id_contrat)){
 			$sql = "SELECT sursalaire FROM ".MAIN_DB_PREFIX."salarie WHERE rowid=".$fk_salarie;
 			$res = $db->query($sql);
-			$obj = $db->fetch_object($res);
-			$sursalaire = $obj->sursalaire;
+			$obj = ($res ? $db->fetch_object($res) : null);
+			$sursalaire = ($obj ? $obj->sursalaire : 0);
 			print ' <form name="ajouter" method="POST" action="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenu=salarie&id='.$fk_user.'&fk_salarie='.$fk_salarie.'&id_convention='.$id_convention.'&id_societe='.$id_societe.'&id_contrat='.$id_contrat.'">';
 			print '<input type="hidden" name="token" value="'.newToken().'">';
 			print '<input type="hidden" name="action" value="save_ajout_salaire_net">';
@@ -153,7 +152,7 @@ if($user->id !=1 && !$user->rights->paiementsalaire->contrats->write){
 			print'</form>';
 			print '<a href="'.$_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenu=salarie&id='.$fk_user.'&fk_salarie='.$fk_salarie.'&id_convention='.$id_convention.'&id_societe='.$id_societe.'&id_contrat='.$id_contrat.'" class="button">Annuler</a>';
 
-			print "</td></tr><table>";
+			print "</td></tr></table>";
 
 		}else{
 			$sql_contrat = "SELECT rowid, active FROM ".MAIN_DB_PREFIX."salarie_contrat WHERE rowid=".$id_contrat;
@@ -161,7 +160,7 @@ if($user->id !=1 && !$user->rights->paiementsalaire->contrats->write){
 				if($res_contrat){
 					$obj_contrat = $db->fetch_object($res_contrat);
 
-					if($user->rights->paiementsalaire->contrats->write)
+					if($obj_contrat && $user->rights->paiementsalaire->contrats->write)
 						if($obj_contrat->active == 1)
 							print_barre_liste("", $page, $_SERVER["PHP_SELF"], "", "", "", "", "", "", 'bill', 0, dolGetButtonTitle("Ajouter un nouveau salaire net", '', 'fa fa-plus-circle', $_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenu=salarie&id='.$fk_user.'&fk_salarie='.$fk_salarie.'&id_convention='.$id_convention.'&id_societe='.$id_societe.'&id_contrat='.$obj_contrat->rowid.'&action=ajout_salaire_net' , '', 1), '', 0, 0, 0, 1);
 					print "<table class='tagtable liste'>";
@@ -192,26 +191,26 @@ if($user->id !=1 && !$user->rights->paiementsalaire->contrats->write){
 			}
 
 	}
-	$db->free();
+	// $db->free(); // Evite une erreur si aucun résultat précis n'est fourni
 
 	print '<script>
 	var type_contrat = document.getElementById("type_contrat");
 	var date_fin = document.getElementById("date_fin");
 
-	if(parseInt(type_contrat.value) == 2){
-		date_fin.style.display = "none";
-	}else{
-		date_fin.style.display = "inline";
+	if(type_contrat && date_fin){
+		if(parseInt(type_contrat.value) == 2){
+			date_fin.style.display = "none";
+		}else{
+			date_fin.style.display = "inline";
+		}
+		type_contrat.addEventListener("change", function () {
+			if(parseInt(type_contrat.value) == 2){
+				date_fin.style.display = "none";
+			}else{
+				date_fin.style.display = "inline";
+			}
+		}, false);
 	}
-			type_contrat.addEventListener("change", function () {
-				if(parseInt(type_contrat.value) == 2){
-					date_fin.style.display = "none";
-				}else{
-					date_fin.style.display = "inline";
-				}
-			},
-			false,
-			);
 	</script>';
 
 	if(!empty($message))
@@ -224,17 +223,23 @@ if($user->id !=1 && !$user->rights->paiementsalaire->contrats->write){
 function simulation_sursalaire($db, $fk_salarie, $fk_user, $contrat_salaire_net, $id_convention, $id_societe){
 	$salarie_Sql = "SELECT fk_categorie, fk_echelon FROM ".MAIN_DB_PREFIX."salarie WHERE rowid=".$fk_salarie;
 	$salarie_Result = $db->query($salarie_Sql);//= $db->query($salarie_Sql);
-	$obj_salarie = $db->fetch_object($salarie_Result);
+	$obj_salarie = ($salarie_Result ? $db->fetch_object($salarie_Result) : null);
+	if(!$obj_salarie){
+		return array(0, "<div>Informations salarié introuvables</div>");
+	}
 
 	//Recherche du salaire de base
 	$grilleSql = "SELECT rowid FROM ".MAIN_DB_PREFIX."grille WHERE active=1 AND fk_convention=".$id_convention;
 	$grilleResult = $db->query($grilleSql);//= $db->query($grilleSql);
-	$obj_grille = $db->fetch_object($grilleResult);
+	$obj_grille = ($grilleResult ? $db->fetch_object($grilleResult) : null);
+	if(!$obj_grille){
+		return array(0, "<div>Grille salariale active introuvable</div>");
+	}
 
 	$salBaseSql = "SELECT salaire_base FROM ".MAIN_DB_PREFIX."grille_categorie_echelon_salaire_base WHERE fk_grille=".$obj_grille->rowid." AND fk_categorie=".$obj_salarie->fk_categorie." AND fk_echelon=".$obj_salarie->fk_echelon;
 	$salBaseResult = $db->query($salBaseSql);//= $db->query($covSql);
-	$objSalBase = $db->fetch_object($salBaseResult);
-	$salaire_base = $objSalBase->salaire_base;
+	$objSalBase = ($salBaseResult ? $db->fetch_object($salBaseResult) : null);
+	$salaire_base = ($objSalBase ? $objSalBase->salaire_base : 0);
 
 	$ind_array = salarie_indemnite_simulation($db, $fk_salarie, $salaire_base, $obj_salarie->fk_categorie,0,$id_convention);
 	foreach ($ind_array as $key => $value) {
@@ -271,6 +276,12 @@ function simulation_sursalaire($db, $fk_salarie, $fk_user, $contrat_salaire_net,
 	}
 
 	$anciennete_tab = prime_anciennete($db, $fk_salarie, $id_convention, date('m'), date('Y'), $fk_user);
+	if(!is_array($anciennete_tab)){
+		$anciennete_tab = array(0, 0, '', 'Non', 'Non', 'Non');
+	}
+	for($k = 0; $k <= 5; $k++){
+		if(!isset($anciennete_tab[$k])) $anciennete_tab[$k] = ($k == 1 ? 0 : 'Non');
+	}
 	$anciennete = $salaire_base*$anciennete_tab[1]/100;
 	if($anciennete_tab[5] == "Oui")
 	$salaire_base -= $anciennete;
@@ -419,7 +430,9 @@ function simulation_sursalaire($db, $fk_salarie, $fk_user, $contrat_salaire_net,
 	$sursalaire = 0;
 
 	$net  = $contrat_salaire_net;
-	while ($fin == false && $net){
+	$loop_guard = 0;
+	while ($fin == false && $net && $loop_guard < 100000){
+		$loop_guard++;
 		$mon_salaire_brut += $sursalaire;
 		$mon_brut_cotis = $salaire_brut_cotisable + ($mon_salaire_brut - $salaire_brut);
 		$mon_brut_imp = $salaire_brut_imposable + ($mon_salaire_brut - $salaire_brut);
@@ -440,8 +453,9 @@ function simulation_sursalaire($db, $fk_salarie, $fk_user, $contrat_salaire_net,
 					$retenu_prest_patro += round($taux_p[$index]*$mon_brut_cotis/100, 2);
 				}
 					//print $retenu_prest_empl."<br>";
-				if($obj_prest_type->rowid != 6)
+				if($obj_prest_type && $obj_prest_type->rowid != 6)
 					$inps += $value*$mon_brut_cotis/100;
+			$index ++;
 
 		}
 		$mon_brut_imp -= $inps;
@@ -530,7 +544,7 @@ function apres_virgule($db, $id_societe, $valeur){
     $decalage = 2;
     $reglage_bulletin = "SELECT separateur, decalage FROM ".MAIN_DB_PREFIX."reglage_bulletin WHERE fk_societe=".$id_societe;
       $result_reglage_bulletin = $db->query($reglage_bulletin);
-      if($db->num_rows($result_reglage_bulletin) > 0){
+      if($result_reglage_bulletin && $db->num_rows($result_reglage_bulletin) > 0){
         $obj_reglage_bulletin = $db->fetch_object($result_reglage_bulletin);
         $sep = $obj_reglage_bulletin->separateur;
         $decalage = $obj_reglage_bulletin->decalage;

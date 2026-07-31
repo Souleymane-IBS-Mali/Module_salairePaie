@@ -42,7 +42,7 @@ if($id_societe){
                 $user_Result = $db->query($user_Sql);
                 $id_salarie = $db->fetch_object($user_Result)->rowid;
 
-                $sql_soc = "SELECT societe_mere FROM ".MAIN_DB_PREFIX."salairepaie_societe WHERE fk_societe=".$id_societe;
+                $sql_soc = "SELECT societe_mere, afficher_regularisation_its FROM ".MAIN_DB_PREFIX."salairepaie_societe WHERE fk_societe=".$id_societe;
                 $result_soc = $db->query($sql_soc);
                 if($result_soc)
                   $info_soc = $db->fetch_object($result_soc);
@@ -213,7 +213,9 @@ if($id_societe){
     $pdf->SetY($y);
     $pdf->Cell(30,4, utf8_decode("Heures normales"),0,0,'L');
     $pdf->SetLeftMargin(63);
-    $nb_total_jour = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
+    if($mois != 13)
+      $nb_total_jour = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
+    else $nb_total_jour = 30;
     $heur_normal = 173.33;
     if($nb_jours != $nb_total_jour)
       $heur_normal = round(($nb_jours*$heur_normal)/$nb_total_jour, 2);
@@ -563,17 +565,47 @@ if($id_societe){
               $y = $pdf->GetY() +2;
               $pdf->SetLeftMargin(13);
               $pdf->SetY($y);
-              $pdf->Cell(49,4, utf8_decode($obj_bulletin_taxe->libelle),0,0,'L');
+              if($mois == 12){
+                $sql_reg = "SELECT difference FROM ".MAIN_DB_PREFIX."bulletin_regularisation_its";
+                $sql_reg .= " WHERE fk_salarie = ".$obj_bulletin->fk_salarie." AND annee = ".$annee." AND mois = 12";
+                $res = $db->query($sql_reg);
+                if($res){
+                  $article29_obj = $db->fetch_object($res);
+                  $num_obj = $db->num_rows($res);
+                }
 
-              $pdf->SetX(63);
-              $pdf->Cell(20,4, utf8_decode($obj_bulletin_taxe->taux."%"),0,0,'R');
+      
+                if($info_soc->afficher_regularisation_its == 1){
+                  $reg = $article29_obj->difference;
+                  if((int)$article29_obj->difference > 0)
+                    $pdf->Cell(49,4, utf8_decode($obj_bulletin_taxe->libelle." Régularisé(+".apres_virgule($db, $id_societe, $article29_obj->difference, 2).")"),0,0,'L');
+                  else $pdf->Cell(49,4, utf8_decode($obj_bulletin_taxe->libelle." Régularisé(".apres_virgule($db, $id_societe, $article29_obj->difference, 2).")"),0,0,'L');
+                }else{
+                  $pdf->Cell(49,4, utf8_decode($obj_bulletin_taxe->libelle),0,0,'L');
+                }
+                $pdf->SetX(63);
+                $pdf->Cell(20,4, utf8_decode($obj_bulletin_taxe->taux."%"),0,0,'R');
 
-              $pdf->SetX(83);
-              $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_imposable, 2)),0,0,'R');
+                $pdf->SetX(83);
+                $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_imposable, 2)),0,0,'R');
 
-              $pdf->SetX(133);
-              $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_taxe->montant, 2)),0,'R');
-              $retenu += $obj_bulletin_taxe->montant;
+                $pdf->SetX(133);
+                $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_taxe->montant + $reg, 2)),0,'R');
+                $retenu += $obj_bulletin_taxe->montant + $reg;
+                $retenu_its += $obj_bulletin_taxe->montant + $reg;
+              }else{
+                $pdf->Cell(49,4, utf8_decode($obj_bulletin_taxe->libelle),0,0,'L');
+
+                $pdf->SetX(63);
+                $pdf->Cell(20,4, utf8_decode($obj_bulletin_taxe->taux."%"),0,0,'R');
+
+                $pdf->SetX(83);
+                $pdf->Cell(20,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin->salaire_brut_imposable, 2)),0,0,'R');
+
+                $pdf->SetX(133);
+                $pdf->MultiCell(30,4, utf8_decode(apres_virgule($db, $id_societe, $obj_bulletin_taxe->montant, 2)),0,'R');
+                $retenu += $obj_bulletin_taxe->montant;
+              }
 
           }
             $j ++;
@@ -785,11 +817,13 @@ function apres_virgule($db, $id_societe, $valeur, $decalage){
 
 
       //Entête Droit information sur le bulletin
-      $mois_tab = array(" janvier "," février "," mars "," avril "," mai "," juin "," juillet "," août "," septembre "," octobre "," novembre "," décembre ");
+      $mois_tab = array(" janvier "," février "," mars "," avril "," mai "," juin "," juillet "," août "," septembre "," octobre "," novembre "," décembre ", " 13è Mois ");
       $mois_courant = $mois ? : (int) date("m");
       /*$annee_courant = date("Y");
 
+      
       $entete_droit = " du".$mois[$mois_courant-1]."".$annee_courant;*/
+      
       $y = $pdf->GetY()+8;
       $pdf->SetY($y);
       $debut = DOL_DOCUMENT_ROOT;
@@ -798,15 +832,17 @@ function apres_virgule($db, $id_societe, $valeur, $decalage){
       if($info_soc->societe_mere == 0){
         $logo_1 = $tab[0].'/'.$tab[1].'/'.$tab[2].'/'.$tab[3].($tab[4]?'/'.$tab[4]:'').'/documents/societe/'.$bulletin_obj->fk_societe.'/logos/'.$bulletin_obj->logo_societe;
         $logo_2 = $tab[0].'/'.$tab[1].'/dolibarr_documents/societe/'.$bulletin_obj->fk_societe.'/logos/'.($bulletin_obj->logo_societe?$bulletin_obj->logo_societe:"vide.png");
+        $logo_3 = $tab[0].'/'.$tab[1].'/dolibarr_documents/societe/'.$bulletin_obj->fk_societe.'/logos/'.$mysoc->logo;
+        $logo_4 = $tab[0].'/'.$tab[1].'/'.$tab[2].'/'.$tab[3].($tab[4]?'/'.$tab[4]:'').'/documents/societe/'.$bulletin_obj->fk_societe.'/logos/'.$mysoc->logo;
 
-       // print $logo_1.'***'.$logo_2;
-        //var_dump($tab);
-        if(is_readable($logo_2)){
-          ///home/dolites/public_html
-          $pdf->Image($logo_2,20,12, 40,19);
-        }elseif(is_readable($logo_1)){
-          $pdf->Image($logo_1,20,12, 40,19);
-    
+        if (!empty($logo_2) && is_readable($logo_2) && getimagesize($logo_2)) {
+            $pdf->Image($logo_2, 20, 12, 40, 19);
+        } elseif (!empty($logo_1) && is_readable($logo_1) && getimagesize($logo_1)) {
+            $pdf->Image($logo_1, 20, 12, 40, 19);
+        }elseif (!empty($logo_3) && is_readable($logo_3) && getimagesize($logo_3)) {
+            $pdf->Image($logo_3, 20, 12, 40, 19);
+        }elseif (!empty($logo_4) && is_readable($logo_4) && getimagesize($logo_4)) {
+            $pdf->Image($logo_4, 20, 12, 40, 19, 'JPG');
         }else{
     
           
@@ -815,24 +851,6 @@ function apres_virgule($db, $id_societe, $valeur, $decalage){
           $pdf->SetX(20);
           $pdf->MultiCell(40,19,utf8_decode("Logo"),0,'C');
         }
-  
-        /*$img = '../config/logo_societe/'.$bulletin_obj->fk_societe;
-        if(file_exists($img.'.png')){
-          $img .= '.png';
-        }elseif(file_exists($img.'.jpg')){
-          $img .= '.jpg';
-        }else{
-          $img .= '.jpeg';
-        }
-  
-        if(is_readable($img)){
-          $pdf->Image($logo_server,20,12, 40,19);
-        }else{
-          $pdf->SetFont('Helvetica','B',16);
-          $pdf->SetY(12);
-          $pdf->SetX(20);
-          $pdf->MultiCell(40,19,utf8_decode("Logo"),0,'C');
-        }*/
   
       }else{
           $logodir = $conf->mycompany->dir_output;
@@ -879,7 +897,9 @@ function apres_virgule($db, $id_societe, $valeur, $decalage){
       $pdf->SetX($x);
 
       $du = "01-".$mois."-".$annee;
-      $au = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
+      if($mois != 13)
+        $au = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
+      else $au = 30;
       $pdf->MultiCell(24,3,utf8_decode("du : ".$du),0,'R');
 
       $y += 3;
@@ -1049,6 +1069,19 @@ function apres_virgule($db, $id_societe, $valeur, $decalage){
       $y = $pdf->GetY()+1;
       $pdf->SetY($y);
       $pdf->MultiCell($pdf->GetX(),4, utf8_decode("Date d'embauche : ".$bulletin_obj->date_embauche),0,'');
+
+
+				// Priorité à la date d'ancienneté du salarié
+
+        $pdf->Ln(1);
+
+        $pdf->MultiCell(
+            0,
+            4,
+            utf8_decode("Solde Congé : ".($bulletin_obj->solde_conge ?:" Pas de valeur")),
+            0,
+            'L'
+        );
 
   }
 

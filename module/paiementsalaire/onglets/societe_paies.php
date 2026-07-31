@@ -4,6 +4,74 @@ require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/lib/paiementsalaire.lib.
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+$id_societe = GETPOST('id_societe','int');
+$action =  GETPOST('action','alpha');
+$id_convention = GETPOST('id_convention','int');
+
+//Export
+if($action == "validation"){
+	$debut = GETPOST("date_debut");
+	$fin = GETPOST("date_fin");
+	$date_debut = explode('_', $debut);
+	$date_fin= explode('_', $fin);
+
+	$annee_debut= $date_debut[1];
+	$annee_fin= $date_fin[1];
+
+	$mois_debut= $date_debut[0];
+	$mois_fin= $date_fin[0];
+	if(empty($annee_debut) || empty($annee_fin) || empty($mois_debut) || empty($mois_fin)){
+		$action = 'article29_periode';
+		$message = 'Tous les champs sont "OBLIGATOIRES"';
+	}else{
+		$url = "./../doc/export_periode_article29.php?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&date_debut=".$debut."&date_fin=".$fin;
+		header("Location: ".$url);
+		$action = 'annee_rechercher';
+	} 
+
+}
+
+$monform = new Form($db);
+if($action == "article29_periode"){
+    $mois_tab = array(" Janvier "," Février "," Mars "," Avril "," Mai "," Juin "," Juillet "," Août "," Septembre "," Octobre "," Novembre "," Décembre ", " 13è Mois ");
+
+    //Annee dont les bulletins sont générés
+    $sql_verif = "SELECT DISTINCT annee, mois FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='oui' AND fk_societe=".$id_societe." ORDER BY annee ASC";
+    $res_verif = $db->query($sql_verif);
+    $num = $db->num_rows($sql_verif);
+    $a = 1;
+    $key = array();
+    $val = array();
+    while ($a <= $num) {
+        $obj_verif = $db->fetch_object($res_verif);
+        $key[] = $obj_verif->mois.'_'.$obj_verif->annee;
+        $val[] = $mois_tab[$obj_verif->mois - 1].''.$obj_verif->annee;
+        $a ++;
+    }
+
+	$array[] = array('label'=> 'Date début=> ','type'=> 'select', 'size'=>'', 'morecss'=>'', 'moreattr'=>'required', 'name'=>'date_debut','values' => array_combine($key,$val));
+	//$array[] = array('label'=> 'mois début=> ','type'=> 'select', 'size'=>'', 'morecss'=>'', 'moreattr'=>'selected', 'name'=>'mois_debut','values' => array_combine($key,$val));
+
+	$array[] = array('label'=> 'Date fin=> ','type'=> 'select', 'size'=>'', 'morecss'=>'', 'moreattr'=>'required', 'name'=>'date_fin','values' => array_combine($key,$val));
+	//$array[] = array('label'=> 'Annee fin=> ','type'=> 'select', 'size'=>'', 'morecss'=>'', 'moreattr'=>'selected', 'name'=>'mois_fin','values' => array_combine($key,$val));
+
+    $url = $_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention;
+    $titre = 'Article 29 I.T.S';
+
+    $formconfirm = $monform->formconfirm(
+        $url, 
+        $titre, 
+        img_picto('','warning')." Attention : Les valeurs de cette exportation ne seront pas sauvegardées", 
+        'validation', 
+        $array,
+        '',
+        1,
+        240,
+        '30%'
+    );
+	$action = 'annee_rechercher';
+}
+
 
 /*je dois juste protéger les buttons générer
 */
@@ -20,9 +88,8 @@ if($nombre_salarie_licence == 0){
 llxHeader("", "Paiement | Salaire");
 if(!empty($info))
 	print '<mark><h3 style="color:red;">'.$info.'</h3></mark>';
-$id_societe = GETPOST('id_societe','int');
-$action =  GETPOST('action','alpha');
-$id_convention = GETPOST('id_convention','int');
+
+print $formconfirm;
 //set_time_limit(300); // 300 secondes (5 minutes)
 //Verification du nombre de salariés autorisé
 $num_sal_exist = 0;
@@ -304,6 +371,8 @@ if ($results['status'] == "Active") {
 	print '<mark><h3 style="color:red;">Votre Abonnement permet de générer uniquement les salaires pour '.$nombre_salarie_licence.' salariés !!!
 	<br>Pour générer les salaires de '.$num_sal_exist.' salariés veuillez mettre à jour votre abonnement</h3></mark>';
 }*/
+
+
 if($user->rights->paiementsalaire->societe->read){
 	$message = "";
 	print load_fiche_titre($langs->trans("Génération des bulletins de paie"), '', '');
@@ -313,6 +382,7 @@ if($user->rights->paiementsalaire->societe->read){
 
 	$head = paiementsalaireSocieteHead($id_societe, $id_convention);
 	print dol_get_fiche_head($head, 'paies', "", -1, '');
+
 
 	if(!empty($id_convention)){
 		$conv_sql = 'SELECT nom FROM '.MAIN_DB_PREFIX.'convention WHERE rowid='.$id_convention;
@@ -341,8 +411,7 @@ if($user->rights->paiementsalaire->societe->read){
 		$id_bull = 1;
 	
 	$mois_tab = array(" Janvier "," Février "," Mars "," Avril "," Mai "," Juin "," Juillet "," Août "," Septembre "," Octobre "," Novembre "," Décembre ");
-
-	$monform = new Form($db);
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	if($action == "cloture"){
 		$mois = GETPOST("mois", "int");
 		$annee = GETPOST("annee", "int");
@@ -357,7 +426,7 @@ if($user->rights->paiementsalaire->societe->read){
 			'',
 			1,
 			250,
-			'70%'
+			'50%'
 		);
 		print $formconfirm;
 		$action = 'annee_rechercher';
@@ -370,12 +439,17 @@ if($user->rights->paiementsalaire->societe->read){
 		$sql = "UPDATE ".MAIN_DB_PREFIX."bulletin SET cloture='oui' WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
 		$res = $db->query($sql);
 		if($res){
+
+			if($mois == 12){//cloture du 13è mois lié à la cloture de décembre
+				$sql = "UPDATE ".MAIN_DB_PREFIX."bulletin SET cloture='oui' WHERE annee=".$annee." AND mois=13 AND fk_societe=".$id_societe;
+				$res = $db->query($sql);
+			}
 			$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
 			$obj = $db->fetch_object($db->query($sql_select));
 
 			//On garde la trace de l'action
 			$message = "Le mois de ".$mois_tab[$mois-1]." ".$annee." est cloturé avec succès";
-			$action_effectue = "Cloturé le bulletin de ".$mois_tab[$mois-1]." ".$annee." de la société ".$obj_soc->nom;
+			$action_effectue = "Cloture les salaires de ".$mois_tab[$mois-1]." ".$annee." de la société ".$obj_soc->nom;
 			$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 			$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Cloture Bulletin")';
 			$db->query($sql_log);
@@ -384,6 +458,76 @@ if($user->rights->paiementsalaire->societe->read){
 		$action = 'annee_rechercher';
 	}
 
+if($action == "reouvrirrMois"){
+		$mois = GETPOST("mois", "int");
+		$annee = GETPOST("annee", "int");
+		if(!empty($mois) && !empty($annee) && $mois > 0){
+			$sql = "UPDATE ".MAIN_DB_PREFIX."bulletin SET cloture='non' WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
+			$res = $db->query($sql);
+			if($res){
+				if($mois == 12){//dé-cloture du 13è mois lié à la dé-cloture de décembre
+					$sql = "UPDATE ".MAIN_DB_PREFIX."bulletin SET cloture='non' WHERE annee=".$annee." AND mois=13 AND fk_societe=".$id_societe;
+					$res = $db->query($sql);
+				}
+				$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
+				$obj = $db->fetch_object($db->query($sql_select));
+
+				//On garde la trace de l'action
+				$message = "Le mois de ".$mois_tab[$mois-1]." ".$annee." est Ré-ouvert avec succès";
+				$action_effectue = "Ré-ouverture des salaires de ".$mois_tab[$mois-1]." ".$annee." de la société ".$obj_soc->nom;
+				$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
+				$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Ré-ouverture Bulletin")';
+				$db->query($sql_log);
+
+			}else $message = "Un problème est survenu";
+			$action = 'annee_rechercher';
+	}else{
+		$action = "reouvrir";
+		$message = 'Le champ "MOIS" est obligatoire';
+	}
+}
+
+	if($action == "reouvrir"){
+		$annee = GETPOST("annee", "int");
+		$url = $_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee;
+		$text = "Ré-ouverture d'un mois de ".$annee." de ".$obj_soc->nom;
+
+		$val = array();
+		$key = array();
+		$sql = "SELECT DISTINCT mois FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='oui' AND mois!= 13 AND annee=".$annee." AND fk_societe=".$id_societe;
+		$res = $db->query($sql);
+		if($res){
+			while ($obj = $db->fetch_object($res)) {
+				$key[] = $obj->mois;
+				if(13 > $obj->mois)
+					$val[] = $mois_tab[$obj->mois-1];
+				else $val[] = "13è Mois";
+
+			}
+		}
+		
+		$array[] = array('label'=> 'Mois => ','type'=> 'select', 'size'=>'', 'morecss'=>'', 'moreattr'=>'selected', 'name'=>'mois','values' => array_combine($key,$val));
+
+		$formconfirm = $monform->formconfirm(
+			$url,
+			'Selectionnez un mois',
+			$text,
+			'reouvrirrMois',
+			$array,
+			'',
+			1,
+			250,
+			'20%'
+		);
+		print $formconfirm;
+		$action = 'annee_rechercher';
+
+	}
+/*if(!empty($annee)) //actualisation de l'année
+	$annee_rechercher = $annee;
+				print $annee.'****'.$annee_rechercher;*/
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	$annee = date("Y");
 	$mois = (int) date("m");
 	$trouve = false;
@@ -658,30 +802,12 @@ if($user->rights->paiementsalaire->societe->read){
 							$soc_res = $db->query($soc_sql);//= $db->query($covSql);
 							$obj_soc = $db->fetch_object($soc_res);
 
-						$action_effectue = "Génération avec succès des bulletins de ".$mois_tab[$mois-1]." ".$annee." de la société ".$obj_soc->nom;
+						if($mois != 13)
+							$action_effectue = "Génération avec succès des bulletins de ".$mois_tab[$mois-1]." ".$annee." de la société ".$obj_soc->nom." de ".count($tab_sal_rowid)." salarié(s)";
+						else $action_effectue = "Génération avec succès des bulletins du 13è Mois ".$annee." de la société ".$obj_soc->nom." de ".count($tab_sal_rowid)." salarié(s)";
 						$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 						$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Generation Bulletins")';
 						$db->query($sql_log);
-
-					//On garde la traçabilité et générons un message du succès de l'opération
-					if($dnum != 0 )
-						$dnum = 0;
-					if(in_array("OK", $tab_ok) && $dnum == 0){
-						$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
-						$obj = $db->fetch_object($db->query($sql_select));
-
-						$action_effectue = "Génération avec succès des bulletins de ".$mois_tab[$mois-1]." ".$annee." de la société ".$obj_soc->nom;
-						$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
-						$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Generation Bulletins")';
-						$db->query($sql_log);
-						$message = "Les salaires des Employés du mois".$mois_tab[$mois-1]." sont générés avec succès";
-					}elseif($dnum == 0){
-						$message = "Génération des salaires lancés avec succès<br>";
-						$message .= "Veuillez attendre la fin du processus";
-
-					}else{
-						$message = "Tous les salariés ont un problème de contrat";
-					}
 				}
 			}
 				$action = "annee_rechercher";
@@ -706,22 +832,26 @@ if($user->rights->paiementsalaire->societe->read){
 				$recherche_prenom = GETPOST("recherche_prenom", "alpha");
 
 
-				$sql_verif = "SELECT sal.rowid , sal.fk_user, u.firstname, u.lastname, u.rowid as id_user, bul.rowid as id_bulletin, bul.fk_salarie as mat, bul.annee, bul.mois, bul.fk_societe  FROM ".MAIN_DB_PREFIX."salarie as sal";
+				$sql_verif = "SELECT sal.rowid , sal.fk_user, bul.prenom, bul.nom, u.rowid as id_user, bul.rowid as id_bulletin, bul.fk_salarie as mat, bul.annee, bul.mois, bul.fk_societe  FROM ".MAIN_DB_PREFIX."salarie as sal";
 				$sql_verif .= " LEFT JOIN ".MAIN_DB_PREFIX."bulletin as bul ON bul.fk_salarie=sal.rowid";
 				$sql_verif .= " LEFT JOIN ".MAIN_DB_PREFIX."user as u ON sal.fk_user=u.rowid";
 				$sql_verif .= " WHERE bul.annee=".$annee_rech." AND bul.mois=".$mois_rech." AND bul.fk_societe=".$id_societe;
 
 				if(!empty(GETPOST("recherche_nom", "alpha"))){
-					$sql_verif .= " AND (u.lastname LIKE '%".GETPOST("recherche_nom", "alpha")."%'";
-					$sql_verif .= " OR u.firstname LIKE '%".GETPOST("recherche_nom", "alpha")."%')";
+					$sql_verif .= " AND (bul.nom LIKE '%".GETPOST("recherche_nom", "alpha")."%'";
+					$sql_verif .= " OR bul.prenom LIKE '%".GETPOST("recherche_nom", "alpha")."%')";
 
 				}
 
 				if(!empty(GETPOST("recherche_prenom", "alpha"))){
-					$sql_verif .= " AND (u.firstname LIKE '%".GETPOST("recherche_prenom", "alpha")."%'";
-					$sql_verif .= " OR u.lastname LIKE '%".GETPOST("recherche_prenom", "alpha")."%')";
+					$sql_verif .= " AND (bul.prenom LIKE '%".GETPOST("recherche_prenom", "alpha")."%'";
+					$sql_verif .= " OR bul.nom LIKE '%".GETPOST("recherche_prenom", "alpha")."%')";
 
 				}
+
+				$sql_verif .= " ORDER BY bul.nom";
+
+				print $db->error();
 				$zero = false;
 				$res_verif = $db->query($sql_verif);
 				if($res_verif){
@@ -817,7 +947,7 @@ if($user->rights->paiementsalaire->societe->read){
 					elseif($id_bull == 3)
 						$url = "../doc/modele_avance/bulletin_tout_salarie.php?id_societe=".$id_societe."&id_convention=".$id_convention."&mois=".$mois_rech."&annee=".$annee_rech."&action=".$action;
 
-					print "<h2>Les bulletins de paie du ".$mois_tab[$mois_rech-1]." ".$annee_rech."<a target='_blank' href=".$url." style='float: right;' class='button'>".$bouton."</a></h2>";
+					print "<h2>Les bulletins de paie du ".($mois_tab[$mois_rech-1]?:" 13è Mois ")." ".$annee_rech."<a target='_blank' href=".$url." style='float: right;' class='button'>".$bouton."</a></h2>";
 
 					//Tableau
 					print "<table style='width:100%;' class='tagtable liste'>";
@@ -836,7 +966,7 @@ if($user->rights->paiementsalaire->societe->read){
 							$i = $arret;
 							while($i < $num){
 								if($action == "telecharger"){
-									print '<tr class="impair" ><td style="text-align:center; padding:0px">'.$object_liste[$i]->lastname.'</><td style="text-align:center; padding:0px">'.$object_liste[$i]->firstname.'</td>';
+									print '<tr class="impair" ><td style="text-align:center; padding:0px">'.$object_liste[$i]->nom.'</><td style="text-align:center; padding:0px">'.$object_liste[$i]->prenom.'</td>';
 									if($id_bull == 1)
 										print '<td style="text-align:center; padding:0px"><a class="button" target="_blank" href="../doc/bulletin.php?id_societe='.$id_societe.'&fk_user='.$object_liste[$i]->id_user.'&fk_salarie='.$object_liste[$i]->rowid.'&id_convention='.$id_convention.'&mois='.$mois_rech.'&annee='.$annee_rech.'&action='.$action.'">Télécharger</a></td></tr>';
 									elseif($id_bull == 2)
@@ -844,7 +974,7 @@ if($user->rights->paiementsalaire->societe->read){
 									elseif($id_bull == 3)
 										print '<td style="text-align:center; padding:0px"><a class="button" target="_blank" href="../doc/modele_avance/bulletin.php?id_societe='.$id_societe.'&fk_user='.$object_liste[$i]->id_user.'&fk_salarie='.$object_liste[$i]->rowid.'&id_convention='.$id_convention.'&mois='.$mois_rech.'&annee='.$annee_rech.'&action='.$action.'">Télécharger</a></td></tr>';
 								}else{
-									print '<tr class="impair" ><td style="text-align:center; padding:0px">'.$object_liste[$i]->lastname.'</><td style="text-align:center; padding:0px">'.$object_liste[$i]->firstname.'</td>';
+									print '<tr class="impair" ><td style="text-align:center; padding:0px">'.$object_liste[$i]->nom.'</><td style="text-align:center; padding:0px">'.$object_liste[$i]->prenom.'</td>';
 									if($id_bull == 1)
 										print '<td style="text-align:center; padding:0px"><a class="button" target="_blank" href="../doc/bulletin.php?id_societe='.$id_societe.'&fk_user='.$object_liste[$i]->id_user.'&fk_salarie='.$object_liste[$i]->rowid.'&id_convention='.$id_convention.'&mois='.$mois_rech.'&annee='.$annee_rech.'&action='.$action.'">Voir</a></td></tr>';
 									elseif($id_bull == 2)
@@ -943,7 +1073,6 @@ if($user->rights->paiementsalaire->societe->read){
 			if($nb_page != ($nb)  )
 					$page_link .= "<a href='".$_SERVER["PHP_SELF"]."?mainmenu=paiementsalaire&leftmenusociete&id_societe=".$id_societe."&id_convention=".$id_convention."&annee=".$annee."&mois=".$mois_rech."&limit=".$limit."&arret=".($limit*($nb-1))."&nbpage=".($nb)."&action=".$action."&recherche_nom=".$recherche_nom."&recherche_prenom=".$recherche_prenom."&recherche_fk_salarie=".$recherche_fk_salarie."&recherche_anciennete=".$recherche_anciennete."' style='padding: 5px'>      <b>Fin</b></a>&nbsp;&nbsp;";
 
-
 		}
 		print $page_link.'</span>';
 	}
@@ -972,7 +1101,7 @@ if($user->rights->paiementsalaire->societe->read){
 					print '<input type="hidden" name="action" value="annee_rechercher">';
 
 					print "<select style='font-size: 24px; font-weight: bold;' name='annee_rechercher'><option value='0'></option>";
-					$sql_verif = "SELECT DISTINCT annee FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_societe=".$id_societe;
+					$sql_verif = "SELECT DISTINCT annee FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_societe=".$id_societe." ORDER BY annee DESC";
 					$res_verif = $db->query($sql_verif);
 					if($res_verif){
 						$num_all = $db->num_rows($res_verif);
@@ -1001,17 +1130,35 @@ if($user->rights->paiementsalaire->societe->read){
 
 				print "</div>";
 				print "<table class='tagtable liste'>";
-					print "<thead>";
-					print "<tr class='liste_titre'><th rowspan='2'>Mois</th>";
-					print "<th rowspan='2'>Nb salarié</th>";
-					print "<th rowspan='2'>Masse salariale brute</th>";
-					print "<th rowspan='2'>Masse salariale net</th>";
-					print "<th rowspan='2'>Total I.T.S</th>";
-					print "<th colspan='2' align='center'>Total Cotisation</th>";
-					print "<th rowspan='2' align='center' >Opérations</tr>";
-					print "<tr><th>Employé</th><th>Employeur</th></tr>";
-					print "</thead>";
-if($annee_rechercher == $annee_courant){
+				print "<thead>";
+				print "<tr class='liste_titre'><th rowspan='2'>Mois</th>";
+				print "<th rowspan='2'>Nb salarié</th>";
+				print "<th rowspan='2'>Masse salariale brute</th>";
+				print "<th rowspan='2'>Masse salariale net</th>";
+				print "<th rowspan='2'>Total I.T.S</th>";
+				print "<th colspan='2' align='center'>Total Cotisation</th>";
+				print "<th rowspan='2' align='center' >Opérations</tr>";
+				print "<tr><th>Employé</th><th>Employeur</th></tr>";
+				print "</thead>";
+
+		$sql = "SELECT COUNT(DISTINCT fk_salarie) AS nb_salaries FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_societe = ".$id_societe." AND annee = ".$annee_rechercher;
+		$res = $db->query($sql);
+		if ($res) {
+			$obj = $db->fetch_object($res);
+			$nb_salaries_par_an = $obj->nb_salaries;
+		}
+
+
+		$sal_brut_an = 0;
+		$sal_net_an = 0;
+		$taxe_its_an = 0;
+		$costi_sal = 0;
+		$cotis_patro = 0;
+
+		if(empty($annee_rechercher))
+			$annee_rechercher = $annee_courant;
+
+if($annee_rechercher){
 						
 		$une_fois = false;
 		$dernier_mois = 0;
@@ -1043,6 +1190,9 @@ if($annee_rechercher == $annee_courant){
 		//AFFICHAGE
 		$suivant = false;
 		for ($i=0; $i < count($mois_tab); $i++) {
+
+			$sal_b = 0;
+			$sal_n = 0;
 
 			$total = 0;
 			$a = 0;
@@ -1214,6 +1364,8 @@ if($annee_rechercher == $annee_courant){
 					print "N/A</td>";
 				}
 
+				$sal_b = $tab_obj[0]->sal_brut?:0;
+				$sal_n = $tab_obj[0]->sal_net?:0;
 			}else{//On va automatiquement au mois courant
 				if(($i + 1) == $mois_courant){
 					
@@ -1239,6 +1391,11 @@ if($annee_rechercher == $annee_courant){
 
 			}
 
+			$sal_brut_an += $sal_b;
+			$sal_net_an += $sal_n;
+			$taxe_its_an += $somme_taxe;
+			$costi_sal += $somme_cotisation_employe;
+			$cotis_patro += $somme_cotisation_employeur;
 			print "</tr>";
 
 		}
@@ -1253,6 +1410,8 @@ if($annee_rechercher == $annee_courant){
 
 						$gen = true;
 						for ($i=0; $i < count($mois_tab); $i++) {
+							$sal_b = 0;
+							$sal_n = 0;
 							//Vérification d'un bulletin bonus (complément salaire)
 							$sql_bonus_bulletin = "SELECT nom_bonus FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND mois=".($i + 1)." AND fk_societe=".$id_societe;
 							$res_bonus_bulletin  = $db->query($sql_bonus_bulletin);
@@ -1330,8 +1489,7 @@ if($annee_rechercher == $annee_courant){
 													print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
 													<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
 												print "Cloturé</td>";
-												
-	
+
 												$precedent = false;
 												$gen = true;
 											}else if(($obj_verif->cloture=="non")){
@@ -1394,6 +1552,8 @@ if($annee_rechercher == $annee_courant){
 														$gen = true;
 
 												}
+												$sal_b = $obj_som_salaire->sal_brut?:0;
+												$sal_n = $obj_som_salaire->sal_net?:0;
 											}else{
 												if($gen == false){
 												print "<td ".$style." ><b>".$mois_tab[$i]."</b></td>";
@@ -1427,11 +1587,229 @@ if($annee_rechercher == $annee_courant){
 												<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
 												print "N/A</td>";
 											}
+
+											$sal_brut_an += $sal_b;
+											$sal_net_an += $sal_n;
+											$taxe_its_an += $somme_taxe;
+											$costi_sal += $somme_cotisation_employe;
+											$cotis_patro += $somme_cotisation_employeur;
 	
 								}
 
 					}
+
+					// Gestion du 13è mois
+						$somme_cotisation_employe = 0;
+						$somme_cotisation_employeur = 0;
+						$somme_taxe = 0;
+					$sql_id_bulletin1 = "SELECT cloture FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='non' AND annee=".$annee_rechercher." AND mois=12 AND fk_societe=".$id_societe;
+					$res_id_bulletin1  = $db->query($sql_id_bulletin1);
+					print $db->error();
+					$num_k = $db->num_rows($res_id_bulletin1);
+					if (0 < $num_k){
+						salarie_nb_jour_13($db, $id_societe, 13, $annee_rechercher);
+						
+
+						print "<tr>";
+
+						$sql_id_bulletin2 = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=13 AND fk_societe=".$id_societe;
+						$res_id_bulletin2  = $db->query($sql_id_bulletin2);
+						$num_sal13 = $db->num_rows($res_id_bulletin2);
+						if($num_sal13 > 0){
+							$sql_som_salaire = "SELECT SUM(salaire_brut) as sal_brut, SUM(net_payer) as sal_net FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=13 AND fk_societe=".$id_societe;
+							$res_som_salaire  = $db->query($sql_som_salaire);
+							$tab_13[0] = $db->fetch_object($res_som_salaire);
+
+							//$total += $tab_13[0]->sal_brut + $tab_13[0]->sal_net;
+
+							
+							$sql_id_bulletin3 = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=13 AND fk_societe=".$id_societe;
+							$res_id_bulletin3  = $db->query($sql_id_bulletin3);
+							$num_k13 = $db->num_rows($res_id_bulletin3);
+							$a = 0;
+							while ($a < $num_k13){
+								$obj_id_bulletin3 = $db->fetch_object($res_id_bulletin3);
+								$sql_som_taxe = "SELECT SUM(montant) as montant FROM ".MAIN_DB_PREFIX."bulletin_taxe WHERE fk_bulletin=".$obj_id_bulletin3->rowid;
+								$res_som_taxe  = $db->query($sql_som_taxe);
+								if($res_som_taxe){
+									$obj_som_taxe = $db->fetch_object($res_som_taxe);
+									$somme_taxe += $obj_som_taxe->montant;
+								}
+								$sql_som_cotisation = "SELECT SUM(montant_employe) as som_empl, SUM(montant_employeur) as som_patro FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$obj_id_bulletin->rowid;
+								$res_som_cotisation  = $db->query($sql_som_cotisation);
+								if($res_som_cotisation){
+									$obj_som_cotisation = $db->fetch_object($res_som_cotisation);
+									$somme_cotisation_employe += $obj_som_cotisation->som_empl;
+									$somme_cotisation_employeur += $obj_som_cotisation->som_patro;
+								}
+								$a ++;
+							}
+							$db->free($res_id_bulletin3);
+							$somme_cotisation += $somme_cotisation_employe + $somme_cotisation_employeur;
+							$total += $somme_taxe + $somme_cotisation;
+							$tab_13[0]->somme_cotisation = $somme_cotisation;
+							$tab_13[0]->somme_taxe = $somme_taxe;
+							$tab_13[0]->somme_cotisation_employe = $somme_cotisation_employe;
+							$tab_13[0]->somme_cotisation_employeur = $somme_cotisation_employeur;
+
+
+							print "<td ".$style."><b>13è Mois</b></td><td >".$num_sal13."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_13[0]->sal_brut?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_13[0]->sal_net?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
+						}else{
+							print "<td ".$style."><b>13è Mois</b></td><td >".$num_sal13."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_13[0]->sal_brut?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_13[0]->sal_net?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
+						}
+						$sal_brut_an += $tab_13[0]->sal_brut;
+							$sal_net_an += $tab_13[0]->sal_net;
+							$taxe_its_an += $somme_taxe;
+							$costi_sal += $somme_cotisation_employe;
+							$cotis_patro += $somme_cotisation_employeur;
+
+						print "<td >";
+						if($user->rights->paiementsalaire->societe->genererBulletin)
+							print "<a style='text-decoration : none;' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_societe=".$id_societe."&id_convention=".$id_convention."&action=generer&annee=".$annee_rechercher."&mois=13' id='button_generer'><button class='button' >Générer</button></a>&nbsp;";
+						
+						if($user->rights->paiementsalaire->salarie->voirDocument && $num_sal13 > 0)
+							print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=13'><span class='fa fa-search-plus'></span></a>&nbsp; &nbsp;&nbsp;
+							<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=13'><span class='fa fa-download'></span></a>&nbsp;&nbsp;
+							<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=13&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp; &nbsp;&nbsp;";
+						else
+							print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+							<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+							print "Cloturé</td>";
+					}else{
+
+						print "<tr>";
+
+						$sql_id_bulletin2 = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=13 AND fk_societe=".$id_societe;
+						$res_id_bulletin2  = $db->query($sql_id_bulletin2);
+						$num_sal13 = $db->num_rows($res_id_bulletin2);
+						if($num_sal13 > 0){
+							$sql_som_salaire = "SELECT SUM(salaire_brut) as sal_brut, SUM(net_payer) as sal_net FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=13 AND fk_societe=".$id_societe;
+							$res_som_salaire  = $db->query($sql_som_salaire);
+							$tab_13[0] = $db->fetch_object($res_som_salaire);
+
+							//$total += $tab_13[0]->sal_brut + $tab_13[0]->sal_net;
+
+							
+							$sql_id_bulletin3 = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois=13 AND fk_societe=".$id_societe;
+							$res_id_bulletin3  = $db->query($sql_id_bulletin3);
+							$num_k13 = $db->num_rows($res_id_bulletin3);
+							$a = 0;
+							while ($a < $num_k13){
+								$obj_id_bulletin3 = $db->fetch_object($res_id_bulletin3);
+								$sql_som_taxe = "SELECT SUM(montant) as montant FROM ".MAIN_DB_PREFIX."bulletin_taxe WHERE fk_bulletin=".$obj_id_bulletin3->rowid;
+								$res_som_taxe  = $db->query($sql_som_taxe);
+								if($res_som_taxe){
+									$obj_som_taxe = $db->fetch_object($res_som_taxe);
+									$somme_taxe += $obj_som_taxe->montant;
+								}
+								$sql_som_cotisation = "SELECT SUM(montant_employe) as som_empl, SUM(montant_employeur) as som_patro FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$obj_id_bulletin->rowid;
+								$res_som_cotisation  = $db->query($sql_som_cotisation);
+								if($res_som_cotisation){
+									$obj_som_cotisation = $db->fetch_object($res_som_cotisation);
+									$somme_cotisation_employe += $obj_som_cotisation->som_empl;
+									$somme_cotisation_employeur += $obj_som_cotisation->som_patro;
+								}
+								$a ++;
+							}
+							
+							$db->free($res_id_bulletin3);
+							$somme_cotisation += $somme_cotisation_employe + $somme_cotisation_employeur;
+							$total += $somme_taxe + $somme_cotisation;
+							$tab_13[0]->somme_cotisation = $somme_cotisation;
+							$tab_13[0]->somme_taxe = $somme_taxe;
+							$tab_13[0]->somme_cotisation_employe = $somme_cotisation_employe;
+							$tab_13[0]->somme_cotisation_employeur = $somme_cotisation_employeur;
+
+
+							
+							print "<td ".$style."><b>13è Mois</b></td><td >".$num_sal13."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_13[0]->sal_brut?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_13[0]->sal_net?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
+						}else{
+							print "<td ".$style."><b>13è Mois</b></td><td >".$num_sal13."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_13[0]->sal_brut?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $tab_13[0]->sal_net?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_taxe?:0, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employe, 2)."</td><td ".$style.">".apres_virgule($db, $id_societe, $somme_cotisation_employeur, 2)."</td>";
+						}
+
+						$sal_brut_an += $tab_13[0]->sal_brut;
+							$sal_net_an += $tab_13[0]->sal_net;
+							$taxe_its_an += $somme_taxe;
+							$costi_sal += $somme_cotisation_employe;
+							$cotis_patro += $somme_cotisation_employeur;
+							
+						print "<td >";
+							print "<button class='button' disabled>Generer</button>";
+						if($user->rights->paiementsalaire->salarie->voirDocument && $num_sal13 > 0)
+							print "<a style='text-decoration : none;' title='Voir' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=13'><span class='fa fa-search-plus'></span></a>&nbsp; &nbsp;&nbsp;
+							<a style='text-decoration : none;' title='Télécharger' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=telecharger&annee=".$annee_rechercher."&mois=13'><span class='fa fa-download'></span></a>&nbsp;&nbsp;
+							<a href='./../doc/export.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&action=voir&annee=".$annee_rechercher."&mois=13&action=exporter'><span class='file-export'>".img_picto('Exporter', 'logout', 'class="paddingright pictofixedwidth valignmiddle"')."</span></a>&nbsp; &nbsp;&nbsp;";
+						else
+							print "<span class='fa fa-search-plus' style='color: gray'></span> &nbsp;&nbsp;&nbsp;
+							<span class='fa fa-download' style='color: gray'> &nbsp;&nbsp;&nbsp;";
+							print "Cloturé</td>";
+
+					}
+					print "</tr>";
+
 					print "</tbody>";
+
+
+					$indice_info = info_admin("Il s'agit du nombre total des distincts salariés dont les salaires ont été générés en ".$annee_rechercher, 1);
+                    print "<tr class='liste_titre'><th>Total de l’année ".$annee_rechercher."</th>";
+					print "<th>".$nb_salaries_par_an." ".$indice_info."</th>";
+					print "<th>".apres_virgule($db, $id_societe, $sal_brut_an, 2)."</th>";
+					print "<th>".apres_virgule($db, $id_societe, $sal_net_an, 2)."</th>";
+					print "<th>".apres_virgule($db, $id_societe, $taxe_its_an, 2)."</th>";
+					print "<th>".apres_virgule($db, $id_societe, $costi_sal, 2)."</th>";
+					print "<th>".apres_virgule($db, $id_societe, $cotis_patro, 2)."</th>";
+					//if(0 < $num_k)
+
+					print "<th>";
+					print "<select id='type_export' name='type_export' class='button'>";
+					print "<option value='0' >Export</option>";
+					print "<option value='export_annee' >Année ".$annee_rechercher."</option>";
+					print "<option value='export_annee_doublon' >Doublon ".$annee_rechercher."</option>";
+					print "<option value='periode' >Par période</option>";
+					print "</select>";
+
+					print '<script type="text/javascript">
+								var type_export = document.getElementById("type_export");
+								type_export.addEventListener("change", function () {
+									var type_export_val = type_export.value;
+									if(type_export_val == "export_annee"){
+										window.location.href = "./../doc/export_annee.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention='.$id_convention.'&id_societe='.$id_societe.'&action=voir&annee='.$annee_rechercher.'&action=exporter";
+									}else if(type_export_val == "periode"){
+										window.location.href = "'.$_SERVER['PHP_SELF'].'?id_societe='.$id_societe.'&id_convention='.$id_convention.'&annee='.$annee_rechercher.'&action=article29_periode";
+									}else if(type_export_val == "export_annee_doublon"){ //avec doublons
+										window.location.href = "./../doc/export_annee_doublon.php?mainmenu=paiementsalaire&leftmenu=societe&id_convention='.$id_convention.'&id_societe='.$id_societe.'&action=voir&annee='.$annee_rechercher.'&action=exporter";
+									}
+								},
+								false,
+								);
+								</script>';
+
+					$sql_select = "SELECT DISTINCT mois FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='non' AND mois!=13 AND annee=".$annee_rechercher." AND fk_societe=".$id_societe;
+					$resul = $db->query($sql_select);
+					$nombre = $db->num_rows($resul);
+					if($nombre > 0 && 2 > $nombre){
+						$inf = "Réouvrir un mois déjà fermé";
+						print "<a class='button' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&annee=".$annee_rechercher."&action=reouvrir'>Ré-ouvrir".info_admin($inf, 1)."</a>";
+					}else{
+						$sql_select = "SELECT DISTINCT mois FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='oui' AND annee=".$annee_rechercher." AND fk_societe=".$id_societe;
+							$resul = $db->query($sql_select);
+							$nombre = $db->num_rows($resul);
+
+						if($nombre > 0){
+							$inf = "Réouvrir un mois déjà fermé";
+							print "<a class='button' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=societe&id_convention=".$id_convention."&id_societe=".$id_societe."&annee=".$annee_rechercher."&action=reouvrir'>Ré-ouvrir".info_admin($inf, 1)."</a>";
+							
+						}else{
+							$inf = "Il y a déjà deux mois ouverts";
+							print "<button title='".$inf."' class='button' disabled>Ré-ouvrir</button>";
+						}
+
+					}
+
+					print "</th>";
+					/*else print "<th></th>";
+					print "</tr>";*/
+
 					print "</table>";
 				
 				
@@ -1463,6 +1841,7 @@ if($annee_rechercher == $annee_courant){
 	print "<h2 style='align:center;'>Vous n'avez pas la permission de voir cette page!";
 
 }
+
 
 function apres_virgule($db, $id_societe, $valeur, $decalage){
     $sep = ".";
@@ -1547,3 +1926,56 @@ function apres_virgule($db, $id_societe, $valeur, $decalage){
 
 			return $tab_id;
 		}
+
+function salarie_nb_jour_13($db, $id_societe, $mois, $annee){
+
+	$sql = "SELECT count(u.rowid) FROM ".MAIN_DB_PREFIX."user as u";
+		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."salarie as sal ON u.rowid=sal.fk_user";
+		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object";
+		$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'societe as soc ON soc.rowid=ue.egp';
+		$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'societe_extrafields as sce ON soc.rowid=sce.fk_object';
+		$sql .= ' WHERE sce.grp=1';
+
+		$sql .= " ORDER BY u.rowid";
+		$result1 = $db->query($sql);
+		$num_total = $db->num_rows($result1);
+	$salSql = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_nombre_jour_travaille where fk_societe=".$id_societe." AND annee=".$annee." AND mois=".$mois;
+	$result2 = $db->query($salSql);
+	$num = $db->num_rows($result2);
+
+	$jour = 30;
+	if($num < $num_total){
+		$salSql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_nombre_jour_travaille where fk_societe=".$id_societe." AND annee=".$annee." AND mois=".$mois;
+		$result3 = $db->query($salSql);
+		$sql = "SELECT u.rowid, sal.rowid as id_salarie, ue.fk_object, ue.egp, soc.rowid as id_societe, soc.nom, sce.fk_object, sce.conv FROM ".MAIN_DB_PREFIX."user as u";
+		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."salarie as sal ON u.rowid=sal.fk_user";
+		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object";
+		$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'societe as soc ON soc.rowid=ue.egp';
+		$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'societe_extrafields as sce ON soc.rowid=sce.fk_object';
+		$sql .= ' WHERE sce.grp=1';
+
+		$sql .= " ORDER BY u.rowid";
+		$result = $db->query($sql);
+		if($result){
+
+			$num = $db->num_rows($result);
+			if($num > 0){
+
+				$a = 0;
+				while ($a < $num) {
+					$salarie = $db->fetch_object($result);
+						if($salarie->id_salarie){
+							if(!$id_societe)
+								$id_societe = $salarie->id_societe;
+							$sql_insert = 'INSERT INTO '.MAIN_DB_PREFIX.'salarie_nombre_jour_travaille (fk_societe, fk_salarie, annee, mois, jour)';
+							$sql_insert .= ' VALUES('.$id_societe.','.$salarie->id_salarie.','.$annee.','.$mois.','.$jour.')';
+							$db->query($sql_insert);
+							
+						}
+					$a ++;
+				}
+			}
+
+		}
+	}
+}

@@ -58,11 +58,6 @@ require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/lib/paiementsalaire.lib.
 // Translations
 $langs->loadLangs(array("errors", "admin", "paiementsalaire@paiementsalaire"));
 
-// Access control
-if (!$user->admin) {
-	accessforbidden();
-}
-
 // Parameters
 $action = GETPOST('action', 'aZ09');
 $backtopage = GETPOST('backtopage', 'alpha');

@@ -37,6 +37,37 @@ require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/core/modules/modPaiement
 require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/class/html.form.class.php';
 
 //$PaiementSalaire = new modPaiementSalaire($db);
+/*
+$sql_fact = "UPDATE llx_facture SET ref='AE0005-03-26', fk_statut = 1, fk_user_valid = 4,  date_valid = '2026-03-11 10:21:51' WHERE rowid = 2406";
+if($db->query($sql_fact))
+    print '//////////////////////////';
+else print 8888888888888888888888;
+
+$sql_fact = "UPDATE llx_facture SET ref='AE0006-03-26', fk_statut = 1, fk_user_valid = 4, date_valid = '2026-03-11 10:21:51' WHERE rowid = 2407";
+if($db->query($sql_fact))
+    print '//////////////////////////';
+else print 8888888888888888888888;
+
+$sql_fact = "UPDATE llx_facture SET ref='AE0007-03-26', fk_statut = 1, fk_user_valid = 4, date_valid = '2026-03-11 10:21:51' WHERE rowid = 2409";
+if($db->query($sql_fact))
+    print '//////////////////////////';
+else print 8888888888888888888888;
+
+$sql_fact = "UPDATE llx_facture SET ref='AE0010-02-26', fk_statut = 1, fk_user_valid = 4, date_valid = '2026-03-04 13:23:19' WHERE rowid = 2389";
+if($db->query($sql_fact))
+    print '//////////////////////////';
+else print 8888888888888888888888;
+
+$sql_fact = "UPDATE llx_facture SET ref='AE0011-02-26', fk_statut = 1, fk_user_valid = 4, date_valid = '2026-03-04 13:23:19' WHERE rowid = 2390";
+if($db->query($sql_fact))
+    print '//////////////////////////';
+else print 8888888888888888888888;
+
+$sql_fact = "UPDATE llx_facture SET ref='AE0012-02-26', fk_statut = 1, fk_user_valid = 4, date_valid = '2026-03-04 13:23:19' WHERE rowid = 2391";
+if($db->query($sql_fact))
+    print '//////////////////////////';
+else print 8888888888888888888888;
+*/
 
 llxHeader("", "Paiement | Salaire");
 $action = GETPOST("action", "alpha");
@@ -367,9 +398,18 @@ $whmcsurl = 'https://my.ibs-mali.com/';
 				print '<td >'.$licence_obj->nom_produit.'</td>';
 				print '</tr>';
 
+                $aujourdhui = date('Y-m-d');
+                $etat = '❌';
+                if($licence_obj->date_expiration > $aujourdhui)
+                    $etat = img_picto('', 'tick');
+
+                if($licence_obj->date_expiration == '0000-00-00')
+                    $etat = img_picto('', 'tick');
+                
+                $desc .= "Etat : ".$etat."<br>";
                 print "<tr class='underbanner'>";
                 print '<td><br>Date d\'expiration<br><br></td>';
-                print '<td>'.$licence_obj->date_expiration.'</td>';
+                print '<td>'.$licence_obj->date_expiration.' '.$etat.'</td>';
                 print "</tr>";
 
                 //calcul du nombre total de salarié

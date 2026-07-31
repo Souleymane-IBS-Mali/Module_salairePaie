@@ -22,13 +22,13 @@ CREATE TABLE llx_salarie_avance
     fk_salarie                  integer,
     annee_debut_paiement        integer,
     mois_debut_paiement         integer,
-    date_etablissement          timestamp DEFAULT CURRENT_TIMESTAMP,
+    date_etablissement          timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     libelle                     VARCHAR(50),
     montant_total               VARCHAR(20),
     montant_paye                VARCHAR(20),
     montant_par_mois            VARCHAR(10),
     nombre_mois                 integer,
     note                        VARCHAR(255),
-    date_affectation            timestamp DEFAULT CURRENT_TIMESTAMP,
+    date_affectation            timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     import_key              VARCHAR(14)
 )ENGINE=innodb;  

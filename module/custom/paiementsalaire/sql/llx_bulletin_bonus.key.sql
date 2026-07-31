@@ -15,13 +15,8 @@
 -- along with this program. If not, see <http://www.gnu.org/licenses/>.
 --
 -- ========================================================================
-
-ALTER TABLE llx_bulletin_bonus MODIFY email varchar(50);
-ALTER TABLE llx_bulletin_bonus MODIFY nom_societe varchar(255);
-ALTER TABLE llx_bulletin_bonus MODIFY fonction varchar(255);
-ALTER TABLE llx_bulletin_bonus MODIFY compte varchar(50);
-
-ALTER TABLE llx_bulletin_bonus ADD type_salaire VARCHAR(15);
+--ALTER TABLE llx_bulletin_bonus ADD montant VARCHAR(15);
+--ALTER TABLE llx_bulletin_bonus ADD base VARCHAR(15);
 
 --drop table llx_bulletin_bonus;
 --drop table llx_bulletin_bonus_cotisation;

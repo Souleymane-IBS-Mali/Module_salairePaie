@@ -69,12 +69,13 @@ if(empty($fk_salarie)){
 	print dol_get_fiche_head($head_avance, 'detail', "", -1, '');
 	//verification_avance_salarie($db, $fk_salarie);
 	//ajout d'un avance
-	$mois_tab = array(" Janvier "," Février "," Mars "," Avril "," Mai "," Juin "," Juillet "," Août "," Septembre "," Octobre "," novembre "," Décembre ");
+	$mois_tab = array(" Janvier "," Février "," Mars "," Avril "," Mai "," Juin "," Juillet "," Août "," Septembre "," Octobre "," novembre "," Décembre ", " 13è Mois ");
 
 
 	print "<table class='tagtable liste'>";
 	print "<tr class='liste_titre'><td>Montant Payé</td><td>Année paiement</td><td>Mois Paiement</td></tr>";
 					
+
 				$sql_detail_avance  = "SELECT * FROM ".MAIN_DB_PREFIX."detail_avance WHERE fk_avance=".$id_avance;
 				$sql_detail_avance .= " ORDER BY rowid DESC";
 				$res_detail_avance  = $db->query($sql_detail_avance );
@@ -91,7 +92,6 @@ if(empty($fk_salarie)){
 					if($nb == 0)
 						print "<tr><td align='center' colspan=3> Aucun détail</td></td>";
 				}else print "<tr><td align='center' colspan=3> Aucun détail</td></td>";
-			
 				print '</table>';
 		
 

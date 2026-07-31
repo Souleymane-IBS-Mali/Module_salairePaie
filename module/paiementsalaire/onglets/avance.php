@@ -39,7 +39,7 @@ require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 
 llxHeader("", "Paiement | Salaire");
 //Titre
-print load_fiche_titre($langs->trans("Congés"), '', '');
+print load_fiche_titre($langs->trans("Les avances et acomptes"), '', '');
 $id_societe = GETPOST("id_societe","int");
 $fk_user = GETPOST("id","int");
 $fk_salarie = GETPOST("fk_salarie", "int");
@@ -52,9 +52,17 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 }else{
 	$action = GETPOST("action", "alpha");
 
-	$mois_tab = array(" Janvier "," Février "," Mars "," Avril "," Mai "," Juin "," Juillet "," Août "," Septembre "," Octobre "," novembre "," Décembre ");
+	$mois_tab = array(" Janvier "," Février "," Mars "," Avril "," Mai "," Juin "," Juillet "," Août "," Septembre "," Octobre "," novembre "," Décembre ", " 13è Mois ");
 	$salaire_base = 0;
 	$message = "";
+	$array = array();
+	$montant_apayer = 0;
+	$sursalaire = 0;
+	$note = "";
+	$page = 0;
+	$num = 0;
+	$result = null;
+
 
 
 	if(empty($fk_salarie)){
@@ -96,21 +104,29 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		if($action == "supprimer"){
 			$id_avance = GETPOST("id_avance", "int");
 			$sql = "SELECT libelle FROM ".MAIN_DB_PREFIX."salarie_avance WHERE rowid=".$id_avance;
-			$obj_av = $db->fetch_object($db->query($sql));
+			$res_av = $db->query($sql);
+			$obj_av = $res_av ? $db->fetch_object($res_av) : null;
+			if (!$obj_av) $obj_av = (object) array("libelle" => "");
 
 			$sql = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$fk_user;
-			$obj_sal_user = $db->fetch_object($db->query($sql));
+			$res_sal_user = $db->query($sql);
+			$obj_sal_user = $res_sal_user ? $db->fetch_object($res_sal_user) : null;
+			if (!$obj_sal_user) $obj_sal_user = (object) array("firstname" => "", "lastname" => "");
 
 			$sql = "DELETE FROM ".MAIN_DB_PREFIX."salarie_avance WHERE rowid=".$id_avance;
-			$result2 = $db->query($sql);
+			$result = $db->query($sql);
 			$sql = "DELETE FROM ".MAIN_DB_PREFIX."detail_avance WHERE fk_avance=".$id_avance;
 			$result2 = $db->query($sql);
 			if($result && $result2){
 				$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
-				$obj = $db->fetch_object($db->query($sql_select));
+				$res_user_log = $db->query($sql_select);
+				$obj = $res_user_log ? $db->fetch_object($res_user_log) : null;
+				if (!$obj) $obj = (object) array('firstname' => '', 'lastname' => '');
 
 				$sql_select = "SELECT nom FROM ".MAIN_DB_PREFIX."societe WHERE rowid=".$id_societe;
-			$obj_s = $db->fetch_object($db->query($sql_select));
+				$res_soc_log = $db->query($sql_select);
+				$obj_s = $res_soc_log ? $db->fetch_object($res_soc_log) : null;
+				if (!$obj_s) $obj_s = (object) array("nom" => "");
 
 				//On garde la trace de l'action
 				$action_effectue = "Suppression d'une Avance-Acompte (libelle : ".$obj_av->libelle.") du salarié ".$obj_sal_user->firstname."-".$obj_sal_user->lastname." id_utilisateur=".$fk_user." salarié de la société ".$obj_s->nom;
@@ -125,15 +141,18 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 		if($action == 'verification'){
 			$libelle = GETPOST("libelle", "alpha");
 			$montant = GETPOST("montant", "int");
+			$mois_debut = GETPOST("mois_debut","int");
+			$annee_debut = GETPOST("annee","int");
+
 			if(GETPOST("type", "alpha") == 'avance'){
 				$nb_mois = GETPOST("nb_mois","int");
-				$mois_debut = GETPOST("mois_debut","int");
-				$annee_debut = GETPOST("annee","int");
 			}else{
 				$nb_mois = 1;
-				$mois_debut = date('m');
-				$annee_debut = date('Y');
+				$mois_debut = GETPOST("mois_debut_accompte","int");
+				$annee_debut = GETPOST("annee_debut_accompte","int");
+				
 			}
+
 			$note = GETPOST("note", "alpha");
 
 			if(empty($libelle))
@@ -159,23 +178,23 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					$message .= 'La valeur du "MONTANT" doit être suérieur à celle du "MONTANT PAR MOIS" <br>';
 			}
 
-			if(empty($message)){
-					$sql_verif = "SELECT rowid FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND (montant_paye < montant_total)";
-						$res_verif = $db->query($sql_verif);
-						if($res_verif){
-							$nb = $db->num_rows($res_verif);
-								if($nb > 1)
-									$message = "Deux Avances/Acomptes en cours de paiement pour ce salarié";
+				if(empty($message)){
+						$sql_verif = "SELECT rowid FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND (montant_paye < montant_total)";
+							$res_verif = $db->query($sql_verif);
+							if($res_verif){
+								$nb = $db->num_rows($res_verif);
+									if($nb > 1)
+										$message = "Deux Avances/Acomptes en cours de paiement pour ce salarié";
 
-						}
-			}
-			if(empty($message)){
-				$taux = 33;
+							}
+				}
+				if(empty($message)){
+					$taux = 33;
 								$salaire_net = 0;
 								//verifions si un taux limit à été fixé aux avance/Acompte de cette société
 								$regle_avance_acompte = "SELECT taux FROM ".MAIN_DB_PREFIX."regle_avance_acompte WHERE fk_societe=".$id_societe;
 								$result_regle_avance_acompte = $db->query($regle_avance_acompte);
-								if($db->num_rows($result_regle_avance_acompte) > 0){
+								if($result_regle_avance_acompte && $db->num_rows($result_regle_avance_acompte) > 0){
 									$obj_regle_avance_acompte = $db->fetch_object($result_regle_avance_acompte);
 									$taux = $obj_regle_avance_acompte->taux;
 								}
@@ -183,15 +202,16 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 								//récupération du salaire net du salarié stipulé par le contrat
 								$sql_contrat = "SELECT rowid FROM ".MAIN_DB_PREFIX."salarie_contrat WHERE fk_salarie=".$fk_salarie." AND active=1";
 								$res_contrat = $db->query($sql_contrat);
-								if($db->num_rows($result_regle_avance_acompte) > 0){
+								if($res_contrat && $db->num_rows($res_contrat) > 0){
 									$obj_contrat = $db->fetch_object($res_contrat);
 									$sql_salaire_net  = "SELECT salaire_net FROM ".MAIN_DB_PREFIX."salarie_contrat_salaire_net WHERE active=1 AND fk_contrat=".$obj_contrat->rowid;
 									$res_salaire_net  = $db->query($sql_salaire_net );
-									$obj_salaire_net = $db->fetch_object($res_salaire_net);
-									$salaire_net = $obj_salaire_net->salaire_net;
+									$obj_salaire_net = $res_salaire_net ? $db->fetch_object($res_salaire_net) : null;
+									if ($obj_salaire_net) $salaire_net = (float) $obj_salaire_net->salaire_net;
 								}
 
 								//les avances de ce salarié en cours de paiement
+								$montant_apayer = ($nb_mois > 0) ? round($montant / $nb_mois, 2) : 0;
 								$montant_total_par_mois = $montant_apayer;
 								$mois = date('m');
 								$annee = date('Y');
@@ -199,7 +219,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 								$sql .= " AND (montant_paye < montant_total OR  (montant_paye = montant_total AND ((annee_debut_paiement=".$annee." AND mois_debut_paiement<=".$mois."))))";
 								$result = $db->query($sql);
 								if($result){
-									$i = 0;
+									$p = 0;
 									$num = $db->num_rows($result);
 									while ($p < $num){
 										$obj = $db->fetch_object($result);
@@ -217,7 +237,6 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 										$p ++;
 									}
 								}
-				$montant_apayer = round($montant/$nb_mois);
 				if($taux != 0 && $salaire_net != 0 && ($montant_total_par_mois > ($taux*$salaire_net/100))){
 					$mois_tab = array(" Janvier "," Février "," Mars "," Avril "," Mai "," Juin "," Juillet "," Août "," Septembre "," Octobre "," Novembre "," Décembre ");
 					$array = array(
@@ -255,15 +274,30 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 	}
 		if($action == "save_avance"){
 			$libelle = GETPOST("libelle", "alpha");
+			$numero_av = 1;
+			$sql_verif = "SELECT rowid FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie." AND (montant_paye < montant_total) AND libelle = '".$db->escape($libelle)."'";
+			$res_verif = $db->query($sql_verif);
+			if($res_verif){
+				$nb = $db->num_rows($res_verif);
+				if($nb > 0){
+					if($nb > 1)
+						$numero_av = $nb + 1;
+					$libelle .= "(".$numero_av.")";
+				}
+
+			}
+			
 			$montant = GETPOST("montant", "int");
-			if(GETPOST("type") == 'avance'){
+			$mois_debut = GETPOST("mois_debut","int");
+			$annee_debut = GETPOST("annee","int");
+
+			if(GETPOST("type", "alpha") == 'avance'){
 				$nb_mois = GETPOST("nb_mois","int");
-				$mois_debut = GETPOST("mois_debut","int");
-				$annee_debut = GETPOST("annee","int");
 			}else{
 				$nb_mois = 1;
-				$mois_debut = date('m');
-				$annee_debut = date('Y');
+				$mois_debut = GETPOST("mois_debut_accompte","int");
+				$annee_debut = GETPOST("annee_debut_accompte","int");
+				
 			}
 			$note = GETPOST("note", "alpha");
 			if(empty($message)){
@@ -275,10 +309,14 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 						$message = "Avance associée à ce salarié";
 						$id_avance = GETPOST("id_avance", "int");
 						$sql = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$fk_user;
-						$obj_sal_user = $db->fetch_object($db->query($sql));
+						$res_sal_user = $db->query($sql);
+						$obj_sal_user = $res_sal_user ? $db->fetch_object($res_sal_user) : null;
+						if (!$obj_sal_user) $obj_sal_user = (object) array('firstname' => '', 'lastname' => '');
 
 						$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
-						$obj = $db->fetch_object($db->query($sql_select));
+						$res_user_log = $db->query($sql_select);
+				$obj = $res_user_log ? $db->fetch_object($res_user_log) : null;
+				if (!$obj) $obj = (object) array('firstname' => '', 'lastname' => '');
 
 
 						//On garde la trace de l'action
@@ -343,6 +381,8 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 				print "</select>";
 
 
+				print "<input type='hidden' name='mois_debut_accompte' id='mois_debut_accompte'>";
+				print "<input type='hidden' name='annee_debut_accompte' id='annee_debut_accompte'>";
 
 				print "</td></tr>";
 				$info = 'petite note';
@@ -361,7 +401,10 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					var montant_apayer = document.getElementById("montant_apayer");
 					var mois_debut = document.getElementById("mois_debut");
 					var annee = document.getElementById("annee");
-
+					var mois_debut_accompte = document.getElementById("mois_debut_accompte");
+					var annee_debut_accompte = document.getElementById("annee_debut_accompte");
+					var libel = document.getElementById("libelle");
+		
 
 					montant.addEventListener("blur", function () {
 						if(!isNaN(montant.value) && !isNaN(nb_mois.value) && montant.value != "" && nb_mois.value != "" ){
@@ -379,9 +422,6 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					},
 					false,
 					);
-
-					var annee = document.getElementById("annee");
-					var libel = document.getElementById("libelle");
 
 
 						annee.addEventListener("change", function () {
@@ -404,6 +444,9 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 								montant_apayer.disabled = true;
 								mois_debut.disabled = true;
 								annee.disabled = true;
+								mois_debut_accompte.value = mois_debut.value;
+								annee_debut_accompte.value = annee.value;
+								
 							}else{
 								nb_mois.disabled = false;
 								montant_apayer.disabled = false;
@@ -421,14 +464,14 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 				if($user->rights->paiementsalaire->salarie->ecrireAvanceAcompte)
 					print_barre_liste("", $page, $_SERVER["PHP_SELF"], "", "", "", "", "", "", 'bill', 0, dolGetButtonTitle("Ajouter une nouvelle avance/accompte", '', 'fa fa-plus-circle', $_SERVER["PHP_SELF"].'?mainmenu=paiementsalaire&leftmenu=salarie&id='.$fk_user.'&fk_salarie='.$fk_salarie.'&id_convention='.$id_convention.'&id_societe='.$id_societe.'&action=ajouter_avance' , '', 1), '', 0, 0, 0, 1);
 
-			print "<h3>Avance à Remboursser de <mark>".date('Y')."</mark></h3>";
+			print "<h3>Avance à Remboursser</h3>";
 			print "<table class='tagtable liste'>";
 			print "<tr class='liste_titre'><td>Libelle</td><td>Montant</td><td>Payé</td><td>Nombre de mois</td><td>Montant/Mois";
 			print "</td><td>Début paiement</td><td>Date création</td><td>Note</td><td style='padding: 10px; width: 10%;'>Suppression</td></tr>";
 			$annee = date("Y");
 			$mois = date("m");
 			$sql = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie;
-			$sql .= " AND ROUND(montant_paye) <= ROUND(montant_total) ORDER BY mois_debut_paiement DESC";// OR  (montant_paye = montant_total AND ((annee_debut_paiement<=".$annee." AND mois_debut_paiement<=".$mois."))))";
+			$sql .= " AND CAST(montant_paye AS DECIMAL(20,2)) < CAST(montant_total AS DECIMAL(20,2)) ORDER BY mois_debut_paiement DESC";// OR  (montant_paye = montant_total AND ((annee_debut_paiement<=".$annee." AND mois_debut_paiement<=".$mois."))))";
 
 			$result = $db->query($sql);
 			if($result){
@@ -437,23 +480,21 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 				while ($i < $num){
 					$obj = $db->fetch_object($result);
 
-					$sql_detail = "SELECT mois_paiement, annee_paiement FROM ".MAIN_DB_PREFIX."detail_avance WHERE annee_paiement=".date('Y')." AND fk_avance=".$obj->rowid." ORDER BY mois_paiement DESC";
-					$result_detail = $db->query($sql_detail);
-					$num_detail = $db->num_rows($result_detail);
-					if($num_detail > 0){
-						$obj_detail = $db->fetch_object($result_detail);
+					$sql_detail = "SELECT COUNT(rowid) as nbcount
+									FROM ".MAIN_DB_PREFIX."detail_avance
+									WHERE fk_avance=".$obj->rowid;
 
-					}
+						$result_detail = $db->query($sql_detail);
 
-					$sql_bull_detail = "SELECT mois, annee FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".date('Y')." AND fk_salarie=".$fk_salarie." AND cloture = 'oui' ORDER BY mois DESC";
-					$result_bull_detail = $db->query($sql_bull_detail);
-					$num_bull_detail = $db->num_rows($result_bull_detail);
-					if($num_bull_detail > 0){
-						$obj_bull_detail = $db->fetch_object($result_bull_detail);
+						$num_detail = 0;
+						if ($result_detail) {
+							$obj_count = $db->fetch_object($result_detail);
+							$num_detail = (int) $obj_count->nbcount;
+						}
 
-					}
+						if ($num_detail < $obj->nombre_mois) {
+							// votre code
 
-					if($obj_detail->mois_paiement && $obj_bull_detail->mois && $obj_detail->mois_paiement > $obj_bull_detail->mois){
 
 							if($i % 2 == 0)
 								$class='pair';
@@ -478,115 +519,104 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 								if($trouve)*/
 									print "<td><a class='reposition editfielda button' href='avance.php?mainmenu=paiementsalaire&leftmenu=salarie&fk_salarie=".$fk_salarie."&id_societe=".$id_societe."&id=".$fk_user."&id_convention=".$id_convention."&action=supprimer_attention&id_avance=".$obj->rowid."'>Supprimer</a></td></tr>";
 								//else print "<td><button class='button' disabled>Supprimer</button></td></tr>";
-					}elseif($obj->montant_paye < $obj->montant_total){
-						if($i % 2 == 0)
-								$class='pair';
-							else $class='impair';
-								print "<tr class=".$class.">";
-								print "<td ><a href='avance_information.php?mainmenu=paiementsalaire&leftmenu=salarie&id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id_convention=".$id_convention."&id=".$fk_user."&id_avance=".$obj->rowid."&action=information'>".($obj->libelle?:"N/A")."</a></td>";
-								print "<td>".apres_virgule($db, $id_societe, $obj->montant_total)."</td>";
-								print "<td>".apres_virgule($db, $id_societe, $obj->montant_paye)."</td>";
-								print '<td>'.$obj->nombre_mois.'</td><td>'.apres_virgule($db, $id_societe, $obj->montant_par_mois).'</td>';
-								print '<td>'.$mois_tab[$obj->mois_debut_paiement-1].' '.$obj->annee_debut_paiement.'</td>';
-								print "<td>".$obj->date_affectation."</td>";
-								print "<td>".$obj->note."</td>";
-
-								/*$sql_bulletin = 'SELECT avance.fk_bulletin, avance.fk_avance, bul.rowid, bul.cloture FROM '.MAIN_DB_PREFIX.'bulletin_avance as avance';
-								$sql_bulletin .= ' LEFT JOIN '.MAIN_DB_PREFIX.'bulletin as bul on avance.fk_bulletin=bul.rowid';
-								$sql_bulletin .= ' WHERE fk_avance='.$obj->rowid.' AND bul.cloture="non"';
-								$res_bulletin = $db->query($sql_bulletin);
-								$trouve = false;
-								if($db->num_rows($res_bulletin) > 0)
-									$trouve = true;
-								
-								if($trouve)*/
-									print "<td><a class='reposition editfielda button' href='avance.php?mainmenu=paiementsalaire&leftmenu=salarie&fk_salarie=".$fk_salarie."&id_societe=".$id_societe."&id=".$fk_user."&id_convention=".$id_convention."&action=supprimer_attention&id_avance=".$obj->rowid."'>Supprimer</a></td></tr>";
-								//else print "<td><button class='button' disabled>Supprimer</button></td></tr>";
 					}
 					$i ++;
 				}
+			}
 
 
+				$sql_verif = "SELECT annee, mois FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='non' AND fk_societe=".$id_societe." ORDER BY rowid DESC";
+				$res_verif = $db->query($sql_verif);
+				$rowid_bulletin = $res_verif ? $db->num_rows($res_verif) : 0;
+				if($rowid_bulletin > 0){
+					$obj_bul = $res_verif ? $db->fetch_object($res_verif) : null;
+
+					$sql = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_avance WHERE fk_salarie=".$fk_salarie;
+					$sql .= " AND CAST(montant_paye AS DECIMAL(20,2)) >= CAST(montant_total AS DECIMAL(20,2)) AND annee_debut_paiement=".$obj_bul->annee;// OR  (montant_paye = montant_total AND ((annee_debut_paiement<=".$annee." AND mois_debut_paiement<=".$mois."))))";
+					$result = $db->query($sql);
+
+					$num2 = $result ? $db->num_rows($result) : 0;
+					while ($result && ($obj = $db->fetch_object($result))){
+						
+						$sql_detail = "SELECT mois_paiement FROM ".MAIN_DB_PREFIX."detail_avance WHERE mois_paiement=".((int)$obj_bul->mois)." AND fk_avance=".$obj->rowid;
+						$result_detail = $db->query($sql_detail);
+						
+						if($result_detail && ($av_detail = $db->fetch_object($result_detail))){
+
+								if($i % 2 == 0)
+									$class='pair';
+								else $class='impair';
+									print "<tr class=".$class.">";
+									print "<td ><a href='avance_information.php?mainmenu=paiementsalaire&leftmenu=salarie&id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id_convention=".$id_convention."&id=".$fk_user."&id_avance=".$obj->rowid."&action=information'>".($obj->libelle?:"N/A")."</a></td>";
+									print "<td>".apres_virgule($db, $id_societe, $obj->montant_total)."</td>";
+									print "<td>".apres_virgule($db, $id_societe, $obj->montant_paye)."</td>";
+									print '<td>'.$obj->nombre_mois.'</td><td>'.apres_virgule($db, $id_societe, $obj->montant_par_mois).'</td>';
+									print '<td>'.$mois_tab[$obj->mois_debut_paiement-1].' '.$obj->annee_debut_paiement.'</td>';
+									print "<td>".$obj->date_affectation."</td>";
+									print "<td>".$obj->note."</td>";
+
+									
+										print "<td><a class='reposition editfielda button' href='avance.php?mainmenu=paiementsalaire&leftmenu=salarie&fk_salarie=".$fk_salarie."&id_societe=".$id_societe."&id=".$fk_user."&id_convention=".$id_convention."&action=supprimer_attention&id_avance=".$obj->rowid."'>Supprimer</a></td></tr>";
+						}
+					}
+				}
 
 				
-
-				if($num == 0)
-					print "<tr><td align='center' colspan='9'>Aucune avance sur salaire pour ce salarié</td></tr>";
-			}else{
+			if($num <= 0)
 				print "<tr><td align='center' colspan='9'>Aucune avance sur salaire pour ce salarié</td></tr>";
-			}
+			
 			print "</table>";
-		print "<br><h3>Avances Rembourssées de ".date('Y')."</h3>";
-		print "<table>";
+		print "<br><h3>Avances Rembourssées (10 dernières)</h3>";
 		//Avance associé ce salarié
 			print "<table class='tagtable liste'>";
 			print "<tr class='liste_titre'><td>Libelle</td><td >Montant</td><td >Nombre de mois</td><td >Montant/Mois";
 			print "</td><td >Début paiement</td><td>Date affectation</td><td >Note</td><td >Suppression</td></tr>";
 			$date = date("Y-m-d");
 			$mois_annee = explode("-", $date);
-
-			$array_id_av = array();
-			$num_sal_av = false;
-			//les mois cloturés
-			$sql = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".date('Y')." AND fk_salarie=".$fk_salarie." AND cloture='oui'";
-			//$sql .= " AND CONVERT(montant_paye, int) = CONVERT(montant_total, int) ORDER BY mois_debut_paiement DESC";
+			$sql = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_avance WHERE montant_paye = montant_total AND fk_salarie=".$fk_salarie." ORDER BY annee_debut_paiement DESC, mois_debut_paiement DESC";
+			//$sql .= " AND CAST(montant_paye AS DECIMAL(20,2)) = CAST(montant_total AS DECIMAL(20,2)) ORDER BY mois_debut_paiement DESC";
 			$result = $db->query($sql);
 			if($result){
 				$i = 0;
 				$num = $db->num_rows($result);
-				while ($i < $num){
+				while ($i < $num && $i < 10){
 					$obj = $db->fetch_object($result);
 					if ($obj)
 					{
-						//les mois cloturés qui ont une avance
-						$sql_bull_avance  = "SELECT * FROM ".MAIN_DB_PREFIX."bulletin_avance WHERE fk_bulletin=".$obj->rowid;
-						$sql_bull_avance .= " ORDER BY rowid DESC";
-						$res_bull_avance  = $db->query($sql_bull_avance);
-						$num_bull_avance = $db->num_rows($res_bull_avance);
-						$a = 0;
-						while($a < $num_bull_avance ){
-								$obj_bull_avance = $db->fetch_object($res_bull_avance);
-									
-									//les mois cloturés qui ont une avance totalement payé
-									$sql_sal_avance  = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_avance WHERE rowid=".$obj_bull_avance->fk_avance." AND fk_salarie=".$fk_salarie." AND ROUND(montant_paye) = ROUND(montant_total)";
-									$sql_sal_avance .= " ORDER BY rowid DESC";
-									$res_sal_avance  = $db->query($sql_sal_avance);
-									$num_sal_avance = $db->num_rows($res_sal_avance);
+						$sql_detail_avance  = "SELECT * FROM ".MAIN_DB_PREFIX."detail_avance WHERE fk_avance=".$obj->rowid;
+						$sql_detail_avance .= " ORDER BY rowid DESC";
+						$res_detail_avance  = $db->query($sql_detail_avance );
+						if($res_detail_avance){
+							$obj_detail_avance = $db->fetch_object($res_detail_avance );
+							//if($obj_detail_avance->mois_paiement < $mois){
+								if($i % 2 == 0)
+									$class='pair';
+								else $class='impair';
+								print "<tr class=".$class.">";
+								print "<td ><a href='avance_information.php?mainmenu=paiementsalaire&leftmenu=salarie&id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id_convention=".$id_convention."&id=".$fk_user."&id_avance=".$obj->rowid."&action=information'>".($obj->libelle?:"N/A")."</a></td>";
+								print "<td>".apres_virgule($db, $id_societe, $obj->montant_total)."</td>";
 
-									if($res_sal_avance && $num_sal_avance > 0 && !in_array($obj_bull_avance->fk_avance, $array_id_av)){
-										$num_sal_av = true;
-										$array_id_av[] = $obj_bull_avance->fk_avance;
-										$obj_sal_avance = $db->fetch_object($res_sal_avance);
+								print '<td>'.$obj->nombre_mois.'</td><td>'.apres_virgule($db, $id_societe, $obj->montant_par_mois).'</td>';
+								print '<td>'.$mois_tab[$obj->mois_debut_paiement-1].'</td>';
+								print "<td>".$obj->date_affectation."</td>";
+								print "<td>".$obj->note."</td>";
 
-										if($i % 2 == 0)
-											$class='pair';
-										else $class='impair';
-										print "<tr class=".$class.">";
-										print "<td ><a href='avance_information.php?mainmenu=paiementsalaire&leftmenu=salarie&id_societe=".$id_societe."&fk_salarie=".$fk_salarie."&id_convention=".$id_convention."&id=".$fk_user."&id_avance=".$obj_sal_avance->rowid."&action=information'>".($obj_sal_avance->libelle?:"N/A")."</a></td>";
-										print "<td>".apres_virgule($db, $id_societe, $obj_sal_avance->montant_total)."</td>";
+								$sql_verif = "SELECT DISTINCT annee, mois FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='non' AND fk_societe=".$id_societe." ORDER BY rowid DESC";
+								$res_verif = $db->query($sql_verif);
+								$rowid_bulletin = $res_verif ? $db->num_rows($res_verif) : 0;
+								$obj_bul = $res_verif ? $db->fetch_object($res_verif) : null;
 
-										print '<td>'.$obj_sal_avance->nombre_mois.'</td><td>'.apres_virgule($db, $id_societe, $obj_sal_avance->montant_par_mois).'</td>';
-										print '<td>'.$mois_tab[$obj_sal_avance->mois_debut_paiement-1].'</td>';
-										print "<td>".$obj_sal_avance->date_affectation."</td>";
-										print "<td>".$obj_sal_avance->note."</td>";
-
-										$sql_verif = "SELECT DISTINCT annee, mois FROM ".MAIN_DB_PREFIX."bulletin WHERE cloture='non' AND fk_societe=".$id_societe." ORDER BY rowid DESC";
-										$res_verif = $db->query($sql_verif);
-										$rowid_bulletin = $db->num_rows($res_verif);
-										$obj_bul = $db->fetch_object($res_verif);
-
-										/*if($obj->mois_debut_paiement == $obj_bul->mois && $obj->annee_debut_paiement == $obj_bul->annee)
-											print "<td><a class='reposition editfielda button' href='avance.php?mainmenu=paiementsalaire&leftmenu=salarie&fk_salarie=".$fk_salarie."&id_societe=".$id_societe."&id=".$fk_user."&id_convention=".$id_convention."&action=supprimer_attention&id_avance=".$obj->rowid."'>Supprimer</a></td></tr>";
-										else*/
-											print "<td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=salarie&fk_salarie=".$fk_salarie."&id_societe=".$id_societe."&id=".$fk_user."&id_convention=".$id_convention."&action=supprimer_attention&id_avance=".$obj->rowid."'><button class='button' disabled >Désaffecter</button></a></td></tr>";
-									}
-							$a ++;
+								if($obj_bul && (($obj->mois_debut_paiement == $obj_bul->mois && $obj->annee_debut_paiement == $obj_bul->annee) || ($obj->mois_debut_paiement == 13 && $obj->annee_debut_paiement == $obj_bul->annee)))
+									print "<td><a class='reposition editfielda button' href='avance.php?mainmenu=paiementsalaire&leftmenu=salarie&fk_salarie=".$fk_salarie."&id_societe=".$id_societe."&id=".$fk_user."&id_convention=".$id_convention."&action=supprimer_attention&id_avance=".$obj->rowid."'>Supprimer</a></td></tr>";
+								else
+									print "<td><a class='reposition editfielda' href='".$_SERVER['PHP_SELF']."?mainmenu=paiementsalaire&leftmenu=salarie&fk_salarie=".$fk_salarie."&id_societe=".$id_societe."&id=".$fk_user."&id_convention=".$id_convention."&action=supprimer_attention&id_avance=".$obj->rowid."'><button class='button' disabled >Désaffecter</button></a></td></tr>";
+							//}
 						}
 
 					}
 					$i ++;
 				}
-				if($num_sal_av == 0)
+				if($num == 0)
 					print "<tr><td align='center' colspan='9'>Aucune avance sur salaire payée pour ce salarié</td></tr>";
 			}else{
 				print "<tr><td align='center' colspan='9'>Aucune avance sur salaire payée pour ce salarié</td></tr>";
@@ -596,10 +626,9 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 
 	}
 
-	$db->free($result);
 	if(!empty($message))
 			print "<script>
-			$.jnotify('".$message."', {delay : 5000, fadeSpeed: 500});
+			$.jnotify('".dol_escape_js($message)."', {delay : 5000, fadeSpeed: 500});
 			</script>";
 }
 
@@ -608,10 +637,13 @@ function apres_virgule($db, $id_societe, $valeur){
     $decalage = 2;
     $reglage_bulletin = "SELECT separateur, decalage FROM ".MAIN_DB_PREFIX."reglage_bulletin WHERE fk_societe=".$id_societe;
       $result_reglage_bulletin = $db->query($reglage_bulletin);
-      if($db->num_rows($result_reglage_bulletin) > 0){
+      if($result_reglage_bulletin && $db->num_rows($result_reglage_bulletin) > 0){
         $obj_reglage_bulletin = $db->fetch_object($result_reglage_bulletin);
         $sep = $obj_reglage_bulletin->separateur;
         $decalage = $obj_reglage_bulletin->decalage;
       }
-    return number_format($valeur, $decalage, $sep, ' ');
+    return number_format((float) $valeur, (int) $decalage, $sep ?: '.', ' ');
   }
+
+llxFooter();
+$db->close();

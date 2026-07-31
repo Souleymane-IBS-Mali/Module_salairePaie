@@ -42,7 +42,7 @@ if(empty($action))
 
 			while ($i < $num){
 				$societe = $db->fetch_object($result);
-				$sql_insert = "INSERT INTO ".MAIN_DB_PREFIX."salairepaie_societe (fk_societe, societe_mere) VALUES(".$societe->r1.", 0)";
+				$sql_insert = "INSERT INTO ".MAIN_DB_PREFIX."salairepaie_societe (fk_societe, societe_mere, afficher_regularisation_its) VALUES(".$societe->r1.", 0, 1)";
 				$res = $db->query($sql_insert);
 
 				$i ++;
@@ -50,7 +50,7 @@ if(empty($action))
 		}
 	}
 
-	if($action=="modifier_config"){//Mettre "utilisé les informations de la société mère à oui ou à non
+	if($action=="modifier_societe_mere"){//Mettre "utilisé les informations de la société mère à oui ou à non
 		//On garde la trace de l'action
 	
 		$rep = 0;
@@ -98,8 +98,6 @@ if(empty($action))
 		$action = "liste";
 	
 	}
-
-
 
 
 
@@ -172,14 +170,8 @@ if($action == 'liste'){
 	print '<tr class="liste_titre">';
 	print '<td >Sociétés</td>';
 	print '<td >Utilisés les informations de la société mère'.info_admin("Accueil, Configuration, Société/Organisation", 1).'</td>';
-	//print '<td>Logo</td>';
-
-
 	print '</tr>';
 
-	//societe:nom:rowid::rowid=($SEL$ fk_object from llx_societe_extrafields where grp=1)
-   // $sql = "SELECT sce.fk_object from ".MAIN_DB_PREFIX."societe_extrafields as sce where grp=1";
-   //recupération des société qui ont cochés géré paye; (case à cocher dans tiers)
 	$sql = "SELECT sc.rowid as r1, sc.nom, sc.name_alias, sc.phone, sc.fax, sc.code_client, sc.zip, sce.rowid as r2, sce.fk_object, sce.conv FROM ".MAIN_DB_PREFIX."societe as sc";
 	$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."societe_extrafields as sce ON sc.rowid=sce.fk_object WHERE sce.grp=1";
 
@@ -205,7 +197,9 @@ if($action == 'liste'){
 		$rep = "Non";
 		if($info_soc->societe_mere == 1)
 			$rep = "Oui";
-		print '<td><mark>'.$rep.'</mark>  <a href="./logo_societe.php?mainmenu=paiementsalaire&leftmenu=reglage&id_societe='.$societe->r1.'&action=modifier_config">'.img_edit('Modifier logo').'</a></td>';
+
+		print '<td><mark>'.$rep.'</mark>  <a href="./logo_societe.php?mainmenu=paiementsalaire&leftmenu=reglage&id_societe='.$societe->r1.'&action=modifier_societe_mere">'.img_edit('Modifier logo').'</a></td>';
+
 
 		/*$extension = '';
 		if (file_exists('./logo_societe_soc/'.$societe->r1.'.png'))

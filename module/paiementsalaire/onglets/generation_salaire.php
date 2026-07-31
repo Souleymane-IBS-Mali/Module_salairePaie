@@ -1,6 +1,10 @@
 <?php
 require '../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/lib/paiementsalaire.lib.php';
+
+ob_start();
+header('Content-Type: application/json; charset=utf-8');
+$generation_errors = array();
 // lecture des information sur la société
 /*$info = lire_ligne_fichier(1);
 $id_societe = $info[0];
@@ -17,78 +21,131 @@ $id_convention = $info[1];
     $id_societe = $_GET['id_societe'] ?: 0;
     $mois = $_GET['mois'] ?: 0;
     $annee = $_GET['annee'] ?: 0;
-	$annee = $_GET['annee'] ?: 0;
 	$nb_sal_licence = $_GET['nb_sal_licence'];
 
-	$soc_sql = "SELECT * FROM ".MAIN_DB_PREFIX."societe WHERE rowid=".$id_societe;
+	$soc_sql = "SELECT * FROM ".MAIN_DB_PREFIX."societe WHERE rowid=".((int) $id_societe);
 	$soc_res = $db->query($soc_sql);//= $db->query($covSql);
 	$obj_soc = $db->fetch_object($soc_res);
 	global $obj_soc;
 
-	//Lecture des id des salariés
-	$tab_id = lire_ligne_fichier(2);
-	$i = 0;
-
-	$sql_verif = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee." AND mois=".$mois." AND fk_societe=".$id_societe;
-							$res_verif = $db->query($sql_verif);
-							if($res_verif){
+	$sql_verif = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".((int) $annee)." AND mois=".((int) $mois)." AND fk_societe=".((int) $id_societe);
+	$res_verif = $db->query($sql_verif);
+	if($res_verif){
                                 
-								$d = 0;
-								$dnum = $db->num_rows($res_verif);
-								while ($d < $dnum) {
+		$d = 0;
+		$dnum = $db->num_rows($res_verif);
+		while ($d < $dnum) {
                                     
-									$obj_verif = $db->fetch_object($res_verif);
+			$obj_verif = $db->fetch_object($res_verif);
 
-									//suppression
-									$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_prime WHERE fk_bulletin=".$obj_verif->rowid;
-									$res_del = $db->query($sql_del);
+			//suppression
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_prime WHERE fk_bulletin=".((int) $obj_verif->rowid);
+			$res_del = $db->query($sql_del);
 
-									$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_prime_exceptionnelle WHERE fk_bulletin=".$obj_verif->rowid;
-									$res_del = $db->query($sql_del);
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_prime_exceptionnelle WHERE fk_bulletin=".((int) $obj_verif->rowid);
+			$res_del = $db->query($sql_del);
 
-									$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_indemnite WHERE fk_bulletin=".$obj_verif->rowid;
-									$res_del = $db->query($sql_del);
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_indemnite WHERE fk_bulletin=".((int) $obj_verif->rowid);
+			$res_del = $db->query($sql_del);
 
-									$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_taxe WHERE fk_bulletin=".$obj_verif->rowid;
-									$res_del = $db->query($sql_del);
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_taxe WHERE fk_bulletin=".((int) $obj_verif->rowid);
+			$res_del = $db->query($sql_del);
 
-									$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_taxe2 WHERE fk_bulletin=".$obj_verif->rowid;
-									$res_del = $db->query($sql_del);
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_taxe2 WHERE fk_bulletin=".((int) $obj_verif->rowid);
+			$res_del = $db->query($sql_del);
 
-									$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".$obj_verif->rowid;
-									$res_del = $db->query($sql_del);
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_bulletin=".((int) $obj_verif->rowid);
+			$res_del = $db->query($sql_del);
 
-									$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_anciennete WHERE fk_bulletin=".$obj_verif->rowid;
-									$res_del = $db->query($sql_del);
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_anciennete WHERE fk_bulletin=".((int) $obj_verif->rowid);
+			$res_del = $db->query($sql_del);
 
-									$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_organisme WHERE fk_bulletin=".$obj_verif->rowid;
-									$res_del = $db->query($sql_del);
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_organisme WHERE fk_bulletin=".((int) $obj_verif->rowid);
+			$res_del = $db->query($sql_del);
 
-									$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_heure_sup WHERE fk_bulletin=".$obj_verif->rowid;
-									$res_del = $db->query($sql_del);
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_heure_sup WHERE fk_bulletin=".((int) $obj_verif->rowid);
+			$res_del = $db->query($sql_del);
 
-									$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_avance WHERE fk_bulletin=".$obj_verif->rowid;
-									$res_del = $db->query($sql_del);
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_avance WHERE fk_bulletin=".((int) $obj_verif->rowid);
+			$res_del = $db->query($sql_del);
 
-									$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin WHERE rowid=".$obj_verif->rowid;
-									$res_del = $db->query($sql_del);
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin WHERE rowid=".((int) $obj_verif->rowid);
+			$res_del = $db->query($sql_del);
 
 
-									$d ++;
-								}
-							}
+			$d ++;
+		}
 
-while ($i < count($tab_id)) {
-    generateSalary($tab_id[$i], $id_societe, $id_convention, $id_accord_etab, $mois, $annee);
+			$sql_del = "DELETE FROM ".MAIN_DB_PREFIX."bulletin_regularisation_its WHERE fk_societe = ".((int) $id_societe)." AND annee = ".((int) $annee);
+			$res_del = $db->query($sql_del);
 
-    update_file($tab_id[$i]."/");
-    usleep(50000); // Simuler un traitement lourd
+	}
 
-    $i++;
+//Lecture des id des salariés
+$tab_id = lire_ligne_fichier(2);
+
+$i = 0;
+if(count($tab_id) > 0){
+	while ($i < count($tab_id)) {
+		generateSalary($tab_id[$i], $id_societe, $id_convention, $id_accord_etab, $mois, $annee);
+
+		update_file($tab_id[$i]."/");
+		usleep(50000); // Simuler un traitement lourd
+
+		if(($i  == (count($tab_id) - 2))){
+			$bulletin_sql = "SELECT DISTINCT fk_salarie FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_societe = ".((int) $id_societe)." AND annee = ".((int) $annee);
+			$res_bulletin = $db->query($bulletin_sql);
+			
+			if($res_bulletin){
+					
+				$num_all = $db->num_rows($res_bulletin);
+				while ($obj_bulletin = $db->fetch_object($res_bulletin)){
+					
+					$tab_reg_its = regularisation_its_bul((int) $obj_bulletin->fk_salarie, (int) $annee, 12);
+					$its_annuel = round($tab_reg_its["its_annuel"]);
+					$somme_its_mois = round($tab_reg_its["somme_its_mois"]);
+					$taux_its_annuel = round($tab_reg_its["taux_its_annuel"], 2);
+					$somme_brut_imposable_annuel = round($tab_reg_its["somme_brut_imposable_annuel"]);
+					$its_reg = $its_annuel - $somme_its_mois;
+					$somme_brut_annuel = $tab_reg_its["somme_brut_annuel"];
+					$somme_retraite = $tab_reg_its["somme_retraite"];
+					$prime_indemnite_non_imposable = round($tab_reg_its["prime_indemnite_non_imposable"]);
+					$avantage_nature = $tab_reg_its["avantage_nature"];
+					$nb_mois = $tab_reg_its["nb_mois"];
+						$sql_reg = "INSERT INTO ".MAIN_DB_PREFIX."bulletin_regularisation_its(fk_societe, fk_salarie, annee, mois, somme_brut_annuel, prime_indemnite_non_imposable";
+						$sql_reg .= ", somme_retraite, avantage_nature, somme_brut_imposable_annuel, taux_its_annuel, its_annuel, somme_its_mois, nb_mois, difference)";
+						$sql_reg .= " VALUES(".((int) $id_societe).", ".((int) $obj_bulletin->fk_salarie).", ".((int) $annee).", 12, '".$db->escape($somme_brut_annuel)."', '".$db->escape($prime_indemnite_non_imposable)."'";
+						$sql_reg .= ", '".$somme_retraite."', '".$avantage_nature."', '".$somme_brut_imposable_annuel."', '".$taux_its_annuel."', '".$its_annuel."', '".$somme_its_mois."',".$nb_mois.", '".$its_reg."')";
+						$db->query($sql_reg);
+
+						/*$fichier = fopen("bbbbbbbb.txt", "w"); // "w" crée et écrase, "a" ajoute
+
+						fwrite($fichier, $num_all.'////'.$sql_reg.'\n'.$db->error());*/
+
+				}	
+			}	
+			
+
+		}
+
+		$i++;
+	}
+
+
 }
-
 //$message = "Les salaires des Employés du mois".$mois_tab[$mois-1]." sont générés avec succès";
 
+
+$sortie_inattendue = trim(ob_get_clean());
+if (!empty($sortie_inattendue)) {
+	$generation_errors[] = $sortie_inattendue;
+}
+
+echo json_encode(array(
+	'effectue' => empty($generation_errors) ? 'Génération terminée avec succès' : implode("\n", $generation_errors),
+	'success' => empty($generation_errors),
+	'errors' => $generation_errors
+));
 
 function lire_ligne_fichier($ligne){
 	$tab_id = array();
@@ -107,12 +164,13 @@ function lire_ligne_fichier($ligne){
 			}
 			fclose($handle);
 		} else {
-			echo "Impossible d'ouvrir le fichier.";
+			$GLOBALS['generation_errors'][] = "Impossible d\'ouvrir le fichier.";
 		}
 	}
 
-	if(!empty($val))
-		$tab_id = explode('/', $val);
+	if(!empty($val)){
+		$tab_id = array_values(array_filter(explode('/', trim($val)), 'strlen'));
+	}
 	
 	return $tab_id;
 }
@@ -127,7 +185,7 @@ function update_file($a_remplacer){
         $lines = file($filename, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 
         if ($lines === false) {
-            echo "Erreur lors de la lecture du fichier.";
+            $GLOBALS['generation_errors'][] = "Erreur lors de la lecture du fichier.";
         } else {
             // Parcourir les lignes et remplacer celle correspondante
             foreach ($lines as $index => $line) {
@@ -142,17 +200,17 @@ function update_file($a_remplacer){
 
             // Réécrire le fichier avec les lignes modifiées
             if (file_put_contents($filename, implode(PHP_EOL, $lines) . PHP_EOL) === false) {
-                echo "Erreur lors de l'écriture dans le fichier.";
+                $GLOBALS['generation_errors'][] = "Erreur lors de l\'écriture dans le fichier.";
             }
         }
     } else {
-        echo "Le fichier n'existe pas.";
+        $GLOBALS['generation_errors'][] = "Le fichier n\'existe pas.";
     }
 
 }
 // Fonction pour générer la paie d'un salarié (simplifié)
 function generateSalary($id_salarie, $id_societe, $id_convention, $id_accord_etab, $mois, $annee) {
-global $db, $obj_soc;
+global $db, $obj_soc, $generation_errors;
     // Logique de génération de paie (par exemple, calcul et insertion dans une autre table)
     $sql = "SELECT sal.rowid, sal.fk_user, sal.fk_categorie, sal.fk_echelon, sal.sursalaire, sal.matricule, sal.inps, sal.amo, sal.fk_type_banque, sal.compte,
 				sal.situation_familiale,sal.nombre_enfant, sal.nombre_enfant_hand, sal.fk_user, sal.fk_categorie, sal.fk_echelon, sal.type_salarie, sal.fk_diplome, sal.calcul_salaire, sal.date_anciennete,
@@ -163,18 +221,33 @@ global $db, $obj_soc;
 				//$sql = "SELECT u.rowid, u., u.firstname, u.dateemployment, ue.fk_object, ue.egp FROM ".MAIN_DB_PREFIX."user as u";
 				//$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."user_extrafields as ue ON u.rowid=ue.fk_object Where ue.egp=".$id_societe;
 				$result_global = $db->query($sql);
-				$obj_salarie = $db->fetch_object($result_global);
+				$obj_salarie = $result_global ? $db->fetch_object($result_global) : null;
+				if (empty($obj_salarie->rowid)) {
+					$generation_errors[] = "Salarié introuvable : ID ".((int) $id_salarie);
+					return false;
+				}
                         
+									$obj_conv = null;
+									$conv_sql = "SELECT nom FROM ".MAIN_DB_PREFIX."convention WHERE rowid=".((int) $id_convention);
+									$conv_res = $db->query($conv_sql);
+									if ($conv_res) {
+										$obj_conv = $db->fetch_object($conv_res);
+									}
+
 									//Categorie du salarié et son salaire de base
 									$salaire_base = 0;
 									$grilleSql = "SELECT rowid FROM ".MAIN_DB_PREFIX."grille WHERE active=1 AND fk_convention=".$id_convention;
 									$grilleResult = $db->query($grilleSql);//= $db->query($grilleSql);
-									$obj_grille = $db->fetch_object($grilleResult);
+									$obj_grille = $grilleResult ? $db->fetch_object($grilleResult) : null;
+									if (empty($obj_grille->rowid)) {
+										$generation_errors[] = "Aucune grille active trouvée pour la convention ID ".((int) $id_convention);
+										return false;
+									}
 
 									$salBaseSql = "SELECT salaire_base FROM ".MAIN_DB_PREFIX."grille_categorie_echelon_salaire_base WHERE fk_grille=".$obj_grille->rowid." AND fk_categorie=".$obj_salarie->fk_categorie." AND fk_echelon=".$obj_salarie->fk_echelon;
 									$salBaseResult = $db->query($salBaseSql);//= $db->query($covSql);
-									$objSalBase = $db->fetch_object($salBaseResult);
-									$salaire_base = $objSalBase->salaire_base;
+									$objSalBase = $salBaseResult ? $db->fetch_object($salBaseResult) : null;
+									$salaire_base = !empty($objSalBase->salaire_base) ? $objSalBase->salaire_base : 0;
 
 									$retrait = 0;
 									$tab_info_ind = salarie_indemnite($db, $obj_salarie->rowid, $salaire_base, $id_convention, $id_societe, $id_accord_etab);
@@ -215,6 +288,7 @@ global $db, $obj_soc;
 									}
 									}
 
+									
 									//print $salaire_base.'**';
 									$salaire_base -= $retrait;
 									//print $salaire_base.'<br>';
@@ -227,10 +301,16 @@ global $db, $obj_soc;
 //Proratisation
 									$salSql = "SELECT jour FROM ".MAIN_DB_PREFIX."salarie_nombre_jour_travaille where annee=".$annee." AND mois=".$mois." AND fk_salarie=".$obj_salarie->rowid;
 									$result = $db->query($salSql);
-									$nb_jours = $db->fetch_object($result)->jour;
-									$nb_total_jour = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
+									$obj_nb_jours = $result ? $db->fetch_object($result) : null;
+									$nb_jours = !empty($obj_nb_jours->jour) ? (int) $obj_nb_jours->jour : 0;
+
+									//13è mois
+									if($mois != 13)
+										$nb_total_jour = cal_days_in_month(CAL_GREGORIAN, $mois, $annee);
+									else $nb_total_jour = 30;
+
 									$base_pourcentage = 1;
-									if($nb_jours != $nb_total_jour){
+									if($nb_jours != $nb_total_jour && $nb_total_jour > 0 && $salaire_base > 0){
 										$sal_base = ($nb_jours*$salaire_base)/$nb_total_jour;
 										$base_pourcentage = ($sal_base*100)/$salaire_base;
 										$base_pourcentage = $base_pourcentage/100;
@@ -293,11 +373,19 @@ global $db, $obj_soc;
 											$array_prime[$index][4] = $pr->libelle;
 
 												$salaire_brut += $value;
-												if($pr->soumis_cotisation=="Oui")
+												$cotis = 0;
+												if($pr->soumis_cotisation=="Oui"){
 													$salaire_brut_cotisable += $value;
+													$cotis = 1;
+												}
+												$array_prime[$index][5] = $cotis;
 
-												if($pr->soumis_impot=="Oui")
-												$salaire_brut_imposable += $value;
+												$imp = 0;
+												if($pr->soumis_impot=="Oui"){
+													$salaire_brut_imposable += $value;
+													$imp = 1;
+												}
+												$array_prime[$index][6] = $imp;
 
 												if($pr->ajout_base_hs == "Oui"){
 													$array_pr_ind_hs[] = $value;
@@ -341,11 +429,20 @@ global $db, $obj_soc;
 													$val = ($salaire_base*explode('%',$value)[0])/100;
 												
 												$salaire_brut += $val*$base_pourcentage;
-												if($pr->soumis_cotisation=="Oui")
-													$salaire_brut_cotisable += $val*$base_pourcentage;
 
-												if($pr->soumis_impot=="Oui")
+												$cotis = 0;
+												if($pr->soumis_cotisation=="Oui"){
+													$salaire_brut_cotisable += $val*$base_pourcentage;
+													$cotis = 1;
+												}
+												$array_prime[$index][5] = $cotis;
+
+												$imp = 0;
+												if($pr->soumis_impot=="Oui"){
 													$salaire_brut_imposable += $val*$base_pourcentage;
+													$imp = 1;
+												}
+												$array_prime[$index][6] = $imp;
 
 												if($pr->ajout_base_hs == "Oui"){
 													$array_pr_ind_hs[] = $val*$base_pourcentage;
@@ -364,15 +461,21 @@ global $db, $obj_soc;
 											$salaire_brut += $array_prime_exceptionnelle[$e][1];
 
 											//Si la prime est soumise au impôt
+											$cotis = 0;
 											if($array_prime_exceptionnelle[$e][5] == 'Oui'){
 												$salaire_brut_imposable += $array_prime_exceptionnelle[$e][1];
+												$cotis = 1;
 											  }
+											  $array_prime_exceptionnelle[$e][7] = $cotis;
 
 											  //Si la prime est soumise à la cotisation
+											  $imp = 0;
 											  if($array_prime_exceptionnelle[$e][6] == 'Oui'){
 												$salaire_brut_cotisable += $array_prime_exceptionnelle[$e][1];
+												$imp = 1;
 
 											  }
+											  $array_prime_exceptionnelle[$e][8] = $imp;
 										}
 
 									//les indemnités qui doivent être affichés sur le billetin
@@ -394,15 +497,24 @@ global $db, $obj_soc;
 											$array_indemnite[$index][4] = $ind->libelle;
 
 											//retiré du salaire de base
+											$cotis = 0;
 												$salaire_brut += $value*$base_pourcentage;
 												if($ind->soumis_cotisation=="Oui"){//les indemnités soumisent aux cotisations
 													if(!empty($ind->porcentage_soumis_cotis))
 														$salaire_brut_cotisable += ($value*$base_pourcentage*$ind->porcentage_soumis_cotis)/100;
+													$cotis = 1;
 												}
-												if($ind->soumis_impot=="Oui")////les indemnités soumisent aux impôt
+
+												$array_indemnite[$index][5] = $cotis;
+												$imp = 0;
+												if($ind->soumis_impot=="Oui"){////les indemnités soumisent aux impôt
 													if(!empty($ind->porcentage_soumis_impot))
 														$salaire_brut_imposable += ($value*$base_pourcentage*$ind->porcentage_soumis_impot)/100;
+													$imp = 1;
+												}
 												
+												$array_indemnite[$index][6] = $imp;
+
 												if($ind->ajout_base_hs == "Oui"){
 													$array_pr_ind_hs[] = $value*$base_pourcentage;
 													//$m .= $ind->libelle.'='.$value;
@@ -437,13 +549,22 @@ global $db, $obj_soc;
 
 
 
+											$cotis = 0;
 											if($ind->soumis_cotisation=="Oui"){//les indemnités soumisent aux cotisations
 												if(!empty($ind->porcentage_soumis_cotis))
 													$salaire_brut_cotisable += ($val*$base_pourcentage*$ind->porcentage_soumis_cotis)/100;
+												$cotis = 1;
 											}
-											if($ind->soumis_impot=="Oui")////les indemnités soumisent aux impôt
+
+											$array_indemnite[$index][5] = $cotis;
+											
+											$imp = 0;
+											if($ind->soumis_impot=="Oui"){///les indemnités soumisent aux impôt
 												if(!empty($ind->porcentage_soumis_impot))
 													$salaire_brut_imposable += ($val*$base_pourcentage*$ind->porcentage_soumis_impot)/100;
+												$imp = 1;
+											}
+											$array_indemnite[$index][6] = $imp;
 
 											if($ind->ajout_base_hs == "Oui"){
 												$array_pr_ind_hs[] = $val*$base_pourcentage;
@@ -654,21 +775,37 @@ global $db, $obj_soc;
 										//calcul du salaire net
 										$salaire_net = $salaire_brut - $retenu_prest_empl - $retenu_taxe;
 
+										
 									$index = 0;
 									$array_avance = array();
 									$somme_avance = 0;
-									$avance = salarie_avance_acompte_avec_save($db,$obj_salarie->rowid, $mois, $annee);
-										foreach ($avance as $key => $value) {
-											$sql_avance = "SELECT libelle FROM ".MAIN_DB_PREFIX."salarie_avance WHERE rowid=".$key;
-												$result_avance = $db->query($sql_avance);
-												$obj_avance = $db->fetch_object($result_avance);
+									if($mois != 13){
+										$avance = salarie_avance_acompte_avec_save($db,$obj_salarie->rowid, $mois, $annee);
+											foreach ($avance as $key => $value) {
+												$sql_avance = "SELECT libelle FROM ".MAIN_DB_PREFIX."salarie_avance WHERE rowid=".$key;
+													$result_avance = $db->query($sql_avance);
+													$obj_avance = $db->fetch_object($result_avance);
 
-												$array_avance[$index][0] = $key;
-												$array_avance[$index][1] = $obj_avance->libelle;
-												$array_avance[$index][2] = $value;
-												$somme_avance += $value;
-												$index ++;
-										}
+													$array_avance[$index][0] = $key;
+													$array_avance[$index][1] = $obj_avance->libelle;
+													$array_avance[$index][2] = $value;
+													$somme_avance += $value;
+													$index ++;
+											}
+									}else{
+										$avance = salarie_avance_acompte_avec_save_13($db,$obj_salarie->rowid, 13, $annee);
+										foreach ($avance as $key => $value) {
+												$sql_avance = "SELECT libelle FROM ".MAIN_DB_PREFIX."salarie_avance WHERE rowid=".$key;
+													$result_avance = $db->query($sql_avance);
+													$obj_avance = $db->fetch_object($result_avance);
+
+													$array_avance[$index][0] = $key;
+													$array_avance[$index][1] = $obj_avance->libelle;
+													$array_avance[$index][2] = $value;
+													$somme_avance += $value;
+													$index ++;
+											}
+									}
 
 									//net à payer
 									$net_payer = $salaire_net;
@@ -721,8 +858,10 @@ global $db, $obj_soc;
 							$pays_Sql = "SELECT * FROM ".MAIN_DB_PREFIX."c_country where rowid=".($obj_salarie->fk_country?:0);
 							$pays_Result = $db->query($pays_Sql);
 							$pays = "Mali";
-							if(!empty($obj_user->fk_country))
-								$pays = $db->fetch_object($pays_Result)->label;
+							if(!empty($obj_salarie->fk_country) && $pays_Result){
+								$obj_pays = $db->fetch_object($pays_Result);
+								if(!empty($obj_pays->label)) $pays = $obj_pays->label;
+								}
 
 							$tel = "N/A";
 							if(!empty($obj_salarie->user_mobile))
@@ -750,7 +889,7 @@ global $db, $obj_soc;
 							$result_banque = $db->query($banque);
 							if($result_banque){
 								$obj_type_banque = $db->fetch_object($result_banque);
-								$type_bank =  $obj_type_banque->libelle;
+								$type_bank = !empty($obj_type_banque->libelle) ? $obj_type_banque->libelle : "";
 
 							}
 
@@ -806,21 +945,61 @@ global $db, $obj_soc;
 								}
 							}
 
+							$conges = calculer_conges_salarie_bulletin(
+								$db,
+								$obj_salarie->rowid,
+								$id_societe,
+								$mois,
+								$annee,
+								$conf->entity
+							);
+
+							if (empty($conges['erreur'])) {
+								$congeAcquis = $conges['acquis'];
+								$congePaye = $conges['paye'];
+								$congeSolde = $conges['solde'];
+
+								/*
+								* Enregistrer ces trois valeurs dans la table bulletin.
+								*/
+							} else {
+								$congeAcquis = 0;
+								$congePaye = 0;
+								$congeSolde = 0;
+
+								setEventMessages(
+									$conges['erreur'],
+									null,
+									'errors'
+								);
+							}
+
+									$conge_acquis = $congeAcquis;
+									$conge_paye = $congePaye;
+									$solde_conge = $congeSolde;
+							
+
 							$sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin (nom, prenom, fk_salarie, matricule, situation_familiale, nombre_enfant, nombre_enfant_hand, calcul_salaire, categorie
 							, echelon, contrat, diplome, type_salarie, fonction, date_embauche, sexe, pays, ville, addresse, tel, email, annee, mois, salaire_base, sursalaire, salaire_brut, salaire_brut_cotisable,
-							salaire_brut_imposable, net_payer, fk_societe, nom_societe, logo_societe, nom_convention,inps,amo,banque,compte,pourcentage)
+							salaire_brut_imposable, net_payer, fk_societe, nom_societe, logo_societe, nom_convention,inps,amo,banque,compte,pourcentage, nb_jour_travailler, taux_jours_travailler, conge_acquis, conge_paye, solde_conge)
 							VALUES("'.$obj_salarie->lastname.'","'.$obj_salarie->firstname.'",'.$obj_salarie->rowid.',"'.$obj_salarie->matricule.'","'.$sf.'",'.$obj_salarie->nombre_enfant.','.$obj_salarie->nombre_enfant_hand.',"'.$obj_salarie->calcul_salaire.'",
 							"'.$categ.'","'.$echelon.'","'.$contrat.'","'.$diplome.'","'.$type_salarie.'","'.($obj_salarie->job?:"N/A").'","'.($date_embauche).'",
 							"'.$sexe.'","'.$pays.'","'.$ville.'","'.$addresse.'","'.($obj_salarie->personal_mobile?:($tel?:$fax)).'","'.$email.'",
 							'.$annee.','.$mois.',"'.round($salaire_base, 2).'","'.$sursalaire.'","'.$salaire_brut.'","'.$salaire_brut_cotisable.'","'.$salaire_brut_imposable.'","'.round($net_payer).'",'.$id_societe.',"'.$obj_soc->nom.'","'.$obj_soc->logo.'",
-							"'.$obj_conv->nom.'","'.$inps.'","'.$amo.'","'.$type_bank.'","'.$obj_salarie->compte.'",'.$base_pourcentage.')';
+							"'.$obj_conv->nom.'","'.$inps.'","'.$amo.'","'.$type_bank.'","'.$obj_salarie->compte.'",'.$base_pourcentage.', '.$nb_jours.', '.round($base_pourcentage,2).', '.(float) $conge_acquis.','.(float) $conge_paye.','. (float) $solde_conge.')';
 
 							$res_bulletin = $db->query($sql_bulletin);
 							if(!$res_bulletin){
-                                $m = "Une ou les informations de ".$obj_salarie->firstname."  ".$obj_salarie->firstname." sont trop longues";
-                                header('Content-Type: application/json');
-                                echo json_encode(['effectue' => $m]);
+
+                                $m = "Une ou les informations de ".$obj_salarie->firstname."  ".$obj_salarie->firstname." sont trop longues".$db->error();
+                                $generation_errors[] = $m;
+                                return false;
 							}
+
+							/*$fichier = fopen("monfichier1.txt", "w"); // "w" crée et écrase, "a" ajoute
+
+								fwrite($fichier, $base_pourcentage.$sql_bulletin.'\n'.$db->error());*/
+
 								if($res_bulletin){
 									$sql_verif = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE fk_salarie=".$obj_salarie->rowid." AND annee=".$annee." AND mois=".$mois;
 									$res_verif = $db->query($sql_verif);
@@ -833,6 +1012,8 @@ global $db, $obj_soc;
 										$montant = round($array_prime[$e][2], 2);
 										$poucentage = round($array_prime[$e][3], 2);
 										$libelle = $array_prime[$e][4];
+										$cotis = $array_prime[$e][5];
+										$imp = $array_prime[$e][6];
 										$sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_prime (fk_bulletin, fk_prime, libelle, montant, pourcentage, affiche_bulletin)';
 										$sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_prime.',"'.$libelle.'","'.$montant.'","'.$poucentage.'","'.$affiche_bulletin.'")';
 										$res_bulletin = $db->query($sql_bulletin);
@@ -847,7 +1028,8 @@ global $db, $obj_soc;
 										$affiche_bulletin = $array_prime_exceptionnelle[$e][2];
 										$poucentage = $array_prime_exceptionnelle[$e][3];
 										$libelle = $array_prime_exceptionnelle[$e][4];
-
+										$cotis = $array_prime_exceptionnelle[$e][7];
+										$imp = $array_prime_exceptionnelle[$e][8];
 										$sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_prime_exceptionnelle (fk_bulletin, fk_prime, libelle, montant, pourcentage, affiche_bulletin)';
 										$sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_prime.',"'.$libelle.'","'.$montant.'","'.$poucentage.'","'.$affiche_bulletin.'")';
 										$res_bulletin = $db->query($sql_bulletin);
@@ -861,8 +1043,11 @@ global $db, $obj_soc;
 										$montant = round($array_indemnite[$f][2], 2);
 										$poucentage = round($array_indemnite[$f][3], 2);
 										$libelle = $array_indemnite[$f][4];
+										$cotis = $array_indemnite[$f][5];
+										$imp = $array_indemnite[$f][6];
 										$sql_bulletin = 'Insert into '.MAIN_DB_PREFIX.'bulletin_indemnite (fk_bulletin, fk_indemnite, libelle, montant, pourcentage, affiche_bulletin)';
 										$sql_bulletin .= ' VALUES('.$rowid_bulletin.','.$fk_indemnite.',"'.$libelle.'","'.$montant.'","'.$poucentage.'","'.$affiche_bulletin.'")';
+										
 										$res_bulletin = $db->query($sql_bulletin);
 									}
 									//insertion dans la table bulletin taxe
@@ -948,4 +1133,608 @@ global $db, $obj_soc;
 								}
 
 }
+
+
+
+function regularisation_its_bul($id_salarie, $annee_rechercher, $mois = 12){
+    global $db;
+    $obj_array = array();
+        $obj_bul_info = null;
+        $nb_mois = 0;
+        $somme_brut = 0;
+        $somme_brut_imposable = 0;
+        $somme_its = 0;
+        //Brut et brut imposable bulletin
+        $sql_verif = "SELECT SUM(salaire_brut) as brut, SUM(salaire_brut_imposable) as brut_imposable FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND fk_salarie=".$id_salarie;
+        $res_verif = $db->query($sql_verif);
+        if($res_verif){
+          $obj_verif = $db->fetch_object($res_verif);
+          $somme_brut = $obj_verif->brut;
+          $somme_brut_imposable = $obj_verif->brut_imposable;
+        }
+       //Brut et brut imposable Bulletin bonus
+        $sql_verif = "SELECT SUM(salaire_brut) as brut, SUM(salaire_brut_imposable) as brut_imposable FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND fk_salarie=".$id_salarie;
+        $res_verif = $db->query($sql_verif);
+        if($res_verif){
+          $obj_verif = $db->fetch_object($res_verif);
+          $somme_brut += $obj_verif->brut;
+          $somme_brut_imposable += $obj_verif->brut_imposable;
+          
+        }
+  
+        //Taxes bulletin
+        $sql_bul = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND fk_salarie=".$id_salarie;
+        $res_bul = $db->query($sql_bul);
+        if($res_bul){
+			$num_bul = $db->num_rows($res_bul);
+			$nb_mois = $num_bul;
+			$j = 0;
+			while($j < $num_bul){
+				$obj_bul = $db->fetch_object($res_bul);
+				$sql_taxe = "SELECT montant FROM ".MAIN_DB_PREFIX."bulletin_taxe WHERE fk_bulletin=".$obj_bul->rowid;
+				$res_taxe = $db->query($sql_taxe);
+				if($res_taxe){
+				$obj_taxe = $db->fetch_object($res_taxe);
+				$somme_its += $obj_taxe->montant;
+				}
+				$j ++;
+			}
+        
+
+			//Taxes bulletin bonus
+			$sql_bul_bonus = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND fk_salarie=".$id_salarie;
+			$res_bul_bonus = $db->query($sql_bul_bonus);
+			if($res_bul_bonus){
+			$num_bul_bonus = $db->num_rows($res_bul_bonus);
+			$j = 0;
+			while($j < $num_bul_bonus){
+				$obj_bul_bonus = $db->fetch_object($res_bul_bonus);
+				$sql_taxe = "SELECT montant FROM ".MAIN_DB_PREFIX."bulletin_bonus_taxe WHERE fk_bulletin=".$obj_bul_bonus->rowid;
+				$res_taxe = $db->query($sql_taxe);
+				if($res_taxe){
+				$obj_taxe = $db->fetch_object($res_taxe);
+				$somme_its += $obj_taxe->montant;
+				}
+				$j ++;
+			}
+			}
+
+		}
+
+		//Retraite bulletin
+		  $somme_retraite = 0;
+        $sql_bul_ret = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND fk_salarie=".$id_salarie;
+        $res_bul_ret = $db->query($sql_bul_ret);
+        if($res_bul_ret){
+          while($obj_bul_ret = $db->fetch_object($res_bul_ret)){
+            $sql_ret = "SELECT montant_employe FROM ".MAIN_DB_PREFIX."bulletin_cotisation WHERE fk_cotisation = 3 AND fk_bulletin=".$obj_bul_ret->rowid;
+            $res_ret = $db->query($sql_ret);
+            if($obj_retraite = $db->fetch_object($res_ret)){
+                  $somme_retraite += $obj_retraite->montant_employe;
+            }
+
+          }
+		  
+
+		}
+
+        //retraite bulletin bonus
+        $sql_bul_ret = "SELECT rowid FROM ".MAIN_DB_PREFIX."bulletin_bonus WHERE annee=".$annee_rechercher." AND fk_salarie=".$id_salarie;
+        $res_bul_ret = $db->query($sql_bul_ret);
+        if($res_bul_ret){
+          while($obj_bul_ret = $db->fetch_object($res_bul_ret)){
+            $sql_ret = "SELECT montant_employe FROM ".MAIN_DB_PREFIX."bulletin_bonus_cotisation WHERE fk_cotisation = 3 AND fk_bulletin=".$obj_bul_ret->rowid;
+            $res_ret = $db->query($sql_ret);
+            if($obj_retraite = $db->fetch_object($res_ret)){
+                  $somme_retraite += $obj_retraite->montant_employe;
+            }
+
+          }
+
+		    }
+  
+        $sql_bul_info = "SELECT rowid, matricule, nom, prenom, situation_familiale, nombre_enfant, nombre_enfant_hand FROM ".MAIN_DB_PREFIX."bulletin WHERE annee=".$annee_rechercher." AND mois = 12 AND fk_salarie=".$id_salarie;
+        $res_bul_info = $db->query($sql_bul_info);
+        if($res_bul_info){
+          $num_bul_info = $db->num_rows($res_bul_info);
+          if(0 < $num_bul_info)
+            $obj_bul_info = $db->fetch_object($res_bul_info);
+        }
+		
+          $obj_array["somme_brut_annuel"] = round($somme_brut);
+          $obj_array["somme_brut_imposable_annuel"] = round($somme_brut_imposable);
+          $obj_array["somme_retraite"] = round($somme_retraite);
+          $obj_array["prime_indemnite_non_imposable"] = $somme_brut - $somme_retraite - $somme_brut_imposable;
+          $obj_array["avantage_nature"] = 0;
+          $obj_array["somme_its_mois"] = round($somme_its);
+          $obj_array["nb_mois"] = $nb_mois ?:0;
+          $its_annuel = its_salarie_annuel_bul($db, round($somme_brut_imposable), !empty($obj_bul_info->situation_familiale) ? $obj_bul_info->situation_familiale : "Celibataire", !empty($obj_bul_info->nombre_enfant) ? $obj_bul_info->nombre_enfant : 0, !empty($obj_bul_info->nombre_enfant_hand) ? $obj_bul_info->nombre_enfant_hand : 0);
+		  
+          $obj_array["its_annuel"] = round($its_annuel["montant"]);
+		  if($its_annuel["montant"] == 0){
+				$obj_array["its_annuel"] = $somme_its;
+			}
+		  $obj_array["taux_its_annuel"] = $its_annuel["taux"];
+          $obj_array["difference"] = round($obj_array["its_annuel"]) - round($somme_its);
+
+    return $obj_array;
+}
 	
+
+//ITS annuel article29.
+function its_salarie_annuel_bul($db, $salaire_brut, $situation_familiale = "Celibataire", $nb_enfant = 0, $nb_enf_hand = 0){
+	
+		$mont = (string)$salaire_brut;
+        $its_annuel = array();
+	if ($salaire_brut <= 250) {
+        return array("taux" => 0, "montant" => 0);
+    } else {
+        // Derniers 3 chiffres
+        $dern_ch = intval(substr($mont, -3));  
+
+        // Retrait des 3 derniers chiffres pour pouvoir reconstruire après
+        $base = substr($mont, 0, -3);
+
+        if ($dern_ch >= 0 && $dern_ch <= 250) {
+            $mont = $base . "000";
+        } else if ($dern_ch >= 251 && $dern_ch <= 500) {
+            $mont = $base . "250";
+        } else if ($dern_ch >= 501 && $dern_ch <= 750) {
+            $mont = $base . "500";
+        } else if ($dern_ch >= 751 && $dern_ch <= 999) {
+            $mont = $base . "750";
+        }
+	
+		$ss = $mont;
+
+	//-----------------------------------------	
+			$tab = 0;
+			$grille_bareme = "SELECT rowid FROM ".MAIN_DB_PREFIX."bareme_taxe WHERE fk_taxe=1 AND actif=1";
+            $result_grille_bareme = $db->query($grille_bareme);
+            if($result_grille_bareme){
+				
+                $obj_grille_bareme = $db->fetch_object($result_grille_bareme);
+				$sql_bareme = "SELECT * FROM ".MAIN_DB_PREFIX."taxe WHERE fk_bareme =".$db->escape($obj_grille_bareme->rowid)." AND fk_type = 1 AND montant_debut <= ".$db->escape($ss)." ORDER BY montant_debut ASC";
+				
+				$result_bareme = $db->query($sql_bareme);
+				if($result_bareme){
+					$i = 0;
+					$num = $db->num_rows($result_bareme);
+					while ($i < $num) {
+						$bareme = $db->fetch_object($result_bareme);
+						if($num >= 2)
+							if($i == ($num - 1)){
+								$tab = $tab + ((($ss - $bareme->montant_debut)*$bareme->taux)/100);
+                                // debug supprimé;
+							}else if($i == ($num - 2)){
+                                                                // debug supprimé
+
+								$tab = $tab +  $bareme->valeur;
+							}
+                            
+						$i ++;
+					}
+                }
+				
+					$taux = 0;
+					if($situation_familiale == "Marié")
+						$taux = 10;
+					$taux = $taux + ($nb_enfant - $nb_enf_hand)*2.5;
+					$taux = $taux + $nb_enf_hand*10;
+
+
+					$its_brut = $tab;
+
+					$its_annuel_net = $its_brut - ($its_brut * $taux / 100);
+
+					$taux_its_annuel =  ($its_annuel_net/$ss)*100;
+
+					$taux_its_reduit = $taux_its_annuel - 2;
+
+					if($taux_its_reduit < 0)
+						$taux_its_reduit = 0;
+
+					$its_annuel["taux"] = $taux_its_reduit;
+                    $its_annuel["montant"] = ($taux_its_reduit*$ss)/100;
+
+		}
+
+		return $its_annuel;
+	}
+		
+}
+
+
+
+
+/**
+ * Recalcule entièrement les congés d'un salarié au moment
+ * de la génération de son bulletin.
+ *
+ * Calcul :
+ * - acquis = tous les mois acquis depuis la date de référence × 2,5 ;
+ * - payé   = tous les jours payés jusqu'au mois du bulletin ;
+ * - solde  = acquis - payé.
+ *
+ * Le solde calculé remplace ensuite solde_jours.
+ *
+ * @return array
+ * [
+ *     'acquis' => 25,
+ *     'paye'   => 7.5,
+ *     'solde'  => 17.5,
+ *     'erreur' => ''
+ * ]
+ */
+function calculer_conges_salarie_bulletin(
+    $db,
+    $fk_salarie,
+    $id_societe,
+    $mois,
+    $annee,
+    $entity = 1
+) {
+    $resultat = array(
+        'acquis' => 0,
+        'paye' => 0,
+        'solde' => 0,
+        'date_reference' => '',
+        'mois_calcules' => 0,
+        'erreur' => ''
+    );
+
+    $fk_salarie = (int) $fk_salarie;
+    $id_societe = (int) $id_societe;
+    $mois = (int) $mois;
+    $annee = (int) $annee;
+    $entity = (int) $entity;
+
+    /*
+     * Le treizième mois reprend la situation de décembre.
+     */
+    if ($mois === 13) {
+        $mois = 12;
+    }
+
+    if ($fk_salarie <= 0) {
+        $resultat['erreur'] = 'Identifiant salarié invalide.';
+        return $resultat;
+    }
+
+    if ($id_societe <= 0) {
+        $resultat['erreur'] = 'Identifiant société invalide.';
+        return $resultat;
+    }
+
+    if ($mois < 1 || $mois > 12) {
+        $resultat['erreur'] = 'Mois du bulletin invalide.';
+        return $resultat;
+    }
+
+    if ($annee <= 0) {
+        $resultat['erreur'] = 'Année du bulletin invalide.';
+        return $resultat;
+    }
+
+    /*
+     * Récupération du salarié et de la date de référence.
+     *
+     * La condition sur ue.egp vérifie que le salarié appartient
+     * bien à la société en cours de génération.
+     */
+    $sql = 'SELECT';
+    $sql .= ' s.rowid AS fk_salarie,';
+    $sql .= ' s.date_anciennete,';
+    $sql .= ' u.dateemployment,';
+    $sql .= ' cs.rowid AS fk_solde,';
+    $sql .= ' cs.date_reference,';
+    $sql .= ' cs.source_reference';
+
+    $sql .= ' FROM '.MAIN_DB_PREFIX.'salarie AS s';
+
+    $sql .= ' INNER JOIN '.MAIN_DB_PREFIX.'user AS u';
+    $sql .= ' ON u.rowid=s.fk_user';
+
+    $sql .= ' INNER JOIN '.MAIN_DB_PREFIX.'user_extrafields AS ue';
+    $sql .= ' ON ue.fk_object=u.rowid';
+
+    $sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'salarie_conge_solde AS cs';
+    $sql .= ' ON cs.fk_salarie=s.rowid';
+    $sql .= ' AND cs.entity='.$entity;
+
+    $sql .= ' WHERE s.rowid='.$fk_salarie;
+    $sql .= ' AND ue.egp='.$id_societe;
+
+    $resSalarie = $db->query($sql);
+
+    if (!$resSalarie) {
+        $resultat['erreur'] =
+            'Erreur récupération salarié : '.$db->lasterror();
+
+        return $resultat;
+    }
+
+    $obj = $db->fetch_object($resSalarie);
+
+    if (!$obj) {
+        $resultat['erreur'] =
+            'Salarié introuvable dans la société indiquée.';
+
+        return $resultat;
+    }
+
+    /*
+     * Détermination de la date de référence.
+     *
+     * Priorité :
+     * 1. date_reference configurée ;
+     * 2. date_anciennete ;
+     * 3. dateemployment.
+     */
+    $dateReferenceTexte = '';
+    $sourceReference = '';
+
+    if (!empty($obj->date_reference)) {
+        $dateReferenceTexte = substr(
+            $obj->date_reference,
+            0,
+            10
+        );
+
+        $sourceReference = !empty($obj->source_reference)
+            ? $obj->source_reference
+            : 'configuration';
+    } elseif (!empty($obj->date_anciennete)) {
+        $dateReferenceTexte = substr(
+            $obj->date_anciennete,
+            0,
+            10
+        );
+
+        $sourceReference = 'anciennete';
+    } elseif (!empty($obj->dateemployment)) {
+        $dateReferenceTexte = substr(
+            $obj->dateemployment,
+            0,
+            10
+        );
+
+        $sourceReference = 'employment';
+    }
+
+    if (empty($dateReferenceTexte)) {
+        $resultat['erreur'] =
+            'Aucune date de référence disponible pour ce salarié.';
+
+        return $resultat;
+    }
+
+    try {
+        $dateReference = new DateTime(
+            $dateReferenceTexte.' 00:00:00'
+        );
+
+        /*
+         * La période cible est le mois et l'année du bulletin.
+         * La date actuelle du serveur n'est pas utilisée.
+         */
+        $dateBulletin = new DateTime(
+            sprintf(
+                '%04d-%02d-25 00:00:00',
+                $annee,
+                $mois
+            )
+        );
+
+        /*
+         * Premier jour du mois suivant.
+         * Cette date est une borne exclusive pour les paiements.
+         */
+        $dateFinBulletin = new DateTime(
+            sprintf(
+                '%04d-%02d-01 00:00:00',
+                $annee,
+                $mois
+            )
+        );
+
+        $dateFinBulletin->modify('+1 month');
+    } catch (Exception $e) {
+        $resultat['erreur'] =
+            'Erreur de date : '.$e->getMessage();
+
+        return $resultat;
+    }
+
+    $resultat['date_reference'] =
+        $dateReference->format('Y-m-d');
+
+    /*
+     * Le salarié n'était pas encore présent pendant la période.
+     */
+    if ($dateReference > $dateBulletin) {
+        return $resultat;
+    }
+
+    /*
+     * =========================================================
+     * 1. CALCUL DE TOUS LES JOURS ACQUIS
+     * =========================================================
+     *
+     * Le mois d'entrée n'est pas compté comme mois complet.
+     *
+     * Exemple :
+     * date référence : 10/05/2021
+     * bulletin juillet 2021
+     *
+     * Juin + juillet = 2 mois
+     * acquis = 2 × 2,5 = 5 jours.
+     */
+    $moisCalcules =
+        (
+            (
+                (int) $dateBulletin->format('Y')
+                -
+                (int) $dateReference->format('Y')
+            ) * 12
+        )
+        +
+        (
+            (int) $dateBulletin->format('m')
+            -
+            (int) $dateReference->format('m')
+        );
+
+    $moisCalcules = max(0, $moisCalcules);
+
+    $acquis = round(
+        $moisCalcules * 2.5,
+        2
+    );
+
+	/*
+	* =========================================================
+	* CALCUL DE TOUS LES JOURS PAYÉS
+	* =========================================================
+	*
+	* On additionne tous les jours_payes du salarié jusqu'à
+	* la fin du mois et de l'année du bulletin.
+	*/
+	$sqlPaye = 'SELECT';
+	$sqlPaye .= ' SUM(jours_payes) AS total_paye';
+	$sqlPaye .= ' FROM ';
+	$sqlPaye .= MAIN_DB_PREFIX.'salarie_conge_paiement';
+	$sqlPaye .= ' WHERE fk_salarie='.(int) $fk_salarie;
+
+	/*
+	* Premier jour du mois suivant : borne exclusive.
+	*/
+	$sqlPaye .= ' AND date_paiement < "';
+	$sqlPaye .= $db->escape(
+		$dateFinBulletin->format('Y-m-d 00:00:00')
+	);
+	$sqlPaye .= '"';
+
+	$resPaye = $db->query($sqlPaye);
+
+	if (!$resPaye) {
+		$resultat['erreur'] =
+			'Erreur récupération jours payés : '
+			.$db->lasterror();
+
+		return $resultat;
+	}
+
+	$objPaye = $db->fetch_object($resPaye);
+
+	/*
+	* SUM retourne NULL lorsqu'aucun paiement n'existe.
+	*/
+	if (
+		$objPaye
+		&& $objPaye->total_paye !== null
+		&& $objPaye->total_paye !== ''
+	) {
+		$paye = round(
+			(float) $objPaye->total_paye,
+			2
+		);
+	} else {
+		$paye = 0;
+	}
+
+    /*
+     * =========================================================
+     * 3. RECALCUL COMPLET DU SOLDE
+     * =========================================================
+     */
+    $solde = round(
+        $acquis - $paye,
+        2
+    );
+
+    /*
+     * Si tu ne souhaites pas autoriser un solde négatif,
+     * décommente cette ligne :
+     */
+    // $solde = max(0, $solde);
+
+    /*
+     * =========================================================
+     * 4. ENREGISTREMENT DU NOUVEAU SOLDE
+     * =========================================================
+     */
+    $db->begin();
+
+    if (!empty($obj->fk_solde)) {
+        /*
+         * Le solde existe : on le remplace totalement.
+         *
+         * Il ne faut surtout pas faire :
+         * solde_jours = solde_jours + ...
+         */
+        $sqlSolde = 'UPDATE ';
+        $sqlSolde .= MAIN_DB_PREFIX.'salarie_conge_solde';
+
+        $sqlSolde .= ' SET';
+        $sqlSolde .= ' solde_jours='.$solde;
+        $sqlSolde .= ', mois_calcules='.$moisCalcules;
+        $sqlSolde .= ', tms=NOW()';
+
+        $sqlSolde .= ' WHERE rowid='.(int) $obj->fk_solde;
+        $sqlSolde .= ' AND fk_salarie='.$fk_salarie;
+        $sqlSolde .= ' AND entity='.$entity;
+    } else {
+        /*
+         * Aucun solde : création.
+         */
+        $sqlSolde = 'INSERT INTO ';
+        $sqlSolde .= MAIN_DB_PREFIX.'salarie_conge_solde';
+
+        $sqlSolde .= ' (';
+        $sqlSolde .= ' fk_salarie,';
+        $sqlSolde .= ' solde_jours,';
+        $sqlSolde .= ' source_reference,';
+        $sqlSolde .= ' date_reference,';
+        $sqlSolde .= ' mois_calcules,';
+        $sqlSolde .= ' date_creation,';
+        $sqlSolde .= ' entity';
+        $sqlSolde .= ')';
+
+        $sqlSolde .= ' VALUES (';
+        $sqlSolde .= $fk_salarie.',';
+        $sqlSolde .= $solde.',';
+        $sqlSolde .= '"'.$db->escape($sourceReference).'",';
+        $sqlSolde .= '"'.$db->escape(
+            $dateReference->format('Y-m-d')
+        ).'",';
+        $sqlSolde .= $moisCalcules.',';
+        $sqlSolde .= ' NOW(),';
+        $sqlSolde .= $entity;
+        $sqlSolde .= ')';
+    }
+
+    if (!$db->query($sqlSolde)) {
+        $db->rollback();
+
+        $resultat['erreur'] =
+            'Erreur mise à jour du solde : '.$db->lasterror();
+
+        return $resultat;
+    }
+
+    $db->commit();
+
+    /*
+     * =========================================================
+     * 5. VALEURS RETOURNÉES POUR LE BULLETIN
+     * =========================================================
+     */
+    $resultat['acquis'] = (float) $acquis;
+	$resultat['paye'] = (float) $paye;
+	$resultat['solde'] = (float) $solde;
+	$resultat['mois_calcules'] = (int) $moisCalcules;
+	$resultat['erreur'] = '';
+
+    return $resultat;
+}

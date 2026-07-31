@@ -17,8 +17,15 @@ print dol_get_fiche_head($head, 'validation', "", -1, '');
 if(!empty($id_convention)){
 $soc_sql = "SELECT * FROM ".MAIN_DB_PREFIX."societe WHERE rowid=".$id_societe;
 $soc_res = $db->query($soc_sql);//= $db->query($covSql);
-$obj_soc = $db->fetch_object($soc_res);
-$obj_soc->name = $obj_soc->nom;
+if($soc_res){
+	$obj_soc = $db->fetch_object($soc_res);
+}
+if(empty($obj_soc)){
+	$obj_soc = new stdClass();
+	$obj_soc->rowid = $id_societe;
+	$obj_soc->nom = '';
+}
+$obj_soc->name = !empty($obj_soc->nom) ? $obj_soc->nom : '';
 $obj_soc->element = "societe";			
 $obj_soc->conv = $id_convention;
 
@@ -26,6 +33,7 @@ societe_preview_next($db, $id_societe, $obj_soc);
 entete_societe($obj_soc, 'societe');
 print "<hr>";
 $message = "";
+$sel15 = "";
 $num_all = 0;
 $tab_message = array();
 $trouve = false;
@@ -70,6 +78,10 @@ if($result_user){
 		//Objet Utilisateur
 		$message = "";
 		$obj_user = $db->fetch_object($result_user);			
+		if(empty($obj_user)){
+			$i++;
+			continue;
+		}
 		$tab_message = array();
 		$tab_url = array();
 		$tab_info = array();
@@ -77,20 +89,34 @@ if($result_user){
 		$message = "";
 		$sql_sal = "SELECT * FROM ".MAIN_DB_PREFIX."salarie WHERE fk_user=".$obj_user->rowid;
 		$result_sal = $db->query($sql_sal);
-			$obj_salarie = $db->fetch_object($result_sal);
+			$obj_salarie = null;
+			if($result_sal){
+				$obj_salarie = $db->fetch_object($result_sal);
+			}
 			$virgule = 0;
 		if($obj_salarie){
 			$salaire_base = 0;
+			$obj_grille = null;
+			$objSalBase = null;
+			$categorie_ok = ($obj_salarie->fk_categorie !== null && $obj_salarie->fk_categorie !== '' && (int) $obj_salarie->fk_categorie > 0);
+			// Dans cette logique métier, fk_echelon = 0 est une valeur valide.
+			$echelon_ok = ($obj_salarie->fk_echelon !== null && $obj_salarie->fk_echelon !== '');
+
 			$grilleSql = "SELECT rowid FROM ".MAIN_DB_PREFIX."grille WHERE active=1 AND fk_convention=".$id_convention;
 			$grilleResult = $db->query($grilleSql);//= $db->query($grilleSql);
-			$obj_grille = $db->fetch_object($grilleResult);
-
-			$salBaseSql = "SELECT salaire_base FROM ".MAIN_DB_PREFIX."grille_categorie_echelon_salaire_base WHERE fk_grille=".$obj_grille->rowid." AND fk_categorie=".$obj_salarie->fk_categorie." AND fk_echelon=".$obj_salarie->fk_echelon;
-			$salBaseResult = $db->query($salBaseSql);//= $db->query($covSql);
-			$objSalBase = null;
-			if($salBaseResult){
-				$objSalBase = $db->fetch_object($salBaseResult);
+			if($grilleResult){
+				$obj_grille = $db->fetch_object($grilleResult);
 			}
+
+			if($obj_grille && $categorie_ok && $echelon_ok){
+				$salBaseSql = "SELECT salaire_base FROM ".MAIN_DB_PREFIX."grille_categorie_echelon_salaire_base WHERE fk_grille=".$obj_grille->rowid." AND fk_categorie=".(int) $obj_salarie->fk_categorie." AND fk_echelon=".(int) $obj_salarie->fk_echelon;
+				$salBaseResult = $db->query($salBaseSql);//= $db->query($covSql);
+				if($salBaseResult){
+					$objSalBase = $db->fetch_object($salBaseResult);
+				}
+			}
+
+			$salaire_base_ok = ($objSalBase && $objSalBase->salaire_base !== null && $objSalBase->salaire_base !== '');
 			$url = './salarie_information.php?mainmenu=paiementsalaire&leftmenu=salarie&fk_salarie='.$obj_salarie->rowid.'&id_societe='.$id_societe.'&id='.$obj_user->rowid.'&id_convention='.$id_convention.'&action=detail';
 
 			if(!$obj_salarie->matricule){
@@ -99,15 +125,22 @@ if($result_user){
 				$tab_url[] = $url;
 			}
 
-			if($objSalBase->salaire_base == null){
+			if(!$categorie_ok){
 				$tab_message[] = "Catégorie";
 				$tab_url[] = $url;
 				$tab_info[] = "Ce salarié n'a pas de catégorie";
+			}
 
+			if($categorie_ok && !$echelon_ok){
+				$tab_message[] = "Echelon";
+				$tab_url[] = $url;
+				$tab_info[] = "Ce salarié n'a pas d'échelon";
+			}
+
+			if($categorie_ok && $echelon_ok && !$salaire_base_ok){
 				$tab_message[] = "Salaire de Base";
 				$tab_info[] = "Ce salarié n'a pas de salaire de base";
 				$tab_url[] = $url;
-
 			}
 			
 			if($obj_salarie->sursalaire == null){
@@ -125,13 +158,13 @@ if($result_user){
 			$res_contrat1 = $db->query($sql_contrat1);
 			
 
-			if($db->num_rows($res_contrat1) <= 0){
+			if(!$res_contrat1 || $db->num_rows($res_contrat1) <= 0){
 				$sql_contrat2 = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_contrat WHERE fk_salarie=".$obj_salarie->rowid." AND active=1 AND fk_type_contrat = 2";
 				$res_contrat2 = $db->query($sql_contrat2);
-				if($db->num_rows($res_contrat2) <= 0){
+				if(!$res_contrat2 || $db->num_rows($res_contrat2) <= 0){
 					$sql_contrat3 = "SELECT * FROM ".MAIN_DB_PREFIX."salarie_contrat WHERE fk_salarie=".$obj_salarie->rowid." AND active=1";
 					$res_contrat3 = $db->query($sql_contrat3);
-					if($db->num_rows($res_contrat3) > 0){
+					if($res_contrat3 && $db->num_rows($res_contrat3) > 0){
 						$tab_message[] = "Contrat expiré";
 						$tab_info[] = "Ce salarié n'a pas de contrat";
 						$tab_url[] = './contrat.php?mainmenu=paiementsalaire&leftmenu=salarie&fk_salarie='.$obj_salarie->rowid.'&id_societe='.$id_societe.'&id='.$obj_user->rowid.'&id_convention='.$id_convention.'&action=detail';
@@ -188,7 +221,7 @@ if($result_user){
 			}
 			//---------------------------------------------------------------------
 		}else{
-			$url = './salarie_information.php?mainmenu=paiementsalaire&leftmenu=salarie&fk_salarie='.$obj_salarie->rowid.'&id_societe='.$id_societe.'&id='.$obj_user->rowid.'&id_convention='.$id_convention.'&action=detail';
+			$url = './salarie_information.php?mainmenu=paiementsalaire&leftmenu=salarie&id_societe='.$id_societe.'&id='.$obj_user->rowid.'&id_convention='.$id_convention.'&action=detail';
 			$obj_liste[] = "<a href=".$url.">".$obj_user->firstname." ".$obj_user->lastname."</a>";
 			$tab_message[] = "N'est pas enregistrer";
 			$tab_info[] = "Aucun élement de salarié n'est renseigné";
@@ -204,6 +237,7 @@ if($result_user){
 	$num = count($obj_liste) == 0 ? 1 : count($obj_liste);
 	$sel5 = "selected";
 		$sel10 = "";
+		$sel15 = "";
 		$sel25 = "";
 		$sel20 = "";
 		$sel30 = "";
@@ -233,7 +267,7 @@ if($result_user){
 				<option value='20' ".$sel20."><b>20</b></option>
 				<option value='30' ".$sel30."><b>30</b></option>
 				<option value='50' ".$sel50."><b>50</b></option>
-				<option value='100' ".$sel100."><b>100</b>0</option>";
+				<option value='100' ".$sel100."><b>100</b></option>";
 				print "</select><mark><b>".(GETPOST("nbpage","int")?:1)."</b></mark>/<mark><b>".(((int)($num%$limit))==0?((int)($num/$limit)):((int)($num/$limit)+1))."</b></mark>";
 				print '<script type="text/javascript">
 				var convention = document.getElementById("limit");
@@ -357,7 +391,7 @@ if($result_user){
 }else {
 	print "<h2 style='align:center;'>Cette sociétée n'a aucun employé!";
 }
-$db->free();
+// $db->free();
 
 }else{
 	print "<h2>Veuillez affecter une <b>convention</b> à cette société</h2>";

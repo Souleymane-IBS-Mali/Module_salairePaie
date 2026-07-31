@@ -494,11 +494,11 @@ if(!empty($id_convention)){
 							if(!empty($array_donnee[4])){
 								$montant_apayer = round($array_donnee[4]/$array_donnee[5], 2);
 
-								$sql = 'INSERT INTO '.MAIN_DB_PREFIX.'salarie_avance(fk_salarie, libelle, montant_total, montant_par_mois, nombre_mois, mois_debut_paiement, annee_debut_paiement, montant_paye, import_key)
+								$sql = 'INSERT INTO '.MAIN_DB_PREFIX.'salarie_avance (fk_salarie, libelle, montant_total, montant_par_mois, nombre_mois, mois_debut_paiement, annee_debut_paiement, montant_paye, import_key)
 								VALUES ("'.$array_donnee[0].'","'.$array_donnee[3].'","'.$array_donnee[4].'", "'.$montant_apayer.'",'.$array_donnee[5].', '.$array_donnee[6].','.$array_donnee[7].',"0","'.$import_key.'")';
 								//print $sql;
 								$result = $db->query($sql);
-								print $db->error().'<br>';
+								print $sql.'***'.$db->error().'<br>';
 							}			
 						}
 						if($db->error()){

@@ -223,7 +223,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
 					$obj = $db->fetch_object($db->query($sql_select));
 
-					$action_effectue = "Affectation d'une prime flottante ".$obj_pr->libelle."(".$montant_flottant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
+					$action_effectue = "Affectation d'une prime flottante ".$obj_pr->libelle."(".$montant_flottant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie." de la société ".$obj_soc->name;
 					$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 					$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Affectation")';
 					$db->query($sql_log);
@@ -296,7 +296,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
 					$obj = $db->fetch_object($db->query($sql_select));
 
-					$action_effectue = "Modification d'une prime flottante ".$obj_pr->libelle."(".$montant_flottant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
+					$action_effectue = "Modification d'une prime flottante ".$obj_pr->libelle."(".$montant_flottant.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie." de la société ".$obj_soc->name;
 					$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 					$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Modification")';
 					$db->query($sql_log);
@@ -401,7 +401,7 @@ if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->sa
 					$sql_select = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."user WHERE rowid=".$user->id;
 					$obj = $db->fetch_object($db->query($sql_select));
 
-					$action_effectue = "Ajout d'une prime exceptionnelle ".$libelle."(montant ".$montant." fin ".$date.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie;
+					$action_effectue = "Ajout d'une prime exceptionnelle ".$libelle."(montant ".$montant." fin ".$date.") au salarié ".$obj_sal->firstname." ".$obj_sal->lastname." id salarié=".$fk_salarie." de la société ".$obj_soc->name;
 					$sql_log = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
 					$sql_log .= ' VALUES('.$user->id.', "'.$obj->lastname.'","'.$obj->firstname.'",now(),"'.$action_effectue.'","Ajout")';
 					$db->query($sql_log);

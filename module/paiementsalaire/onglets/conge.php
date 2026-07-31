@@ -30,964 +30,498 @@
  *	\ingroup    compta
  *	\brief      Main page of accountancy area
  */
+/* Page de gestion du solde de conge d'un salarie. */
 
 require '../../main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/paiementsalaire/lib/paiementsalaire.lib.php';
-require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
-require_once DOL_DOCUMENT_ROOT.'/core/class/html.formother.class.php';
-require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
-require_once DOL_DOCUMENT_ROOT.'/user/class/user.class.php';
-require_once DOL_DOCUMENT_ROOT.'/user/class/usergroup.class.php';
-require_once DOL_DOCUMENT_ROOT.'/holiday/class/holiday.class.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/functions2.lib.php';
-require_once DOL_DOCUMENT_ROOT.'/core/lib/usergroups.lib.php';
 
-
-
-
-llxHeader("", "Paiement | Salaire");
-//Titre 
-print load_fiche_titre($langs->trans("Congés"), '', '');
-$id_societe = GETPOST("id_societe","int");
-$fk_user = GETPOST("id","int");
-$fk_salarie = GETPOST("fk_salarie");
-$id_convention = GETPOST("id_convention","int");
-
-$head = salaire_Head($fk_salarie, $fk_user, $id_societe, $id_convention);
-print dol_get_fiche_head($head, 'conge', "", -1, '');
-
-if($user->id !=1 && $user->id != $fk_user && !$user->rights->paiementsalaire->salarie->write){
-	print "<h2> Vous n\'avez pas ce droit </h2>";
-}else{
-    if(empty($fk_salarie)){
-        print "<mark><strong>Il n'a pas encore de Matricule</strong></mark><br>";
-        print "Page non Disponible";
-    }else{
-        $obj_soc = prepare_objet_entete($fk_salarie, $fk_user, $db, $id_societe, $id_convention);
-        entete_societe($obj_soc, 'societe');
-        print '<hr>';
-		if($user->id == 1 || $fk_user == $user->id){
-			print_barre_liste("", $page, $_SERVER["PHP_SELF"], "", "", "", "", "", "", 'bill', 0, dolGetButtonTitle("Faire une demande de congé", '', 'fa fa-plus-circle', '../../holiday/card.php?mainmenu=hrm&leftmenu=holiday&action=create' , '', 1), '', 0, 0, 0, 1);
-
-	//------------------------------------------------------------------------------------------------------
-	$solde = 0;
-	$salSql = "SELECT date_embauche FROM ".MAIN_DB_PREFIX."salarie_contrat where active=1 AND fk_salarie=".$fk_salarie;
-	$result = $db->query($salSql);
-	if(!empty($result)){
-		$salarie = $db->fetch_object($result);
-		//print $salarie->date_embauche."****";
-		$date_donnee = new DateTime($salarie->date_embauche); // Date donnée
-		$aujourdhui = new DateTime(); // Date d'aujourd'hui
-
-		$interval = $date_donnee->diff($aujourdhui);
-		$jours = $interval->days;
-		$nb_conge_eff = $jours;
-		while ($jours > 365) {
-			$jours = $jours - 365;
-		}
-		$solde =  (int)(floor($jours/30)*2.5);
-			//print $solde."***".(int)($solde*2.5);
-	}
-
-			print '<div class="div-table-responsive-no-min">';
-			print '<table class="noborder nohover centpercent">';
-			print '<tr class="liste_titre"><th colspan="3">'.$langs->trans("Holidays").'</th></tr>';
-			print '<tr class="oddeven">';
-			print '<td>';
-			$user_id = $fk_user;
-			$holidaystatic = new Holiday($db);
-			$out = '';
-			$nb_holiday = 0;
-			$typeleaves = $holidaystatic->getTypes(1, 1);
-			$nb_jour_total = 0;
-			foreach ($typeleaves as $key => $val) {
-				$sql = 'SELECT * FROM '.MAIN_DB_PREFIX.'c_holiday_types WHERE rowid='.$val['rowid'];
-				$nb_jour = 0;
-				if($db->query($sql)){
-					$obj = $db->fetch_object($db->query($sql));
-					$nb_jour_total += $obj->delay;
-					$nb_jour = $obj->delay;
-
-				}
-				$nb_type = $holidaystatic->getCPforUser($fk_user, $val['rowid']);
-				$nb_holiday += $nb_type;
-				$out .= ' - '.($langs->trans($val['code']) != $val['code'] ? $langs->trans($val['code']) : $val['label']).': <strong>'.($nb_type ? (price2num($nb_type)) : 0).'</strong><br>';
-			}
-			$balancetoshow = $langs->trans('SoldeCPUser', $solde);
-			print '<div class="valignmiddle div-balanceofleave">'.str_replace('{s1}', img_picto('', 'holiday', 'class="paddingleft pictofixedwidth"').'<span class="balanceofleave valignmiddle'.($nb_holiday > 0 ? ' amountpaymentcomplete' : ($nb_holiday < 0 ? ' amountremaintopay' : ' amountpaymentneutral')).'">'.(round($nb_holiday, 5)).'</span>', $balancetoshow).'</div>';
-			print '<span class="opacitymedium">'.$solde.'</span>';
-
-			print '</td>';
-			print '</tr>';
-			print '</table></div><br>';
-
-			print '<h3>La liste des congés éffectués ('.floor($nb_conge_eff/365).')</h3>';
-		//-----------------------------------------------------------------------------------------------------------------------
-	/*	// Load translation files required by the page
-		$langs->loadLangs(array('users', 'other', 'holiday', 'hrm'));
-
-		// Protection if external user
-
-		$action     = GETPOST('action', 'alpha'); // The action 'add', 'create', 'edit', 'update', 'view', ...
-		$massaction = GETPOST('massaction', 'alpha'); // The bulk action (combo box choice into lists)
-		$show_files = GETPOST('show_files', 'int'); // Show files area generated by bulk actions ?
-		$confirm    = GETPOST('confirm', 'alpha'); // Result of a confirmation
-		$cancel     = GETPOST('cancel', 'alpha'); // We click on a Cancel button
-		$toselect   = GETPOST('toselect', 'array'); // Array of ids of elements selected into a list
-		$contextpage = GETPOST('contextpage', 'alpha') ?GETPOST('contextpage', 'alpha') : 'holidaylist'; // To manage different context of search
-
-		$backtopage = GETPOST('backtopage', 'alpha'); // Go back to a dedicated page
-		$optioncss = GETPOST('optioncss', 'alpha'); // Option for the css output (always '' except when 'print')
-		$id = GETPOST('id', 'int');
-
-		$childids = $user->getAllChildIds(1);
-
-		// Security check
-		$socid = $id_societe;
-		$result = restrictedArea($user, 'holiday', '', '');
-		// If we are on the view of a specific user
-		if ($id > 0) {
-			$canread = 0;
-			if ($id == $user->id) {
-				$canread = 1;
-			}
-			if (!empty($user->rights->holiday->readall)) {
-				$canread = 1;
-			}
-
-			if (!empty($user->rights->holiday->read) && in_array($id, $childids)) {
-				$canread = 1;
-			}
-
-			
-
-		}
-
-		$diroutputmassaction = $conf->holiday->dir_output.'/temp/massgeneration/'.$user->id;
-
-
-		// Load variable for pagination
-		$limit = GETPOST('limit', 'int') ?GETPOST('limit', 'int') : $conf->liste_limit;
-		$sortfield = GETPOST('sortfield', 'alpha');
-		$sortorder = GETPOST('sortorder', 'alpha');
-		$page = GETPOSTISSET('pageplusone') ? (GETPOST('pageplusone') - 1) : GETPOST("page", 'int');
-		if (empty($page) || $page == -1) {
-			$page = 0;
-		}     // If $page is not defined, or '' or -1
-		$offset = $limit * $page;
-		$pageprev = $page - 1;
-		$pagenext = $page + 1;
-		if (!$sortorder) {
-			$sortorder = "DESC";
-		}
-		if (!$sortfield) {
-			$sortfield = "cp.rowid";
-		}
-
-		$sall                = trim((GETPOST('search_all', 'alphanohtml') != '') ?GETPOST('search_all', 'alphanohtml') : GETPOST('sall', 'alphanohtml'));
-		$search_ref          = GETPOST('search_ref', 'alphanohtml');
-		$search_day_create   = GETPOST('search_day_create', 'int');
-		$search_month_create = GETPOST('search_month_create', 'int');
-		$search_year_create  = GETPOST('search_year_create', 'int');
-		$search_day_start    = GETPOST('search_day_start', 'int');
-		$search_month_start  = GETPOST('search_month_start', 'int');
-		$search_year_start   = GETPOST('search_year_start', 'int');
-		$search_day_end      = GETPOST('search_day_end', 'int');
-		$search_month_end    = GETPOST('search_month_end', 'int');
-		$search_year_end     = GETPOST('search_year_end', 'int');
-		$search_employee     = GETPOST('search_employee', 'int');
-		$search_valideur     = GETPOST('search_valideur', 'int');
-		$search_status       = GETPOSTISSET('search_status') ? GETPOST('search_status', 'int') : GETPOST('search_statut', 'int');
-		$search_type         = GETPOST('search_type', 'int');
-
-		// Initialize technical objects
-		$object = new Holiday($db);
-		$extrafields = new ExtraFields($db);
-		$hookmanager->initHooks(array('holidaylist')); // Note that conf->hooks_modules contains array
-
-		// Fetch optionals attributes and labels
-		$extrafields->fetch_name_optionals_label($object->table_element);
-
-		$search_array_options = $extrafields->getOptionalsFromPost($object->table_element, '', 'search_');
-
-		// List of fields to search into when doing a "search in all"
-		$fieldstosearchall = array(
-			'cp.ref'=>'Ref',
-			'cp.description'=>'Description',
-			'uu.lastname'=>'EmployeeLastname',
-			'uu.firstname'=>'EmployeeFirstname',
-			'uu.login'=>'Login'
-		);
-
-		$arrayfields = array(
-			'cp.ref'=>array('label'=>$langs->trans("Ref"), 'checked'=>1),
-			'cp.fk_user'=>array('label'=>$langs->trans("Employee"), 'checked'=>0, 'position'=>20),
-			'cp.fk_validator'=>array('label'=>$langs->trans("ValidatorCP"), 'checked'=>1, 'position'=>30),
-			'cp.fk_type'=>array('label'=>$langs->trans("Type"), 'checked'=>1, 'position'=>35),
-			'duration'=>array('label'=>$langs->trans("NbUseDaysCPShort"), 'checked'=>1, 'position'=>38),
-			'cp.date_debut'=>array('label'=>$langs->trans("DateStart"), 'checked'=>1, 'position'=>40),
-			'cp.date_fin'=>array('label'=>$langs->trans("DateEnd"), 'checked'=>1, 'position'=>42),
-			'cp.date_valid'=>array('label'=>$langs->trans("DateValidation"), 'checked'=>1, 'position'=>60),
-			'cp.date_approve'=>array('label'=>$langs->trans("DateApprove"), 'checked'=>1, 'position'=>70),
-			'cp.date_create'=>array('label'=>$langs->trans("DateCreation"), 'checked'=>0, 'position'=>500),
-			'cp.tms'=>array('label'=>$langs->trans("DateModificationShort"), 'checked'=>0, 'position'=>501),
-			'cp.statut'=>array('label'=>$langs->trans("Status"), 'checked'=>1, 'position'=>1000),
-		);
-		// Extra fields
-		include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_array_fields.tpl.php';
-
-		/*
-		* Actions
-		*/
-/*
-		if (GETPOST('cancel', 'alpha')) {
-			$action = 'list'; $massaction = '';
-		}
-		if (!GETPOST('confirmmassaction', 'alpha') && $massaction != 'presend' && $massaction != 'confirm_presend') {
-			$massaction = '';
-		}
-
-		$parameters = array('socid'=>$socid);
-		$reshook = $hookmanager->executeHooks('doActions', $parameters, $object, $action); // Note that $action and $object may have been modified by some hooks
-		if ($reshook < 0) {
-			setEventMessages($hookmanager->error, $hookmanager->errors, 'errors');
-		}
-
-		if (empty($reshook)) {
-			// Selection of new fields
-			include DOL_DOCUMENT_ROOT.'/core/actions_changeselectedfields.inc.php';
-
-			// Purge search criteria
-			if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x', 'alpha') || GETPOST('button_removefilter', 'alpha')) { // All tests are required to be compatible with all browsers
-				$search_ref = "";
-				$search_month_create = "";
-				$search_year_create = "";
-				$search_month_start = "";
-				$search_year_start = "";
-				$search_month_end = "";
-				$search_year_end = "";
-				$search_employee = "";
-				$search_valideur = "";
-				$search_status = "";
-				$search_type = '';
-				$toselect = '';
-				$search_array_options = array();
-			}
-			if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x', 'alpha') || GETPOST('button_removefilter', 'alpha')
-				|| GETPOST('button_search_x', 'alpha') || GETPOST('button_search.x', 'alpha') || GETPOST('button_search', 'alpha')) {
-				$massaction = ''; // Protection to avoid mass action if we force a new search during a mass action confirmation
-			}
-
-			// Mass actions
-			$objectclass = 'Holiday';
-			$objectlabel = 'Holiday';
-			$permissiontoread = $user->rights->holiday->read;
-			$permissiontodelete = $user->rights->holiday->delete;
-			$permissiontoapprove = $user->rights->holiday->approve;
-			$uploaddir = $conf->holiday->dir_output;
-			include DOL_DOCUMENT_ROOT.'/core/actions_massactions.inc.php';
-		}
-
-
-
-
-		/*
-		* View
-		*/
-
-/*
-		$fuser = new User($db);
-		$holidaystatic = new Holiday($db);
-
-		// Update sold
-		$result = $object->updateBalance();
-
-		$max_year = 5;
-		$min_year = 10;
-
-		// Get current user id
-		$user_id = $user->id;
-
-		if ($id > 0) {
-			// Charge utilisateur edite
-			$fuser->fetch($id, '', '', 1);
-			$fuser->getrights();
-			$user_id = $fuser->id;
-
-			$search_employee = $user_id;
-		}
-
-		// Récupération des congés payés de l'utilisateur ou de tous les users de sa hierarchy
-		// Load array $object->holiday
-
-		$sql = "SELECT";
-		$sql .= " cp.rowid,";
-		$sql .= " cp.ref,";
-
-		$sql .= " cp.fk_user,";
-		$sql .= " cp.fk_type,";
-		$sql .= " cp.date_create,";
-		$sql .= " cp.tms as date_update,";
-		$sql .= " cp.description,";
-		$sql .= " cp.date_debut,";
-		$sql .= " cp.date_fin,";
-		$sql .= " cp.halfday,";
-		$sql .= " cp.statut as status,";
-		$sql .= " cp.fk_validator,";
-		$sql .= " cp.date_valid,";
-		$sql .= " cp.fk_user_valid,";
-		$sql .= " cp.date_refuse,";
-		$sql .= " cp.fk_user_refuse,";
-		$sql .= " cp.date_cancel,";
-		$sql .= " cp.fk_user_cancel,";
-		$sql .= " cp.detail_refuse,";
-
-		$sql .= " uu.lastname as user_lastname,";
-		$sql .= " uu.firstname as user_firstname,";
-		$sql .= " uu.admin as user_admin,";
-		$sql .= " uu.email as user_email,";
-		$sql .= " uu.login as user_login,";
-		$sql .= " uu.statut as user_status,";
-		$sql .= " uu.photo as user_photo,";
-
-		$sql .= " ua.lastname as validator_lastname,";
-		$sql .= " ua.firstname as validator_firstname,";
-		$sql .= " ua.admin as validator_admin,";
-		$sql .= " ua.email as validator_email,";
-		$sql .= " ua.login as validator_login,";
-		$sql .= " ua.statut as validator_status,";
-		$sql .= " ua.photo as validator_photo";
-		// Add fields from extrafields
-		if (!empty($extrafields->attributes[$object->table_element]['label'])) {
-			foreach ($extrafields->attributes[$object->table_element]['label'] as $key => $val) {
-				$sql .= ($extrafields->attributes[$object->table_element]['type'][$key] != 'separate' ? ", ef.".$key." as options_".$key : '');
-			}
-		}
-		// Add fields from hooks
-		$parameters = array();
-		$reshook = $hookmanager->executeHooks('printFieldListSelect', $parameters); // Note that $action and $object may have been modified by hook
-		$sql .= $hookmanager->resPrint;
-		$sql .= " FROM ".MAIN_DB_PREFIX."holiday as cp";
-		if (is_array($extrafields->attributes[$object->table_element]['label']) && count($extrafields->attributes[$object->table_element]['label'])) {
-			$sql .= " LEFT JOIN ".MAIN_DB_PREFIX.$object->table_element."_extrafields as ef on (cp.rowid = ef.fk_object)";
-		}
-		$sql .= ", ".MAIN_DB_PREFIX."user as uu, ".MAIN_DB_PREFIX."user as ua";
-		$sql .= " WHERE cp.entity IN (".getEntity('holiday').")";
-		$sql .= " AND cp.fk_user = uu.rowid AND cp.fk_validator = ua.rowid "; // Hack pour la recherche sur le tableau
-		// Search all
-		if (!empty($sall)) {
-			$sql .= natural_search(array_keys($fieldstosearchall), $sall);
-		}
-		// Ref
-		if (!empty($search_ref)) {
-			$sql .= natural_search("cp.ref", $search_ref);
-		}
-		// Start date
-		$sql .= dolSqlDateFilter("cp.date_debut", $search_day_start, $search_month_start, $search_year_start);
-		// End date
-		$sql .= dolSqlDateFilter("cp.date_fin", $search_day_end, $search_month_end, $search_year_end);
-		// Create date
-		$sql .= dolSqlDateFilter("cp.date_create", $search_day_create, $search_month_create, $search_year_create);
-		// Employee
-		if (!empty($search_employee) && $search_employee != -1) {
-			$sql .= " AND cp.fk_user = '".$db->escape($search_employee)."'\n";
-		}
-		// Validator
-		if (!empty($search_valideur) && $search_valideur != -1) {
-			$sql .= " AND cp.fk_validator = '".$db->escape($search_valideur)."'\n";
-		}
-		// Type
-		if (!empty($search_type) && $search_type != -1) {
-			$sql .= ' AND cp.fk_type IN ('.$db->sanitize($db->escape($search_type)).')';
-		}
-		// Status
-		if (!empty($search_status) && $search_status != -1) {
-			$sql .= " AND cp.statut = '".$db->escape($search_status)."'\n";
-		}
-
-		if (empty($user->rights->holiday->readall)) {
-			$sql .= ' AND cp.fk_user IN ('.$db->sanitize(join(',', $childids)).')';
-		}
-		if ($id > 0) {
-			$sql .= " AND cp.fk_user IN (".$db->sanitize($id).")";
-		}
-
-		// Add where from extra fields
-		include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_sql.tpl.php';
-		// Add where from hooks
-		$parameters = array();
-		$reshook = $hookmanager->executeHooks('printFieldListWhere', $parameters); // Note that $action and $object may have been modified by hook
-		$sql .= $hookmanager->resPrint;
-
-		$sql .= $db->order($sortfield, $sortorder);
-
-		// Count total nb of records
-		$nbtotalofrecords = '';
-		if (empty($conf->global->MAIN_DISABLE_FULL_SCANLIST)) {
-			$result = $db->query($sql);
-			$nbtotalofrecords = $db->num_rows($result);
-			if (($page * $limit) > $nbtotalofrecords) {	// if total resultset is smaller then paging size (filtering), goto and load page 0
-				$page = 0;
-				$offset = 0;
-			}
-		}
-
-		$sql .= $db->plimit($limit + 1, $offset);
-
-
-		//print $sql;
-		$resql = $db->query($sql);
-		if ($resql) {
-			$num = $db->num_rows($resql);
-
-			$arrayofselected = is_array($toselect) ? $toselect : array();
-
-			$param = '';
-			/*if (!empty($contextpage) && $contextpage != $_SERVER["PHP_SELF"]) {
-				$param .= '&contextpage='.urlencode($contextpage);
-			}
-			if ($limit > 0 && $limit != $conf->liste_limit) {
-				$param .= '&limit='.urlencode($limit);
-			}
-			if ($optioncss != '') {
-				$param .= '&optioncss='.urlencode($optioncss);
-			}
-			if ($search_ref) {
-				$param .= '&search_ref='.urlencode($search_ref);
-			}
-			if ($search_day_create) {
-				$param .= '&search_day_create='.urlencode($search_day_create);
-			}
-			if ($search_month_create) {
-				$param .= '&search_month_create='.urlencode($search_month_create);
-			}
-			if ($search_year_create) {
-				$param .= '&search_year_create='.urlencode($search_year_create);
-			}
-			if ($search_day_start) {
-				$param .= '&search_day_start='.urlencode($search_day_start);
-			}
-			if ($search_month_start) {
-				$param .= '&search_month_start='.urlencode($search_month_start);
-			}
-			if ($search_year_start) {
-				$param .= '&search_year_start='.urlencode($search_year_start);
-			}
-			if ($search_day_end) {
-				$param .= '&search_day_end='.urlencode($search_day_end);
-			}
-			if ($search_month_end) {
-				$param .= '&search_month_end='.urlencode($search_month_end);
-			}
-			if ($search_year_end) {
-				$param .= '&search_year_end='.urlencode($search_year_end);
-			}
-			if ($search_employee > 0) {
-				$param .= '&search_employee='.urlencode($search_employee);
-			}
-			if ($search_valideur > 0) {
-				$param .= '&search_valideur='.urlencode($search_valideur);
-			}
-			if ($search_type > 0) {
-				$param .= '&search_type='.urlencode($search_type);
-			}
-			if ($search_status > 0) {
-				$param .= '&search_status='.urlencode($search_status);
-			}*/
-			// Add $param from extra fields
-		/*	include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_param.tpl.php';
-
-			// List of mass actions available
-			$arrayofmassactions = array(
-				//'generate_doc'=>img_picto('', 'pdf', 'class="pictofixedwidth"').$langs->trans("ReGeneratePDF"),
-				//'builddoc'=>img_picto('', 'pdf', 'class="pictofixedwidth"').$langs->trans("PDFMerge"),
-				//'presend'=>img_picto('', 'email', 'class="pictofixedwidth"').$langs->trans("SendByMail"),
-			);
-			if (!empty($user->rights->holiday->delete)) {
-				$arrayofmassactions['predelete'] = img_picto('', 'delete', 'class="pictofixedwidth"').$langs->trans("Delete");
-			}
-			if (!empty($user->rights->holiday->approve)) {
-				$arrayofmassactions['preapproveleave'] = img_picto('', 'check', 'class="pictofixedwidth"').$langs->trans("Approve");
-			}
-			if (in_array($massaction, array('presend', 'predelete'))) {
-				$arrayofmassactions = array();
-			}
-			$massactionbutton = $form->selectMassAction('', $arrayofmassactions);
-
-			// Lines of title fields
-			print '<form id="searchFormList" action="'.$_SERVER["PHP_SELF"].'" method="POST">'."\n";
-			if ($optioncss != '') {
-				print '<input type="hidden" name="optioncss" value="'.$optioncss.'">';
-			}
-			print '<input type="hidden" name="token" value="'.newToken().'">';
-			print '<input type="hidden" name="formfilteraction" id="formfilteraction" value="list">';
-			print '<input type="hidden" name="action" value="'.($action == 'edit' ? 'update' : 'list').'">';
-			print '<input type="hidden" name="contextpage" value="'.$contextpage.'">';
-			print '<input type="hidden" name="sortfield" value="'.$sortfield.'">';
-			print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
-			if ($id > 0) {
-				print '<input type="hidden" name="id" value="'.$id.'">';
-			}
-
-			$topicmail = "Information";
-			$modelmail = "leaverequest";
-			$objecttmp = new Holiday($db);
-			$trackid = 'leav'.$object->id;
-			include DOL_DOCUMENT_ROOT.'/core/tpl/massactions_pre.tpl.php';
-
-			if ($sall) {
-				foreach ($fieldstosearchall as $key => $val) {
-					$fieldstosearchall[$key] = $langs->trans($val);
-				}
-				print '<div class="divsearchfieldfilter">'.$langs->trans("FilterOnInto", $sall).join(', ', $fieldstosearchall).'</div>';
-			}
-
-			$moreforfilter = '';
-
-			$parameters = array();
-			$reshook = $hookmanager->executeHooks('printFieldPreListTitle', $parameters); // Note that $action and $object may have been modified by hook
-			if (empty($reshook)) {
-				$moreforfilter .= $hookmanager->resPrint;
-			} else {
-				$moreforfilter = $hookmanager->resPrint;
-			}
-
-			if (!empty($moreforfilter)) {
-				print '<div class="liste_titre liste_titre_bydiv centpercent">';
-				print $moreforfilter;
-				print '</div>';
-			}
-
-			$varpage = empty($contextpage) ? $_SERVER["PHP_SELF"] : $contextpage;
-			$selectedfields = $form->multiSelectArrayWithCheckbox('selectedfields', $arrayfields, $varpage); // This also change content of $arrayfields
-			$selectedfields .= (count($arrayofmassactions) ? $form->showCheckAddButtons('checkforselect', 1) : '');
-
-
-			$include = '';
-			if (empty($user->rights->holiday->readall)) {
-				$include = 'hierarchyme'; // Can see only its hierarchyl
-			}
-
-			print '<div class="div-table-responsive">';
-			print '<table class="tagtable liste'.($moreforfilter ? " listwithfilterbefore" : "").'">'."\n";
-
-
-			print '<tr class="liste_titre_filter">';
-
-			if (!empty($arrayfields['cp.ref']['checked'])) {
-				print '<td class="liste_titre">';
-				//print '<input class="flat maxwidth50" type="text" name="search_ref" value="'.dol_escape_htmltag($search_ref).'">';
-				print '</td>';
-			}
-
-			if (!empty($arrayfields['cp.fk_user']['checked'])) {
-				$morefilter = '';
-				if (!empty($conf->global->HOLIDAY_HIDE_FOR_NON_SALARIES)) {
-					$morefilter = 'AND employee = 1';
-				}
-
-				// User
-				$disabled = 0;
-				// If into the tab holiday of a user ($id is set in such a case)
-				if ($id && !GETPOSTISSET('search_employee')) {
-					$search_employee = $id;
-					$disabled = 1;
-				}
-
-				print '<td class="liste_titre maxwidthonsmartphone left">';
-				//print $form->select_dolusers($search_employee, "search_employee", 1, "", $disabled, $include, '', 0, 0, 0, $morefilter, 0, '', 'maxwidth150');
-				print '</td>';
-			}
-
-			// Approver
-			if (!empty($arrayfields['cp.fk_validator']['checked'])) {
-				if ($user->rights->holiday->readall) {
-					print '<td class="liste_titre maxwidthonsmartphone left">';
-					$validator = new UserGroup($db);
-					$excludefilter = $user->admin ? '' : 'u.rowid <> '.$user->id;
-					$valideurobjects = $validator->listUsersForGroup($excludefilter);
-					$valideurarray = array();
-					foreach ($valideurobjects as $val) {
-						$valideurarray[$val->id] = $val->id;
-					}
-					print $form->select_dolusers($search_valideur, "search_valideur", 1, "", 0, $valideurarray, '', 0, 0, 0, $morefilter, 0, '', 'maxwidth150');
-					print '</td>';
-				} else {
-					print '<td class="liste_titre">&nbsp;</td>';
-				}
-			}
-
-			// Type
-			if (!empty($arrayfields['cp.fk_type']['checked'])) {
-				print '<td class="liste_titre">';
-				if (empty($mysoc->country_id)) {
-					setEventMessages(null, array($langs->trans("ErrorSetACountryFirst"), $langs->trans("CompanyFoundation")), 'errors');
-				} else {
-					$typeleaves = $holidaystatic->getTypes(1, -1);
-					$arraytypeleaves = array();
-					foreach ($typeleaves as $key => $val) {
-						$labeltoshow = ($langs->trans($val['code']) != $val['code'] ? $langs->trans($val['code']) : $val['label']);
-						//$labeltoshow .= ($val['delay'] > 0 ? ' ('.$langs->trans("NoticePeriod").': '.$val['delay'].' '.$langs->trans("days").')':'');
-						$arraytypeleaves[$val['rowid']] = $labeltoshow;
-					}
-					print $form->selectarray('search_type', $arraytypeleaves, $search_type, 1, 0, 0, '', 0, 0, 0, '', '', 1);
-				}
-				print '</td>';
-			}
-
-			// Duration
-			if (!empty($arrayfields['duration']['checked'])) {
-				print '<td class="liste_titre">&nbsp;</td>';
-			}
-
-			// Start date
-			if (!empty($arrayfields['cp.date_debut']['checked'])) {
-				print '<td class="liste_titre center nowraponall">';
-				print '<input class="flat valignmiddle maxwidth25" type="text" maxlength="2" name="search_month_start" value="'.dol_escape_htmltag($search_month_start).'">';
-				$formother->select_year($search_year_start, 'search_year_start', 1, $min_year, $max_year);
-				print '</td>';
-			}
-
-			// End date
-			if (!empty($arrayfields['cp.date_fin']['checked'])) {
-				print '<td class="liste_titre center nowraponall">';
-				print '<input class="flat valignmiddle maxwidth25" type="text" maxlength="2" name="search_month_end" value="'.dol_escape_htmltag($search_month_end).'">';
-				$formother->select_year($search_year_end, 'search_year_end', 1, $min_year, $max_year);
-				print '</td>';
-			}
-
-			// End date
-			if (!empty($arrayfields['cp.date_valid']['checked'])) {
-				print '<td class="liste_titre center nowraponall">';
-				print '</td>';
-			}
-
-			// Extra fields
-			include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_input.tpl.php';
-			// Fields from hook
-			$parameters = array('arrayfields'=>$arrayfields);
-			$reshook = $hookmanager->executeHooks('printFieldListOption', $parameters); // Note that $action and $object may have been modified by hook
-			print $hookmanager->resPrint;
-
-			// Create date
-			if (!empty($arrayfields['cp.date_create']['checked'])) {
-				print '<td class="liste_titre center width200">';
-				print '<input class="flat valignmiddle maxwidth25" type="text" maxlength="2" name="search_month_create" value="'.dol_escape_htmltag($search_month_create).'">';
-				$formother->select_year($search_year_create, 'search_year_create', 1, $min_year, 0);
-				print '</td>';
-			}
-
-			// Create date
-			if (!empty($arrayfields['cp.tms']['checked'])) {
-				print '<td class="liste_titre center width200">';
-				print '<input class="flat valignmiddle maxwidth25" type="text" maxlength="2" name="search_month_update" value="'.dol_escape_htmltag($search_month_update).'">';
-				$formother->select_year($search_year_update, 'search_year_update', 1, $min_year, 0);
-				print '</td>';
-			}
-
-			// Status
-			if (!empty($arrayfields['cp.statut']['checked'])) {
-				print '<td class="liste_titre right">';
-				$object->selectStatutCP($search_status, 'search_status', 'minwidth125');
-				print '</td>';
-			}
-
-			// Action column
-			print '<td class="liste_titre maxwidthsearch">';
-			$searchpicto = $form->showFilterButtons();
-			print $searchpicto;
-			print '</td>';
-
-			print "</tr>\n";*/
-/*
-			print '<tr class="liste_titre">';
-			if (!empty($arrayfields['cp.ref']['checked'])) {
-				print '<td>'.$arrayfields['cp.ref']['label'].'</td>';
-			}
-			if (!empty($arrayfields['cp.fk_user']['checked'])) {
-				print '<td>'.$arrayfields['cp.fk_user']['label'].'</td>';
-			}
-			if (!empty($arrayfields['cp.fk_validator']['checked'])) {
-				print '<td>'.$arrayfields['cp.fk_validator']['label'].'</td>';
-			}
-			if (!empty($arrayfields['cp.fk_type']['checked'])) {
-				print '<td>'.$arrayfields['cp.fk_type']['label'].'</td>';
-			}
-			if (!empty($arrayfields['duration']['checked'])) {
-				print '<td>'.$arrayfields['duration']['label'].'</td>';
-			}
-			if (!empty($arrayfields['cp.date_debut']['checked'])) {
-				print '<td>'.$arrayfields['cp.date_debut']['label'].'</td>';
-			}
-			if (!empty($arrayfields['cp.date_fin']['checked'])) {
-				print '<td>'.$arrayfields['cp.date_fin']['label'].'</td>';
-			}
-			if (!empty($arrayfields['cp.date_valid']['checked'])) {
-				print '<td>'.$arrayfields['cp.date_valid']['label'].'</td>';
-			}
-				print '<td>Etat</td><td>';
-			// Extra fields
-			/*include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_search_title.tpl.php';
-			// Hook fields
-			$parameters = array('arrayfields'=>$arrayfields, 'param'=>$param, 'sortfield'=>$sortfield, 'sortorder'=>$sortorder);
-			$reshook = $hookmanager->executeHooks('printFieldListTitle', $parameters); // Note that $action and $object may have been modified by hook
-			print $hookmanager->resPrint;
-			if (!empty($arrayfields['cp.date_create']['checked'])) {
-				print_liste_field_titre($arrayfields['cp.date_create']['label'], $_SERVER["PHP_SELF"], "cp.date_create", "", $param, '', $sortfield, $sortorder, 'center ');
-			}
-			if (!empty($arrayfields['cp.tms']['checked'])) {
-				print_liste_field_titre($arrayfields['cp.tms']['label'], $_SERVER["PHP_SELF"], "cp.tms", "", $param, '', $sortfield, $sortorder, 'center ');
-			}
-			if (!empty($arrayfields['cp.statut']['checked'])) {
-				print_liste_field_titre("Status", $_SERVER["PHP_SELF"], "cp.statut", "", $param, '', $sortfield, $sortorder, 'right ');
-			}
-			print_liste_field_titre($selectedfields, $_SERVER["PHP_SELF"], "", '', '', 'align="center"', $sortfield, $sortorder, 'maxwidthsearch ');*/
-	/*		print "</tr>";
-
-			$listhalfday = array('morning'=>$langs->trans("Morning"), "afternoon"=>$langs->trans("Afternoon"));
-
-
-			// If we ask a dedicated card and not allow to see it, we force on user.
-			if ($id && empty($user->rights->holiday->readall) && !in_array($id, $childids)) {
-				$langs->load("errors");
-				print '<tr class="oddeven opacitymediuem"><td colspan="10">'.$langs->trans("NotEnoughPermissions").'</td></tr>';
-				$result = 0;
-			} elseif ($num > 0 && !empty($mysoc->country_id)) {
-				// Lines
-				$userstatic = new User($db);
-				$approbatorstatic = new User($db);
-
-				$typeleaves = $object->getTypes(1, -1);
-
-				$i = 0;
-				$totalarray = array();
-				$totalarray['nbfield'] = 0;
-				$totalduration = 0;
-				while ($i < min($num, $limit)) {
-					$obj = $db->fetch_object($resql);
-
-					// Leave request
-					$holidaystatic->id = $obj->rowid;
-					$holidaystatic->ref = ($obj->ref ? $obj->ref : $obj->rowid);
-					$holidaystatic->statut = $obj->status;
-					$holidaystatic->date_debut = $db->jdate($obj->date_debut);
-
-					// User
-					$userstatic->id = $obj->fk_user;
-					$userstatic->lastname = $obj->user_lastname;
-					$userstatic->firstname = $obj->user_firstname;
-					$userstatic->admin = $obj->user_admin;
-					$userstatic->email = $obj->user_email;
-					$userstatic->login = $obj->user_login;
-					$userstatic->statut = $obj->user_status;
-					$userstatic->photo = $obj->user_photo;
-
-					// Validator
-					$approbatorstatic->id = $obj->fk_validator;
-					$approbatorstatic->lastname = $obj->validator_lastname;
-					$approbatorstatic->firstname = $obj->validator_firstname;
-					$approbatorstatic->admin = $obj->validator_admin;
-					$approbatorstatic->email = $obj->validator_email;
-					$approbatorstatic->login = $obj->validator_login;
-					$approbatorstatic->statut = $obj->validator_status;
-					$approbatorstatic->photo = $obj->validator_photo;
-
-					$date = $obj->date_create;
-					$date_modif = $obj->date_update;
-
-					$starthalfday = ($obj->halfday == -1 || $obj->halfday == 2) ? 'afternoon' : 'morning';
-					$endhalfday = ($obj->halfday == 1 || $obj->halfday == 2) ? 'morning' : 'afternoon';
-
-					print '<tr class="oddeven">';
-
-					if (!empty($arrayfields['cp.ref']['checked'])) {
-						print '<td class="nowraponall">';
-						print $holidaystatic->getNomUrl(1, 1);
-						print '</td>';
-						if (!$i) {
-							$totalarray['nbfield']++;
-						}
-					}
-					if (!empty($arrayfields['cp.fk_user']['checked'])) {
-						print '<td class="tdoverflowmax150">'.$userstatic->getNomUrl(-1, 'leave').'</td>';
-						if (!$i) {
-							$totalarray['nbfield']++;
-						}
-					}
-					if (!empty($arrayfields['cp.fk_validator']['checked'])) {
-						print '<td class="tdoverflowmax150">'.$approbatorstatic->getNomUrl(-1).'</td>';
-						if (!$i) {
-							$totalarray['nbfield']++;
-						}
-					}
-					if (!empty($arrayfields['cp.fk_type']['checked'])) {
-						print '<td class="minwidth100">';
-						$labeltypeleavetoshow = ($langs->trans($typeleaves[$obj->fk_type]['code']) != $typeleaves[$obj->fk_type]['code'] ? $langs->trans($typeleaves[$obj->fk_type]['code']) : $typeleaves[$obj->fk_type]['label']);
-						print empty($typeleaves[$obj->fk_type]['label']) ? $langs->trans("TypeWasDisabledOrRemoved", $obj->fk_type) : $labeltypeleavetoshow;
-						print '</td>';
-						if (!$i) {
-							$totalarray['nbfield']++;
-						}
-					}
-					if (!empty($arrayfields['duration']['checked'])) {
-						print '<td class="right">';
-						$nbopenedday = num_open_day($db->jdate($obj->date_debut, 1), $db->jdate($obj->date_fin, 1), 0, 1, $obj->halfday);	// user jdate(..., 1) because num_open_day need UTC dates
-						$totalduration += $nbopenedday;
-						print $nbopenedday.' '.$langs->trans('DurationDays');
-						print '</td>';
-						if (!$i) {
-							$totalarray['nbfield']++;
-						}
-					}
-					if (!empty($arrayfields['cp.date_debut']['checked'])) {
-						print '<td class="center">';
-						print dol_print_date($db->jdate($obj->date_debut), 'day');
-						print ' <span class="opacitymedium nowraponall">('.$langs->trans($listhalfday[$starthalfday]).')</span>';
-						print '</td>';
-						if (!$i) {
-							$totalarray['nbfield']++;
-						}
-					}
-					if (!empty($arrayfields['cp.date_fin']['checked'])) {
-						print '<td class="center">';
-						print dol_print_date($db->jdate($obj->date_fin), 'day');
-						print ' <span class="opacitymedium nowraponall">('.$langs->trans($listhalfday[$endhalfday]).')</span>';
-						print '</td>';
-						if (!$i) {
-							$totalarray['nbfield']++;
-						}
-					}
-					if (!empty($arrayfields['cp.date_valid']['checked'])) {		// date_valid is both date_valid but also date_approval
-						print '<td class="center">';
-						print dol_print_date($db->jdate($obj->date_valid), 'day');
-						print '</td>';
-						if (!$i) $totalarray['nbfield']++;
-					}
-					/*if (!empty($arrayfields['cp.date_approve']['checked'])) {
-						print '<td class="center">';
-						print dol_print_date($db->jdate($obj->date_approve), 'day');
-						print '</td>';
-						if (!$i) $totalarray['nbfield']++;
-					}*/
-
-					// Extra fields
-	/*				include DOL_DOCUMENT_ROOT.'/core/tpl/extrafields_list_print_fields.tpl.php';
-					// Fields from hook
-					$parameters = array('arrayfields'=>$arrayfields, 'obj'=>$obj, 'i'=>$i, 'totalarray'=>&$totalarray);
-					$reshook = $hookmanager->executeHooks('printFieldListValue', $parameters); // Note that $action and $object may have been modified by hook
-					print $hookmanager->resPrint;
-
-					// Date creation
-					if (!empty($arrayfields['cp.date_create']['checked'])) {
-						print '<td style="text-align: center;">'.dol_print_date($date, 'dayhour').'</td>';
-						if (!$i) {
-							$totalarray['nbfield']++;
-						}
-					}
-					if (!empty($arrayfields['cp.tms']['checked'])) {
-						print '<td style="text-align: center;">'.dol_print_date($date_modif, 'dayhour').'</td>';
-						if (!$i) {
-							$totalarray['nbfield']++;
-						}
-					}
-					if (!empty($arrayfields['cp.statut']['checked'])) {
-						print '<td class="right nowrap">'.$holidaystatic->getLibStatut(5).'</td>';
-						if (!$i) {
-							$totalarray['nbfield']++;
-						}
-					}
-
-					// Action column
-					/*print '<td class="nowrap center">';
-					if ($massactionbutton || $massaction) {   // If we are in select mode (massactionbutton defined) or if we have already selected and sent an action ($massaction) defined
-						$selected = 0;
-						if (in_array($obj->rowid, $arrayofselected)) {
-							$selected = 1;
-						}
-						print '<input id="cb'.$obj->rowid.'" class="flat checkforselect" type="checkbox" name="toselect[]" value="'.$obj->rowid.'"'.($selected ? ' checked="checked"' : '').'>';
-					}
-					print '</td>';*/
-/*					if (!$i) {
-						$totalarray['nbfield']++;
-					}
-
-					print '</tr>'."\n";
-
-					$i++;
-				}
-
-				// Add a line for total if there is a total to show
-				if (!empty($arrayfields['duration']['checked'])) {
-					print '<tr class="total">';
-					foreach ($arrayfields as $key => $val) {
-						if (!empty($val['checked'])) {
-							if ($key == 'duration') {
-								print '<td class="right">'.$totalduration.' '.$langs->trans('DurationDays').'</td>';
-							} else {
-								print '<td></td>';
-							}
-						}
-					}
-					print '</tr>';
-				}
-			}
-
-			// Si il n'y a pas d'enregistrement suite à une recherche
-			if ($num == 0) {
-				$colspan = 1;
-				foreach ($arrayfields as $key => $val) {
-					if (!empty($val['checked'])) {
-						$colspan++;
-					}
-				}
-				print '<tr><td colspan="'.$colspan.'" class="opacitymedium">'.$langs->trans("NoRecordFound").'</td></tr>';
-			}
-
-			print '</table>';
-			print '</div>';
-
-			print '</form>';
-		} else {
-			dol_print_error($db);
-		}
-
-		// End of page
-		llxFooter();
-		$db->close();
-*/
-	}else print '<h3>Vous n\'avez pas la permission</h3>';
-
-
-
-
-
+$id_societe = GETPOSTINT('id_societe');
+$fk_user = GETPOSTINT('id');
+$fk_salarie = GETPOSTINT('fk_salarie');
+$id_convention = GETPOSTINT('id_convention');
+$action = GETPOST('action', 'aZ09');
+
+$canRead = !empty($user->admin) || !empty($user->rights->paiementsalaire->conges->read);
+$canWrite = !empty($user->admin) || !empty($user->rights->paiementsalaire->conges->write);
+
+if (!$canRead) {
+    accessforbidden();
+}
+
+if (empty($fk_salarie)) {
+    accessforbidden('Identifiant du salarie manquant');
+}
+
+$baseUrl = $_SERVER['PHP_SELF'].'?mainmenu=paiementsalaire&leftmenu=salarie'
+    .'&id='.$fk_user
+    .'&fk_salarie='.$fk_salarie
+    .'&id_convention='.$id_convention
+    .'&id_societe='.$id_societe;
+
+/* Dates disponibles pour l'initialisation et la configuration. */
+$dateAnciennete = '';
+$dateEmployment = '';
+
+$sqlDate = 'SELECT date_anciennete FROM '.MAIN_DB_PREFIX.'salarie';
+$sqlDate .= ' WHERE rowid='.(int) $fk_salarie;
+$resDate = $db->query($sqlDate);
+if ($resDate && ($objDate = $db->fetch_object($resDate)) && !empty($objDate->date_anciennete)) {
+    $dateAnciennete = substr($objDate->date_anciennete, 0, 10);
+}
+
+if (!empty($fk_user)) {
+    $sqlDateUser = 'SELECT dateemployment FROM '.MAIN_DB_PREFIX.'user';
+    $sqlDateUser .= ' WHERE rowid='.(int) $fk_user;
+    $resDateUser = $db->query($sqlDateUser);
+    if ($resDateUser && ($objDateUser = $db->fetch_object($resDateUser)) && !empty($objDateUser->dateemployment)) {
+        $dateEmployment = substr($objDateUser->dateemployment, 0, 10);
     }
 }
 
-
-$db->free();
-/**
- * Show balance of user
- *
- * @param 	Holiday	$holiday	Object $holiday
- * @param	int		$user_id	User id
- * @return	string				Html code with balance
+/*
+ * Initialise le solde une seule fois, lors de la premiere ouverture.
+ * Priorite : salarie.date_anciennete, puis user.dateemployment.
+ * Regle : 2,5 jours par mois complet d'anciennete.
  */
-function showMyBalance($holiday, $user_id)
-{
-	global $conf, $langs;
+$sqlExiste = 'SELECT rowid FROM '.MAIN_DB_PREFIX.'salarie_conge_solde';
+$sqlExiste .= ' WHERE fk_salarie='.(int) $fk_salarie;
+$sqlExiste .= ' AND entity='.(int) $conf->entity;
+$resExiste = $db->query($sqlExiste);
 
-	$alltypeleaves = $holiday->getTypes(1, -1); // To have labels
+if ($resExiste && $db->num_rows($resExiste) === 0) {
+    $dateReference = !empty($dateAnciennete) ? $dateAnciennete : $dateEmployment;
+    $sourceReference = !empty($dateAnciennete) ? 'anciennete' : 'employment';
 
-	$out = '';
-	$nb_holiday = 0;
-	$typeleaves = $holiday->getTypes(1, 1);
-	foreach ($typeleaves as $key => $val) {
-		$nb_type = $holiday->getCPforUser($user_id, $val['rowid']);
-		$nb_holiday += $nb_type;
-		$out .= ' - '.$val['label'].': <strong>'.($nb_type ?price2num($nb_type) : 0).'</strong><br>';
-	}
-	print $langs->trans('SoldeCPUser', round($nb_holiday, 5)).'<br>';
-	print $out;
+    if (!empty($dateReference)) {
+        try {
+            $dateDebut = new DateTime(substr($dateReference, 0, 10));
+            $aujourdhui = new DateTime(date('Y-m-d'));
+
+            if ($dateDebut <= $aujourdhui) {
+                $difference = $dateDebut->diff($aujourdhui);
+                $moisComplets = ((int) $difference->y * 12) + (int) $difference->m;
+                $soldeInitial = round($moisComplets * 2.5, 2);
+
+                /* INSERT IGNORE evite un doublon en cas de deux ouvertures simultanees. */
+                $sqlInit = 'INSERT IGNORE INTO '.MAIN_DB_PREFIX.'salarie_conge_solde';
+                $sqlInit .= ' (fk_salarie, solde_jours, source_reference, date_reference, mois_calcules, date_creation, fk_user_creat, entity)';
+                $sqlInit .= ' VALUES (';
+                $sqlInit .= (int) $fk_salarie.', '.$soldeInitial.', "'.$db->escape($sourceReference).'", "'.$db->escape($dateDebut->format('Y-m-d')).'", '.$moisComplets;
+                $sqlInit .= ', NOW(), '.(int) $user->id.', '.(int) $conf->entity.')';
+                $db->query($sqlInit);
+            }
+        } catch (Exception $e) {
+            setEventMessages('La date utilisee pour initialiser le solde de conge est invalide.', null, 'warnings');
+        }
+    } else {
+        setEventMessages('Impossible d\'initialiser le solde : aucune date d\'anciennete ou date d\'embauche n\'est renseignee.', null, 'warnings');
+    }
 }
+
+/* Reconfiguration de la date de reference et recalcul du solde. */
+if ($action === 'configurer_conge') {
+    if (!$canWrite) {
+        accessforbidden();
+    }
+
+    $postedToken = GETPOST('token', 'alphanohtml');
+    $sessionToken = isset($_SESSION['newtoken']) ? (string) $_SESSION['newtoken'] : '';
+    if (empty($postedToken) || empty($sessionToken) || !hash_equals($sessionToken, (string) $postedToken)) {
+        accessforbidden('Jeton de securite invalide');
+    }
+
+    $sourceReference = GETPOST('source_reference', 'alpha');
+    $datePersonnalisee = GETPOST('date_personnalisee', 'alphanohtml');
+    $dateReference = '';
+
+    if ($sourceReference === 'anciennete') {
+        $dateReference = $dateAnciennete;
+    } elseif ($sourceReference === 'employment') {
+        $dateReference = $dateEmployment;
+    } elseif ($sourceReference === 'personnalisee') {
+        $dateReference = $datePersonnalisee;
+    }
+
+    if (empty($dateReference)) {
+        setEventMessages('La date selectionnee n\'est pas renseignee.', null, 'errors');
+        header('Location: '.$baseUrl);
+        exit;
+    }
+
+    try {
+        $dateDebut = new DateTime(substr($dateReference, 0, 10));
+        $aujourdhui = new DateTime(date('Y-m-d'));
+
+        if ($dateDebut > $aujourdhui) {
+            throw new Exception('La date de reference ne peut pas etre dans le futur.');
+        }
+
+        $difference = $dateDebut->diff($aujourdhui);
+        $moisComplets = ((int) $difference->y * 12) + (int) $difference->m;
+        $droitsCalcules = round($moisComplets * 2.5, 2);
+
+        $db->begin();
+
+        $sqlVerrou = 'SELECT rowid FROM '.MAIN_DB_PREFIX.'salarie_conge_solde';
+        $sqlVerrou .= ' WHERE fk_salarie='.(int) $fk_salarie;
+        $sqlVerrou .= ' AND entity='.(int) $conf->entity.' FOR UPDATE';
+        $resVerrou = $db->query($sqlVerrou);
+        $objVerrou = $resVerrou ? $db->fetch_object($resVerrou) : null;
+
+        $sqlDejaPaye = 'SELECT COALESCE(SUM(jours_payes), 0) AS total_paye';
+        $sqlDejaPaye .= ' FROM '.MAIN_DB_PREFIX.'salarie_conge_paiement';
+        $sqlDejaPaye .= ' WHERE fk_salarie='.(int) $fk_salarie;
+        $sqlDejaPaye .= ' AND entity='.(int) $conf->entity;
+        $resDejaPaye = $db->query($sqlDejaPaye);
+        $objDejaPaye = $resDejaPaye ? $db->fetch_object($resDejaPaye) : null;
+        $totalDejaPaye = $objDejaPaye ? round((float) $objDejaPaye->total_paye, 2) : 0;
+        $nouveauSolde = max(0, round($droitsCalcules - $totalDejaPaye, 2));
+
+        if ($objVerrou) {
+            $sqlConfig = 'UPDATE '.MAIN_DB_PREFIX.'salarie_conge_solde SET';
+            $sqlConfig .= ' solde_jours='.$nouveauSolde;
+            $sqlConfig .= ', source_reference="'.$db->escape($sourceReference).'"';
+            $sqlConfig .= ', date_reference="'.$db->escape($dateDebut->format('Y-m-d')).'"';
+            $sqlConfig .= ', mois_calcules='.$moisComplets;
+            $sqlConfig .= ', fk_user_modif='.(int) $user->id.', tms=NOW()';
+            $sqlConfig .= ' WHERE rowid='.(int) $objVerrou->rowid;
+        } else {
+            $sqlConfig = 'INSERT INTO '.MAIN_DB_PREFIX.'salarie_conge_solde';
+            $sqlConfig .= ' (fk_salarie, solde_jours, source_reference, date_reference, mois_calcules, date_creation, fk_user_creat, entity) VALUES (';
+            $sqlConfig .= (int) $fk_salarie.', '.$nouveauSolde.', "'.$db->escape($sourceReference).'", "'.$db->escape($dateDebut->format('Y-m-d')).'", '.$moisComplets;
+            $sqlConfig .= ', NOW(), '.(int) $user->id.', '.(int) $conf->entity.')';
+        }
+
+        $resConfig = $db->query($sqlConfig);
+
+        $sqlSalarieLog = 'SELECT firstname, lastname FROM '.MAIN_DB_PREFIX.'user';
+        $sqlSalarieLog .= ' WHERE rowid='.(int) $fk_user;
+        $resSalarieLog = $db->query($sqlSalarieLog);
+        $objSalarieLog = $resSalarieLog ? $db->fetch_object($resSalarieLog) : null;
+
+        $sqlSocieteLog = 'SELECT nom FROM '.MAIN_DB_PREFIX.'societe';
+        $sqlSocieteLog .= ' WHERE rowid='.(int) $id_societe;
+        $resSocieteLog = $db->query($sqlSocieteLog);
+        $objSocieteLog = $resSocieteLog ? $db->fetch_object($resSocieteLog) : null;
+
+        $nomCompletSalarieLog = $objSalarieLog
+            ? trim($objSalarieLog->lastname.' '.$objSalarieLog->firstname)
+            : 'Nom non disponible';
+        $nomSocieteLog = $objSocieteLog ? $objSocieteLog->nom : 'Societe non disponible';
+
+        $actionEffectue = 'Configuration du solde conge du salarie #'.(int) $fk_salarie;
+        $actionEffectue .= ' - '.$nomCompletSalarieLog;
+        $actionEffectue .= ' - societe : '.$nomSocieteLog;
+        $actionEffectue .= ' avec la date '.$dateDebut->format('d/m/Y');
+        $actionEffectue .= '. Droits calcules : '.$droitsCalcules.' jour(s), deja payes : '.$totalDejaPaye.' jour(s), solde : '.$nouveauSolde.' jour(s)';
+        $sqlLog = 'INSERT INTO '.MAIN_DB_PREFIX.'log (fk_user, nom, prenom, quand, action_effectue, object_concerne) VALUES (';
+        $sqlLog .= (int) $user->id.', "'.$db->escape($user->lastname).'", "'.$db->escape($user->firstname).'", NOW(), "'.$db->escape($actionEffectue).'", "Configuration conge")';
+        $resLogConfig = $resConfig ? $db->query($sqlLog) : false;
+
+        if ($resConfig && $resLogConfig) {
+            $db->commit();
+            setEventMessages('Le solde a ete recalcule depuis le '.$dateDebut->format('d/m/Y').' : '.$nouveauSolde.' jour(s).', null, 'mesgs');
+        } else {
+            $db->rollback();
+            setEventMessages($db->lasterror(), null, 'errors');
+        }
+    } catch (Exception $e) {
+        if (isset($db) && method_exists($db, 'rollback')) {
+            $db->rollback();
+        }
+        setEventMessages($e->getMessage(), null, 'errors');
+    }
+
+    header('Location: '.$baseUrl);
+    exit;
+}
+
+/* Paiement d'un nombre de jours. */
+if ($action === 'payer_conge') {
+    if (!$canWrite) {
+        accessforbidden();
+    }
+
+    /* Compatibilite avec les versions de Dolibarr sans fonction checkToken(). */
+    $postedToken = GETPOST('token', 'alphanohtml');
+    $sessionToken = isset($_SESSION['newtoken']) ? (string) $_SESSION['newtoken'] : '';
+    if (empty($postedToken) || empty($sessionToken) || !hash_equals($sessionToken, (string) $postedToken)) {
+        accessforbidden('Jeton de securite invalide');
+    }
+
+    $joursPayes = (float) GETPOST('nombre_jours', 'alphanohtml');
+    $joursPayes = round($joursPayes, 2);
+
+    if ($joursPayes <= 0) {
+        setEventMessages('Le nombre de jours doit etre superieur a zero.', null, 'errors');
+        header('Location: '.$baseUrl);
+        exit;
+    }
+
+    $db->begin();
+
+    $sql = 'SELECT rowid, solde_jours';
+    $sql .= ' FROM '.MAIN_DB_PREFIX.'salarie_conge_solde';
+    $sql .= ' WHERE fk_salarie='.(int) $fk_salarie;
+    $sql .= ' AND entity='.(int) $conf->entity;
+    $sql .= ' FOR UPDATE';
+    $resql = $db->query($sql);
+
+    if (!$resql) {
+        $db->rollback();
+        setEventMessages($db->lasterror(), null, 'errors');
+        header('Location: '.$baseUrl);
+        exit;
+    }
+
+    $solde = $db->fetch_object($resql);
+    $ancienSolde = $solde ? round((float) $solde->solde_jours, 2) : 0;
+
+    if (!$solde) {
+        $db->rollback();
+        setEventMessages('Aucun solde de conge n\'est enregistre pour ce salarie.', null, 'errors');
+    } elseif ($ancienSolde <= 0) {
+        $db->rollback();
+        setEventMessages('Le solde de conge est nul.', null, 'errors');
+    } elseif ($joursPayes > $ancienSolde) {
+        $db->rollback();
+        setEventMessages('Le nombre de jours a payer ne peut pas depasser le solde disponible.', null, 'errors');
+    } else {
+        $nouveauSolde = round($ancienSolde - $joursPayes, 2);
+
+        $sqlUpdate = 'UPDATE '.MAIN_DB_PREFIX.'salarie_conge_solde';
+        $sqlUpdate .= ' SET solde_jours='.$nouveauSolde;
+        $sqlUpdate .= ', fk_user_modif='.(int) $user->id;
+        $sqlUpdate .= ', tms=NOW()';
+        $sqlUpdate .= ' WHERE rowid='.(int) $solde->rowid;
+
+        $resUpdate = $db->query($sqlUpdate);
+
+        $sqlArchive = 'INSERT INTO '.MAIN_DB_PREFIX.'salarie_conge_paiement';
+        $sqlArchive .= ' (fk_salarie, ancien_solde, jours_payes, nouveau_solde, date_paiement, fk_user, entity)';
+        $sqlArchive .= ' VALUES (';
+        $sqlArchive .= (int) $fk_salarie.', '.$ancienSolde.', '.$joursPayes.', '.$nouveauSolde;
+        $sqlArchive .= ', NOW(), '.(int) $user->id.', '.(int) $conf->entity.')';
+
+        $resArchive = $resUpdate ? $db->query($sqlArchive) : false;
+
+        /* Enregistrement de la trace dans llx_log. */
+        $resLog = false;
+        if ($resUpdate && $resArchive) {
+            $sqlAdmin = 'SELECT firstname, lastname FROM '.MAIN_DB_PREFIX.'user';
+            $sqlAdmin .= ' WHERE rowid='.(int) $user->id;
+            $resAdmin = $db->query($sqlAdmin);
+            $objAdmin = $resAdmin ? $db->fetch_object($resAdmin) : null;
+
+            $sqlSalarie = 'SELECT firstname, lastname FROM '.MAIN_DB_PREFIX.'user';
+            $sqlSalarie .= ' WHERE rowid='.(int) $fk_user;
+            $resSalarie = $db->query($sqlSalarie);
+            $objSalarie = $resSalarie ? $db->fetch_object($resSalarie) : null;
+
+            $sqlSociete = 'SELECT nom FROM '.MAIN_DB_PREFIX.'societe';
+            $sqlSociete .= ' WHERE rowid='.(int) $id_societe;
+            $resSociete = $db->query($sqlSociete);
+            $objSociete = $resSociete ? $db->fetch_object($resSociete) : null;
+
+            $nomSalarie = $objSalarie
+                ? trim($objSalarie->lastname.' '.$objSalarie->firstname)
+                : 'Nom non disponible';
+            $nomSociete = $objSociete ? $objSociete->nom : 'societe #'.(int) $id_societe;
+
+            $actionEffectue = 'Paiement de '.$joursPayes.' jour(s) de conge du salarie #'.(int) $fk_salarie;
+            $actionEffectue .= ' - '.$nomSalarie;
+            $actionEffectue .= ' - societe : '.$nomSociete;
+            $actionEffectue .= '. Ancien solde : '.$ancienSolde.' jour(s), nouveau solde : '.$nouveauSolde.' jour(s)';
+
+            $nomAdmin = $objAdmin ? $objAdmin->lastname : $user->lastname;
+            $prenomAdmin = $objAdmin ? $objAdmin->firstname : $user->firstname;
+
+            $sqlLog = 'INSERT INTO '.MAIN_DB_PREFIX.'log';
+            $sqlLog .= ' (fk_user, nom, prenom, quand, action_effectue, object_concerne)';
+            $sqlLog .= ' VALUES (';
+            $sqlLog .= (int) $user->id;
+            $sqlLog .= ', "'.$db->escape($nomAdmin).'"';
+            $sqlLog .= ', "'.$db->escape($prenomAdmin).'"';
+            $sqlLog .= ', NOW()';
+            $sqlLog .= ', "'.$db->escape($actionEffectue).'"';
+            $sqlLog .= ', "Paiement conge")';
+            $resLog = $db->query($sqlLog);
+        }
+
+        if ($resUpdate && $resArchive && $resLog) {
+            $db->commit();
+            setEventMessages('Paiement de '.$joursPayes.' jour(s) enregistre. Nouveau solde : '.$nouveauSolde.' jour(s).', null, 'mesgs');
+        } else {
+            $db->rollback();
+            setEventMessages($db->lasterror(), null, 'errors');
+        }
+    }
+
+    header('Location: '.$baseUrl);
+    exit;
+}
+
+/* Lecture du solde courant. */
+$soldeJours = 0;
+$sourceActuelle = '';
+$dateReferenceActuelle = '';
+$sqlSolde = 'SELECT solde_jours, source_reference, date_reference FROM '.MAIN_DB_PREFIX.'salarie_conge_solde';
+$sqlSolde .= ' WHERE fk_salarie='.(int) $fk_salarie;
+$sqlSolde .= ' AND entity='.(int) $conf->entity;
+$resSolde = $db->query($sqlSolde);
+if ($resSolde && ($objSolde = $db->fetch_object($resSolde))) {
+    $soldeJours = round((float) $objSolde->solde_jours, 2);
+    $sourceActuelle = !empty($objSolde->source_reference) ? $objSolde->source_reference : '';
+    $dateReferenceActuelle = !empty($objSolde->date_reference) ? substr($objSolde->date_reference, 0, 10) : '';
+}
+
+$formToken = newToken();
+
+llxHeader('', 'Solde conge | Salaire');
+
+print load_fiche_titre('Solde conge', '', 'holiday');
+
+$head = salaire_Head($fk_salarie, $fk_user, $id_societe, $id_convention);
+print dol_get_fiche_head($head, 'conge', '', -1, '');
+
+$objSoc = prepare_objet_entete($fk_salarie, $fk_user, $db, $id_societe, $id_convention);
+entete_societe($objSoc, 'societe');
+print '<hr>';
+
+print '<style>
+.conge-card{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:26px 30px;margin:20px 0 28px;border:1px solid #d8dee8;border-radius:12px;background:#fff}
+.conge-label{color:#596579;font-size:15px;margin-bottom:5px}.conge-value{font-size:32px;font-weight:700;color:#26354a}.conge-unit{font-size:16px;font-weight:500;color:#596579}
+.conge-empty{padding:28px;text-align:center;color:#6b7280}.conge-modal::backdrop{background:rgba(15,23,42,.55)}
+.conge-modal{width:min(460px,calc(100% - 32px));border:0;border-radius:12px;padding:0;box-shadow:0 20px 55px rgba(15,23,42,.25)}
+.conge-modal-head{padding:20px 24px;border-bottom:1px solid #e5e7eb;font-size:20px;font-weight:700}.conge-modal-body{padding:22px 24px}.conge-modal-actions{display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid #e5e7eb;background:#f8fafc}
+.conge-modal input[type=number],.conge-modal input[type=date]{width:100%;box-sizing:border-box;margin-top:8px;padding:10px}.conge-help{margin-top:8px;color:#6b7280;font-size:13px}
+.conge-buttons{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.conge-choice{display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:1px solid #edf0f4}.conge-choice:last-of-type{border-bottom:0}.conge-choice label{cursor:pointer;flex:1}.conge-choice small{display:block;color:#6b7280;margin-top:3px}
+@media(max-width:600px){.conge-card{align-items:flex-start;flex-direction:column}.conge-card .button{width:100%;text-align:center}.conge-value{font-size:27px}}
+</style>';
+
+print '<div class="conge-card">';
+print '<div><div class="conge-label">Solde de conge disponible</div>';
+print '<div class="conge-value">'.price2num($soldeJours, 'MT').' <span class="conge-unit">jour(s)</span></div>';
+if (!empty($dateReferenceActuelle)) {
+    print '<div class="conge-help">Calcule depuis le '.dol_print_date($db->jdate($dateReferenceActuelle), 'day').'</div>';
+}
+print '</div><div class="conge-buttons">';
+
+if ($canWrite && $soldeJours > 0) {
+    print '<button type="button" class="button button-save" id="openCongeModal">Payer des jours</button>';
+} elseif ($canWrite) {
+    print '<button type="button" class="button" disabled title="Aucun jour disponible">Payer des jours</button>';
+}
+if ($canWrite) {
+    print '<button type="button" class="button" id="openConfigModal">Configurer</button>';
+}
+print '</div></div>';
+
+print '<h3>Archives des paiements</h3>';
+print '<div class="div-table-responsive">';
+print '<table class="tagtable liste" style="width:100%">';
+print '<tr class="liste_titre">';
+print '<td>Date de paiement</td><td class="right">Ancien solde</td><td class="right">Jours payes</td><td class="right">Nouveau solde</td><td>Effectue par</td>';
+print '</tr>';
+
+$sqlArchive = 'SELECT p.date_paiement, p.ancien_solde, p.jours_payes, p.nouveau_solde,';
+$sqlArchive .= ' p.fk_user, u.firstname, u.lastname';
+$sqlArchive .= ' FROM '.MAIN_DB_PREFIX.'salarie_conge_paiement AS p';
+$sqlArchive .= ' LEFT JOIN '.MAIN_DB_PREFIX.'user AS u ON u.rowid=p.fk_user';
+$sqlArchive .= ' WHERE p.fk_salarie='.(int) $fk_salarie;
+$sqlArchive .= ' AND p.entity='.(int) $conf->entity;
+$sqlArchive .= ' ORDER BY p.date_paiement DESC, p.rowid DESC';
+$resArchive = $db->query($sqlArchive);
+$nbArchives = $resArchive ? $db->num_rows($resArchive) : 0;
+
+if ($resArchive && $nbArchives > 0) {
+    while ($archive = $db->fetch_object($resArchive)) {
+        $nomAdmin = trim($archive->firstname.' '.$archive->lastname);
+        print '<tr class="oddeven">';
+        print '<td>'.dol_print_date($db->jdate($archive->date_paiement), 'dayhour').'</td>';
+        print '<td class="right">'.price2num($archive->ancien_solde, 'MT').' jour(s)</td>';
+        print '<td class="right"><strong>'.price2num($archive->jours_payes, 'MT').' jour(s)</strong></td>';
+        print '<td class="right">'.price2num($archive->nouveau_solde, 'MT').' jour(s)</td>';
+        print '<td>'.dol_escape_htmltag($nomAdmin ?: 'Utilisateur #'.$archive->fk_user).'</td>';
+        print '</tr>';
+    }
+} else {
+    print '<tr><td colspan="5" class="conge-empty">Aucun paiement de conge archive pour ce salarie.</td></tr>';
+}
+print '</table></div>';
+
+if ($canWrite && $soldeJours > 0) {
+    print '<dialog id="congeModal" class="conge-modal">';
+    print '<form method="POST" action="'.dol_escape_htmltag($baseUrl).'">';
+    print '<input type="hidden" name="token" value="'.$formToken.'">';
+    print '<input type="hidden" name="action" value="payer_conge">';
+    print '<div class="conge-modal-head">Payer des jours de conge</div>';
+    print '<div class="conge-modal-body">';
+    print '<div>Solde disponible : <strong>'.price2num($soldeJours, 'MT').' jour(s)</strong></div>';
+    print '<label for="nombre_jours" style="display:block;margin-top:18px;font-weight:600">Nombre de jours a payer</label>';
+    print '<input type="number" name="nombre_jours" id="nombre_jours" min="0.01" max="'.$soldeJours.'" step="0.01" required autofocus>';
+    print '<div class="conge-help">Le nombre saisi ne doit pas depasser le solde disponible.</div>';
+    print '</div>';
+    print '<div class="conge-modal-actions"><button type="button" class="button" id="closeCongeModal">Annuler</button><button type="submit" class="button button-save">Payer</button></div>';
+    print '</form></dialog>';
+
+}
+
+if ($canWrite) {
+    $choixActuel = !empty($sourceActuelle)
+        ? $sourceActuelle
+        : (!empty($dateAnciennete) ? 'anciennete' : (!empty($dateEmployment) ? 'employment' : 'personnalisee'));
+    $datePersoValue = ($sourceActuelle === 'personnalisee') ? $dateReferenceActuelle : '';
+
+    print '<dialog id="configCongeModal" class="conge-modal">';
+    print '<form method="POST" action="'.dol_escape_htmltag($baseUrl).'">';
+    print '<input type="hidden" name="token" value="'.$formToken.'">';
+    print '<input type="hidden" name="action" value="configurer_conge">';
+    print '<div class="conge-modal-head">Configurer le solde de conge</div>';
+    print '<div class="conge-modal-body">';
+    print '<div class="conge-help" style="margin:0 0 12px">Choisissez la date de depart du calcul. Le solde sera recalcule a raison de 2,5 jours par mois complet.</div>';
+
+    print '<div class="conge-choice"><input type="radio" name="source_reference" id="source_anciennete" value="anciennete"'.($choixActuel === 'anciennete' ? ' checked' : '').(empty($dateAnciennete) ? ' disabled' : '').'>';
+    print '<label for="source_anciennete"><strong>Date d\'anciennete</strong><small>'.(!empty($dateAnciennete) ? dol_print_date($db->jdate($dateAnciennete), 'day') : 'Non renseignee').'</small></label></div>';
+
+    print '<div class="conge-choice"><input type="radio" name="source_reference" id="source_employment" value="employment"'.($choixActuel === 'employment' ? ' checked' : '').(empty($dateEmployment) ? ' disabled' : '').'>';
+    print '<label for="source_employment"><strong>Date d\'embauche (dateemployment)</strong><small>'.(!empty($dateEmployment) ? dol_print_date($db->jdate($dateEmployment), 'day') : 'Non renseignee').'</small></label></div>';
+
+    print '<div class="conge-choice"><input type="radio" name="source_reference" id="source_personnalisee" value="personnalisee"'.($choixActuel === 'personnalisee' ? ' checked' : '').'>';
+    print '<label for="source_personnalisee"><strong>Saisir une autre date</strong>';
+    print '<input type="date" name="date_personnalisee" id="date_personnalisee" max="'.date('Y-m-d').'" value="'.dol_escape_htmltag($datePersoValue).'"'.($choixActuel !== 'personnalisee' ? ' disabled' : '').'></label></div>';
+    print '</div>';
+    print '<div class="conge-modal-actions"><button type="button" class="button" id="closeConfigModal">Annuler</button><button type="submit" class="button button-save">Enregistrer et recalculer</button></div>';
+    print '</form></dialog>';
+}
+
+print '<script>
+(function () {
+    function bindDialog(modalId, openId, closeId) {
+        var modal = document.getElementById(modalId);
+        var openButton = document.getElementById(openId);
+        var closeButton = document.getElementById(closeId);
+        if (!modal || !openButton || !closeButton) return;
+        openButton.addEventListener("click", function () { modal.showModal(); });
+        closeButton.addEventListener("click", function () { modal.close(); });
+        modal.addEventListener("click", function (event) { if (event.target === modal) modal.close(); });
+    }
+    bindDialog("congeModal", "openCongeModal", "closeCongeModal");
+    bindDialog("configCongeModal", "openConfigModal", "closeConfigModal");
+
+    var radios = document.querySelectorAll("input[name=source_reference]");
+    var customDate = document.getElementById("date_personnalisee");
+    Array.prototype.forEach.call(radios, function (radio) {
+        radio.addEventListener("change", function () {
+            if (!customDate) return;
+            customDate.disabled = this.value !== "personnalisee";
+            customDate.required = this.value === "personnalisee";
+            if (this.value === "personnalisee") customDate.focus();
+        });
+    });
+}());
+</script>';
+
+print dol_get_fiche_end();
+llxFooter();
+$db->close();
